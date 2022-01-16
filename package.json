@@ -4,6 +4,12 @@
   "repository": "https://github.com/YXL76/Griffon.git",
   "author": "YXL <chenxin.lan.76@gmail.com>",
   "license": "(MIT OR Apache-2.0)",
+  "devDependencies": {
+    "typescript": "4.5.4"
+  },
   "private": true,
+  "workspaces": [
+    "./kernel/*"
+  ],
   "packageManager": "yarn@3.2.0-rc.10"
 }
