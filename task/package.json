@@ -1,0 +1,8 @@
+{
+  "name": "@griffon/task",
+  "private": true,
+  "devDependencies": {
+    "@types/node": "*"
+  },
+  "packageManager": "yarn@3.2.0-rc.10"
+}

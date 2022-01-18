@@ -1,0 +1,19 @@
+{
+  "search.exclude": {
+    "**/.yarn": true,
+    "**/.pnp.*": true
+  },
+  "typescript.tsdk": ".yarn/sdks/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "files.associations": {
+    "*.cjson": "jsonc",
+    "*.m": "matlab",
+    "*.mdx": "markdown",
+    "*.s": "platformio-debug.asm",
+    "*.wxs": "javascript",
+    "*.wxss": "css",
+    "errno.h": "c",
+    "features.h": "c",
+    "errno-base.h": "c"
+  }
+}
