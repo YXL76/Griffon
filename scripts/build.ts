@@ -31,7 +31,7 @@ const basicConfig: BuildOptions = {
 (async () => {
     await mkdir(distPath, { recursive: true });
 
-    Promise.all([
+    await Promise.all([
         copyFile(
             resolve(process.cwd(), "index.html"),
             resolve(distPath, "index.html")
@@ -47,4 +47,4 @@ const basicConfig: BuildOptions = {
             entryPoints: [resolve(taskPath, "index.ts")],
         }),
     ]);
-})();
+})().catch(console.error);

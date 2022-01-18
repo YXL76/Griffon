@@ -9,13 +9,14 @@ self.onmessage = ({ data }) => {
 
 function _require(id: string) {
     if (id.startsWith("node:")) {
-        return nodeRequire(id);
+        return nodeRequire(id) as unknown;
     }
-    return nodeRequire(id);
+    return nodeRequire(id) as unknown;
 }
 
 function start() {
     /** @see {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/eval#never_use_eval! Never use eval()!} */
+    // eslint-disable-next-line @typescript-eslint/no-implied-eval
     Function(
         "require",
         "process",

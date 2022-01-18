@@ -1,20 +1,8 @@
 {
   "compilerOptions": {
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
     "lib": ["es2021", "webworker"],
-    "module": "es2022",
-    "moduleResolution": "node",
-    "noEmit": true,
-    "noFallthroughCasesInSwitch": true,
-    "noImplicitOverride": true,
-    "noImplicitReturns": true,
-    "noUnusedParameters": true,
-    "skipLibCheck": true,
-    "noUnusedLocals": true,
-    "strict": true,
-    "target": "es2021",
     "types": []
   },
+  "extends": "../tsconfig.json",
   "include": ["."]
 }

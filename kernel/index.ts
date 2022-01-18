@@ -9,8 +9,10 @@ const enum Scope {
 // Check scope
 const scope: Scope = (() => {
     if (typeof self !== "object") return Scope.unknwon;
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     if (typeof Window === "function" && self instanceof Window) {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         if (typeof window === "object" && self === window) return Scope.window;
     }
@@ -37,9 +39,9 @@ else if (scope === Scope.window) {
     sw.addEventListener(
         "activate",
         (e) =>
-            e.waitUntil(() => {
+            e.waitUntil(async () => {
                 console.log("Activating Service Worker");
-                sw.clients.claim();
+                await sw.clients.claim();
                 boot();
             }),
         { once: true }

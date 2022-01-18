@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/naming-convention */
+
 /** The errno is used by many functions to return error values. */
 export const enum Errno {
     /** Operation not permitted                             */ EPERM = 1,
