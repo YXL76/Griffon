@@ -15,5 +15,6 @@
     "errno.h": "c",
     "features.h": "c",
     "errno-base.h": "c"
-  }
+  },
+  "conventionalCommits.scopes": ["vercel"]
 }
