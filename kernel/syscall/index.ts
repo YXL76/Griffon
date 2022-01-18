@@ -1,0 +1,1 @@
+import { IPosixSyscall } from "./posix";
