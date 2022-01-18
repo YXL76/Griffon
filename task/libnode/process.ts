@@ -16,7 +16,7 @@ export class Process implements NodeJS.Process {
         const int32 = new Int32Array(self.sab);
         if (Atomics.wait(int32, 0, 0) === "ok") {
             const len = Atomics.exchange(int32, 0, 0);
-            let buf8 = new Uint8Array(uint8.subarray(4, len + 4)); // skip the fisrt i32
+            const buf8 = new Uint8Array(uint8.subarray(4, len + 4)); // skip the fisrt i32
             return new TextDecoder().decode(buf8.buffer);
         } else throw Error("wait failed");
     }
@@ -31,9 +31,9 @@ function _memoryUsage() {
         };
     }
 
-    let { memory } = performance as ChromePerformance;
+    const { memory } = performance as ChromePerformance;
     if (memory) {
-        let { totalJSHeapSize, usedJSHeapSize } = memory;
+        const { totalJSHeapSize, usedJSHeapSize } = memory;
         return {
             rss: totalJSHeapSize - usedJSHeapSize,
             heapTotal: totalJSHeapSize,

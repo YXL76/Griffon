@@ -1,1 +1,1 @@
-import { IPosixSyscall } from "./posix";
+export * from "./posix";

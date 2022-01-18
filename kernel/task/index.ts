@@ -1,10 +1,15 @@
+import { Errno } from "../error";
+import type { IPosixSyscall } from "../syscall";
+
 interface ITask {
     worker: Worker;
 
     pid: number;
 }
 
-export class Task implements ITask {
+export class Task implements ITask, IPosixSyscall {
+    static maxPid = 0;
+
     worker: Worker;
 
     pid: number;
@@ -30,22 +35,30 @@ export class Task implements ITask {
         this.worker.onmessage = ({ data }) => {
             if (data.type === "syscall") {
                 /** @see {@link https://developer.mozilla.org/en-US/docs/Web/API/TextEncoder/encodeInto#buffer_sizing Buffer Sizing} */
-                const buf8 = new Uint8Array((this.cwd.length << 1) + 5);
-                let { written } = new TextEncoder().encodeInto(this.cwd, buf8);
-                if (!written) written = 0;
-                this.uint8.subarray(4).set(buf8.subarray(0, written)); // skip the fisrt i32
-                this.int32[0] = written;
+                const optLen = (this.cwd.length << 1) + 5;
+                const buf8 = this.getcwd(new Uint8Array(optLen), optLen);
+                if (buf8) {
+                    this.uint8.subarray(4).set(buf8); // skip the fisrt i32
+                    this.int32[0] = buf8.length;
+                }
                 Atomics.notify(this.int32, 0);
             }
         };
         this.worker.postMessage({ type: "sab", sab: this.sab });
     }
 
-    static maxPid = 0;
-
     static nextPid() {
         // 2^32 - 1
         if (++this.maxPid > 4294967295) throw Error("Too many tasks");
         return this.maxPid;
+    }
+
+    getcwd(buf: Uint8Array, size: number): Uint8Array | void {
+        if (size === 0) throw Error(Errno.EINVAL.toString());
+        const { read, written } = new TextEncoder().encodeInto(this.cwd, buf);
+        if (!read) return;
+        if (read < this.cwd.length) throw Error(Errno.ERANGE.toString());
+        if (!written) return;
+        return buf.subarray(0, written);
     }
 }
