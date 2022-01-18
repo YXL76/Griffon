@@ -22,7 +22,7 @@ const scope: Scope = (() => {
     return Scope.unknwon;
 })();
 
-if (scope === Scope.unknwon) throw new Error("Unable to determine scope");
+if (scope === Scope.unknwon) throw Error("Unable to determine scope");
 else if (scope === Scope.window) {
     boot();
 } else if (scope === Scope.serviceWorker) {

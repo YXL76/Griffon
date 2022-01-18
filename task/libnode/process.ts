@@ -12,11 +12,13 @@ export class Process implements NodeJS.Process {
 
     cwd() {
         self.postMessage({ type: "syscall" });
+        const uint8 = new Uint8Array(self.sab);
         const int32 = new Int32Array(self.sab);
-        Atomics.wait(int32, 0, 0);
-        const len = Atomics.exchange(int32, 0, 0);
-        let uint8 = new Uint8Array(int32.subarray(1)).subarray(0, len);
-        return new TextDecoder().decode(uint8);
+        if (Atomics.wait(int32, 0, 0) === "ok") {
+            const len = Atomics.exchange(int32, 0, 0);
+            let buf8 = new Uint8Array(uint8.subarray(4, len + 4)); // skip the fisrt i32
+            return new TextDecoder().decode(buf8.buffer);
+        } else throw Error("wait failed");
     }
 }
 

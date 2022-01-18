@@ -29,10 +29,12 @@ export class Task implements ITask {
         this.uint32 = new Uint32Array(this.sab);
         this.worker.onmessage = ({ data }) => {
             if (data.type === "syscall") {
-                const buf = new Uint8Array(this.uint32.subarray(1));
-                let { written } = new TextEncoder().encodeInto(this.cwd, buf);
-                if (!written || written === 0) written = 1;
-                this.uint32[0] = written;
+                /** @see {@link https://developer.mozilla.org/en-US/docs/Web/API/TextEncoder/encodeInto#buffer_sizing Buffer Sizing} */
+                const buf8 = new Uint8Array((this.cwd.length << 1) + 5);
+                let { written } = new TextEncoder().encodeInto(this.cwd, buf8);
+                if (!written) written = 0;
+                this.uint8.subarray(4).set(buf8.subarray(0, written)); // skip the fisrt i32
+                this.int32[0] = written;
                 Atomics.notify(this.int32, 0);
             }
         };
@@ -43,7 +45,7 @@ export class Task implements ITask {
 
     static nextPid() {
         // 2^32 - 1
-        if (++this.maxPid > 4294967295) throw new Error("Too many tasks");
+        if (++this.maxPid > 4294967295) throw Error("Too many tasks");
         return this.maxPid;
     }
 }
