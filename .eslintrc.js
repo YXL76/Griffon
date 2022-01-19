@@ -14,15 +14,32 @@ const config = {
   overrides: [
     [["./kernel/**/*.ts"], "./kernel/tsconfig.json"],
     [["./scripts/**/*.ts"], "./scripts/tsconfig.json"],
-    [["./task/**/*.ts"], "./task/tsconfig.json"],
+    [
+      ["./task/**/*.ts"],
+      "./task/tsconfig.json",
+      {
+        // ignore node.js globals
+        "no-restricted-globals": [
+          "error",
+          "process",
+          "console",
+          "__filename",
+          "__dirname",
+          "require",
+          "module",
+          "exports",
+        ],
+      },
+    ],
     [["./user/**/*.ts"], "./user/tsconfig.json"],
-  ].map(([files, project]) => ({
+  ].map(([files, project, rules]) => ({
     files,
     parserOptions: {
       ecmaVersion: 2021,
       project,
       sourceType: "module",
     },
+    rules,
   })),
   plugins: ["@typescript-eslint", "prettier"],
   rules: {
