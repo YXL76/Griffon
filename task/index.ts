@@ -20,6 +20,16 @@ function start() {
   Function(
     "require",
     "process",
-    `'use strict'; require("path");console.log(process.cwd());`
+    `'use strict';
+    const { basename, win32, dirname, extname, isAbsolute, join } = require("path");
+
+    console.log(basename("/foo/bar/baz/asdf/quux.html"));
+    console.log(win32.basename("C:\\foo.html", ".html"));
+    console.log(dirname("/foo/bar/baz/asdf/quux"));
+    console.log(extname("index.html"));
+    console.log(isAbsolute("/foo/bar"));
+    console.log(join("/foo", "bar", "baz/asdf", "quux", ".."));
+    
+    console.log(process.cwd());`
   ).call(null, _require, new Process());
 }
