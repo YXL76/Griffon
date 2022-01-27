@@ -21,6 +21,7 @@ const config = {
         // ignore node.js globals
         "no-restricted-globals": [
           "error",
+          "Buffer",
           "__filename",
           "__dirname",
           "require",
