@@ -1,5 +1,7 @@
 import { Process, nodeRequire } from "./libnode";
 
+self.process = new Process();
+
 self.onmessage = ({ data }) => {
   if (data.type === "sab") {
     self.sab = data.sab;
@@ -19,17 +21,16 @@ function start() {
   // eslint-disable-next-line @typescript-eslint/no-implied-eval
   Function(
     "require",
-    "process",
     `'use strict';
     const { basename, win32, dirname, extname, isAbsolute, join } = require("path");
 
     console.log(basename("/foo/bar/baz/asdf/quux.html"));
-    console.log(win32.basename("C:\\foo.html", ".html"));
+    console.log(win32.basename("C:\\\\foo.html", ".html"));
     console.log(dirname("/foo/bar/baz/asdf/quux"));
     console.log(extname("index.html"));
     console.log(isAbsolute("/foo/bar"));
     console.log(join("/foo", "bar", "baz/asdf", "quux", ".."));
     
     console.log(process.cwd());`
-  ).call(null, _require, new Process());
+  ).call(null, _require);
 }

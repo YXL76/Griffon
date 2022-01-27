@@ -24,7 +24,7 @@ export class Process implements NodeJS.Process {
 
 function _memoryUsage() {
   interface ChromePerformance extends Performance {
-    memory: {
+    memory?: {
       jsHeapSizeLimit: number;
       totalJSHeapSize: number;
       usedJSHeapSize: number;
