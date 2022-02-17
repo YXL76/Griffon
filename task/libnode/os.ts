@@ -1,6 +1,6 @@
 /// <reference types="node/os" />
 
-import type * as os from "os";
+import type * as os from "node:os";
 
 /** @see {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/DataView#endianness Endianness} */
 const isBigEndian = (() => {

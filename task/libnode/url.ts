@@ -1,6 +1,6 @@
 /// <reference types="node/url" />
 
-import type * as url from "url";
+import type * as url from "node:url";
 
 export {
   domainToASCII,

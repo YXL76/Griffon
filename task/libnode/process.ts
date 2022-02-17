@@ -20,6 +20,10 @@ export class Process implements NodeJS.Process {
       return new TextDecoder().decode(buf8.buffer);
     } else throw Error("wait failed");
   }
+
+  nextTick(callback, ...args) {
+    queueMicrotask(() => callback(...args));
+  }
 }
 
 function _memoryUsage() {

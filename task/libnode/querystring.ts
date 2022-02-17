@@ -1,7 +1,7 @@
 /// <reference types="node/querystring" />
 
-import type * as querystring from "querystring";
-import type { ParsedUrlQuery, ParsedUrlQueryInput } from "querystring";
+import type * as querystring from "node:querystring";
+import type { ParsedUrlQuery, ParsedUrlQueryInput } from "node:querystring";
 import { encodeStr, hexTable, isHexTable } from "./internal/querystring";
 
 const unhexTable = new Int8Array([

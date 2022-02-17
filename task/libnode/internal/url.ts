@@ -1,6 +1,6 @@
 /// <reference types="node/url" />
 
-import type * as url from "url";
+import type * as url from "node:url";
 import { CHAR_FORWARD_SLASH } from "./constants";
 import path from "../path";
 

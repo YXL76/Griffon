@@ -11,7 +11,7 @@ import {
   CHAR_UPPERCASE_A,
   CHAR_UPPERCASE_Z,
 } from "./internal/constants";
-import type { FormatInputPathObject, PlatformPath } from "path";
+import type { FormatInputPathObject, PlatformPath } from "node:path";
 
 function isPathSeparator(code: number) {
   return code === CHAR_FORWARD_SLASH || code === CHAR_BACKWARD_SLASH;
