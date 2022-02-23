@@ -1,11 +1,15 @@
-export function isAnyArrayBuffer(value: unknown) {
+export function isAnyArrayBuffer(
+  value: unknown
+): value is ArrayBuffer | SharedArrayBuffer {
   return (
     value instanceof ArrayBuffer ||
     Object.prototype.toString.call(value) === "[object SharedArrayBuffer]"
   );
 }
 
-export function isArrayBufferView(value: unknown) {
+export function isArrayBufferView(
+  value: unknown
+): value is NodeJS.ArrayBufferView {
   return ArrayBuffer.isView(value);
 }
 
@@ -30,23 +34,30 @@ export function isGeneratorFunction(value: unknown) {
   );
 }
 
-export function isBooleanObject(value: unknown) {
+// eslint-disable-next-line @typescript-eslint/ban-types
+export function isBooleanObject(value: unknown): value is Boolean {
   return value instanceof Boolean;
 }
 
-export function isNumberObject(value: unknown) {
+// eslint-disable-next-line @typescript-eslint/ban-types
+export function isNumberObject(value: unknown): value is Boolean {
   return value instanceof Number;
 }
 
-export function isStringObject(value: unknown) {
+// eslint-disable-next-line @typescript-eslint/ban-types
+export function isStringObject(value: unknown): value is String {
   return value instanceof String;
 }
 
-export function isSymbolObject(value: unknown) {
+// eslint-disable-next-line @typescript-eslint/ban-types
+export function isSymbolObject(value: unknown): value is Symbol {
   return typeof value === "object" && value instanceof Symbol;
 }
 
-export function isBoxedPrimitive(value: unknown) {
+export function isBoxedPrimitive(
+  value: unknown
+  // eslint-disable-next-line @typescript-eslint/ban-types
+): value is Boolean | Number | String {
   return (
     value instanceof Boolean ||
     value instanceof Number ||
@@ -67,11 +78,11 @@ export function isExternal() {
   return false;
 }
 
-export function isPromise(value: unknown) {
+export function isPromise<T = unknown>(value: unknown): value is Promise<T> {
   return value instanceof Promise;
 }
 
-export function isProxy(value: unknown) {
+export function isProxy(value: unknown): value is typeof Proxy {
   return value instanceof Proxy;
 }
 
@@ -83,7 +94,9 @@ export function isGeneratorObject(value: unknown) {
   return Object.prototype.toString.call(value) === "[object Generator]";
 }
 
-export function isMap(value: unknown) {
+export function isMap<K = unknown, V = unknown>(
+  value: unknown
+): value is Map<K, V> {
   return value instanceof Map;
 }
 
@@ -91,7 +104,7 @@ export function isMapIterator(value: unknown) {
   return Object.prototype.toString.call(value) === "[object Map Iterator]";
 }
 
-export function isSet(value: unknown) {
+export function isSet<T = unknown>(value: unknown): value is Set<T> {
   return value instanceof Set;
 }
 
@@ -114,7 +127,7 @@ export function isModuleNamespaceObject(value: unknown) {
   );
 }
 
-export function isNativeError(value: unknown) {
+export function isNativeError(value: unknown): value is Error {
   return value instanceof Error;
 }
 
@@ -124,21 +137,10 @@ export function isSharedArrayBuffer(
   return Object.prototype.toString.call(value) === "[object SharedArrayBuffer]";
 }
 
-type TypedArray =
-  | Int8Array
-  | Uint8Array
-  | Uint8ClampedArray
-  | Int16Array
-  | Uint16Array
-  | Int32Array
-  | Uint32Array
-  | Float32Array
-  | Float64Array;
-
 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 const typedArray = Object.getPrototypeOf(Uint8Array);
 
-export function isTypedArray(value: unknown): value is TypedArray {
+export function isTypedArray(value: unknown): value is NodeJS.TypedArray {
   return value instanceof typedArray;
 }
 

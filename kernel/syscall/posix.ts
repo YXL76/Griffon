@@ -12,5 +12,21 @@ export interface IPosixSyscall {
    * @returns the buffer if successful, or void if an error occurred
    * @see {@link https://pubs.opengroup.org/onlinepubs/9699919799/functions/getcwd.html getcwd}
    */
-  getcwd: (buf: Uint8Array, size: number) => Uint8Array | void;
+  getcwd(buf: Uint8Array, size: number): Uint8Array | void;
+
+  /**
+   * Get the process ID
+   * @description The function shall return the process ID of the calling process.
+   * @returns The function shall always be successful and no return value is reserved to indicate an error.
+   * @see {@link https://pubs.opengroup.org/onlinepubs/9699919799/functions/getpid.html getpid}
+   */
+  getpid(): number;
+
+  /**
+   * Get the parent process ID
+   * @description The function shall return the parent process ID of the calling process.
+   * @returns The function shall always be successful and no return value is reserved to indicate an error.
+   * @see {@link https://pubs.opengroup.org/onlinepubs/9699919799/functions/getppid.html getppid}
+   */
+  getppid(): number;
 }

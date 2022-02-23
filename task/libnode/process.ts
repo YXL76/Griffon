@@ -10,6 +10,8 @@ export class Process implements NodeJS.Process {
 
   readonly memoryUsage = _memoryUsage;
 
+  private readonly _startTime = performance.now();
+
   cwd() {
     self.postMessage({ type: "syscall" });
     const uint8 = new Uint8Array(self.sab);
@@ -21,8 +23,14 @@ export class Process implements NodeJS.Process {
     } else throw Error("wait failed");
   }
 
-  nextTick(callback, ...args) {
+  // eslint-disable-next-line @typescript-eslint/ban-types, @typescript-eslint/no-explicit-any
+  nextTick(callback: Function, ...args: any[]) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-argument
     queueMicrotask(() => callback(...args));
+  }
+
+  uptime() {
+    return (performance.now() - this._startTime) / 1000;
   }
 }
 
