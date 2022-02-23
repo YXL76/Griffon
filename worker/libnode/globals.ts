@@ -1,9 +1,9 @@
 /// <reference types="node/globals" />
 
-import * as os from "../libnode/os";
-import * as querystring from "../libnode/querystring";
-import * as url from "../libnode/url";
-import path from "../libnode/path";
+import * as os from "./os";
+import * as querystring from "./querystring";
+import * as url from "./url";
+import path from "./path";
 
 function _require(id: string) {
   switch (id) {

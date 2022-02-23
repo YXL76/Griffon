@@ -12,8 +12,8 @@ const config = {
   ],
   parser: "@typescript-eslint/parser",
   overrides: [
-    [["./kernel/**/*.ts"], "./kernel/tsconfig.json"],
     [["./scripts/**/*.ts"], "./scripts/tsconfig.json"],
+    [["./service/**/*.ts"], "./service/tsconfig.json"],
     [
       ["./task/**/*.ts"],
       "./task/tsconfig.json",
@@ -31,6 +31,8 @@ const config = {
       },
     ],
     [["./user/**/*.ts"], "./user/tsconfig.json"],
+    [["./window/**/*.ts"], "./window/tsconfig.json"],
+    [["./worker/**/*.ts"], "./worker/tsconfig.json"],
   ].map(([files, project, rules]) => ({
     files,
     parserOptions: {

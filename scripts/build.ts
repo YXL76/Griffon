@@ -6,10 +6,12 @@ import { resolve } from "path";
 
 const prod = process.env["NODE_ENV"] === "production";
 
+// TODO
 const rootPath = resolve(process.cwd(), "..");
 const distPath = resolve(rootPath, "dist");
-const taskPath = resolve(rootPath, "task");
-const kernelPath = resolve(rootPath, "kernel");
+const servicePath = resolve(rootPath, "service");
+const windowPath = resolve(rootPath, "window");
+const workerPath = resolve(rootPath, "worker");
 
 const basicConfig: BuildOptions = {
   sourcemap: !prod,
@@ -38,13 +40,18 @@ const basicConfig: BuildOptions = {
     ),
     build({
       ...basicConfig,
-      outfile: resolve(distPath, "kernel.js"),
-      entryPoints: [resolve(kernelPath, "index.ts")],
+      outfile: resolve(distPath, "service.js"),
+      entryPoints: [resolve(servicePath, "index.ts")],
     }),
     build({
       ...basicConfig,
-      outfile: resolve(distPath, "task.js"),
-      entryPoints: [resolve(taskPath, "index.ts")],
+      outfile: resolve(distPath, "window.js"),
+      entryPoints: [resolve(windowPath, "index.ts")],
+    }),
+    build({
+      ...basicConfig,
+      outfile: resolve(distPath, "worker.js"),
+      entryPoints: [resolve(workerPath, "index.ts")],
     }),
   ]);
 })().catch(console.error);
