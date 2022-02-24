@@ -4,40 +4,26 @@ export const hexTable = new Array(256) as string[];
 for (let i = 0; i < 256; ++i)
   hexTable[i] = "%" + ((i < 16 ? "0" : "") + i.toString(16)).toUpperCase();
 
+/* eslint-disable prettier/prettier */
 export const isHexTable = new Int8Array([
-  // eslint-disable-next-line prettier/prettier
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0 - 15
-  // eslint-disable-next-line prettier/prettier
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 16 - 31
-  // eslint-disable-next-line prettier/prettier
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 32 - 47
-  // eslint-disable-next-line prettier/prettier
   1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, // 48 - 63
-  // eslint-disable-next-line prettier/prettier
   0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 64 - 79
-  // eslint-disable-next-line prettier/prettier
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 80 - 95
-  // eslint-disable-next-line prettier/prettier
   0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 96 - 111
-  // eslint-disable-next-line prettier/prettier
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 112 - 127
-  // eslint-disable-next-line prettier/prettier
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 128 ...
-  // eslint-disable-next-line prettier/prettier
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  // eslint-disable-next-line prettier/prettier
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  // eslint-disable-next-line prettier/prettier
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  // eslint-disable-next-line prettier/prettier
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  // eslint-disable-next-line prettier/prettier
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  // eslint-disable-next-line prettier/prettier
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  // eslint-disable-next-line prettier/prettier
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  // ... 256
 ]);
+/* eslint-enable prettier/prettier */
 
 export function encodeStr(
   str: string,

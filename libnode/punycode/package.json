@@ -1,0 +1,10 @@
+{
+  "name": "@griffon/libnode-punycode",
+  "private": true,
+  "devDependencies": {
+    "@types/punycode": "2.1.0"
+  },
+  "dependencies": {
+    "punycode": "2.1.1"
+  }
+}

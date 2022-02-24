@@ -1,3 +1,5 @@
+export * as types from "./types";
+
 const kCustomPromisifiedSymbol = Symbol.for("nodejs.util.promisify.custom");
 const kCustomPromisifyArgsSymbol = Symbol("customPromisifyArgs");
 
@@ -48,7 +50,7 @@ export function promisify<T1, T2, TResult>(
   ): Promise<TResult> {
     return new Promise((resolve, reject) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      original.call(this, ...args, (err: any, ...values) => {
+      Array.prototype.push(args, (err: any, ...values: [TResult]) => {
         if (err) return reject(err);
 
         if (argumentNames !== undefined && values.length > 1) {
@@ -56,8 +58,11 @@ export function promisify<T1, T2, TResult>(
           for (let i = 0; i < argumentNames.length; i++)
             obj[argumentNames[i]] = values[i];
           resolve(obj as unknown as TResult);
-        } else resolve(values[0]);
+        } else {
+          resolve(values[0]);
+        }
       });
+      Reflect.apply(original, this, args);
     });
   }
 

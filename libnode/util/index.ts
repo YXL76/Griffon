@@ -1,7 +1,12 @@
-import { hideStackFrames } from "./internal/errors";
+export { types, promisify } from "@griffon/libnode-internal/util";
 
-export * as types from "./internal/util/types";
-export { promisify } from "./internal/util";
+import { _processNextTick } from "@griffon/libnode-internal/helper";
+import { hideStackFrames } from "@griffon/libnode-internal/errors";
+
+const globalTextDecoder = TextDecoder;
+const globalTextEncoder = TextEncoder;
+
+export { globalTextDecoder as TextDecoder, globalTextEncoder as TextEncoder };
 
 const ERR_INVALID_ARG_TYPE = Error;
 const ERR_FALSY_VALUE_REJECTION = Error;
@@ -35,19 +40,17 @@ export function callbackify<T1, T2, TResult>(
   // the promise is actually somehow related to the callback's execution
   // and that the callback throwing will reject the promise.
   function callbackified(this: unknown, ...args: unknown[]) {
-    const maybeCb = args.pop();
+    const maybeCb = args.pop() as Parameters<ReturnType<typeof callbackify>>[2];
     if (typeof maybeCb !== "function") {
       // throw new ERR_INVALID_ARG_TYPE("last argument", "Function", maybeCb);
       throw new ERR_INVALID_ARG_TYPE("last argument");
     }
-    const cb = (...args: unknown[]) => {
-      Reflect.apply(maybeCb, this, args);
-    };
+    const cb = maybeCb.bind(this);
     // In true node style we process the callback on `nextTick` with all the
     // implications (stack, `uncaughtException`, `async_hooks`)
     (Reflect.apply(original, this, args) as Promise<TResult>).then(
-      (ret) => process.nextTick(cb, null, ret),
-      (rej) => process.nextTick(callbackifyOnRejected, rej, cb)
+      (ret) => _processNextTick(cb, null, ret),
+      (rej) => _processNextTick(callbackifyOnRejected, rej, cb)
     );
   }
 

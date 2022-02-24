@@ -1,34 +1,98 @@
 /// <reference types="node/url" />
 
 import type * as url from "node:url";
-import { CHAR_FORWARD_SLASH } from "./constants";
-import path from "../path";
+import {
+  CHAR_FORWARD_SLASH,
+  CHAR_LOWERCASE_A,
+  CHAR_LOWERCASE_Z,
+} from "@griffon/libnode-internal/constants";
+import { isWindows } from "@griffon/libnode-internal/helper";
+import path from "@griffon/libnode-path";
+import { toUnicode } from "@griffon/libnode-punycode";
+
+const globalURL = URL;
+const globalURLSearchParams = URLSearchParams;
+
+export { globalURL as URL, globalURLSearchParams as URLSearchParams };
 
 const ERR_INVALID_URL_SCHEME = Error;
 const ERR_INVALID_FILE_URL_HOST = Error;
 const ERR_INVALID_FILE_URL_PATH = Error;
 
+export const format = ((
+  urlObject: URL,
+  options?: url.URLFormatOptions
+): string => {
+  if (!options) return urlObject.toString();
+  const tmp = new URL(urlObject);
+  if (options.auth === false) tmp.username = tmp.password = "";
+  if (options.fragment === false) tmp.hash = "";
+  if (options.search === false) tmp.search = "";
+  const ret = tmp.toString();
+  return options.unicode ? toUnicode(ret) : ret;
+}) as typeof url.format;
+
 export const domainToASCII: typeof url.domainToASCII = function (domain) {
   try {
-    const url = new URL(`http://${domain}`);
+    const url = new URL(
+      domain.startsWith("http") ? domain : `https://${domain}`
+    );
     return url.hostname;
   } catch {
     return "";
   }
 };
 
-export const domainToUnicode: typeof url.domainToUnicode = function (domain) {
-  try {
-    return decodeURIComponent(domain);
-  } catch {
-    return domain;
+export const domainToUnicode: typeof url.domainToUnicode = toUnicode;
+
+const forwardSlashRegEx = /\//g;
+
+function getPathFromURLWin32(url: URL) {
+  const hostname = url.hostname;
+  let pathname = url.pathname;
+  for (let n = 0; n < pathname.length; n++) {
+    if (pathname[n] === "%") {
+      const third = pathname.codePointAt(n + 2) as number | 0x20;
+      if (
+        (pathname[n + 1] === "2" && third === 102) || // 2f 2F /
+        (pathname[n + 1] === "5" && third === 99)
+      ) {
+        // 5c 5C \
+        throw new ERR_INVALID_FILE_URL_PATH(
+          "must not include encoded \\ or / characters"
+        );
+      }
+    }
   }
-};
+  pathname = pathname.replace(forwardSlashRegEx, "\\");
+  pathname = decodeURIComponent(pathname);
+  if (hostname !== "") {
+    // If hostname is set, then we have a UNC path
+    // Pass the hostname through domainToUnicode just in case
+    // it is an IDN using punycode encoding. We do not need to worry
+    // about percent encoding because the URL parser will have
+    // already taken care of that for us. Note that this only
+    // causes IDNs with an appropriate `xn--` prefix to be decoded.
+    return `\\\\${domainToUnicode(hostname)}${pathname}`;
+  }
+  // Otherwise, it's a local path that requires a drive letter
+  const letter = pathname.codePointAt(1) as number | 0x20;
+  const sep = pathname[2];
+  if (
+    letter < CHAR_LOWERCASE_A ||
+    letter > CHAR_LOWERCASE_Z || // a..z A..Z
+    sep !== ":"
+  ) {
+    throw new ERR_INVALID_FILE_URL_PATH("must be absolute");
+  }
+  return pathname.slice(1);
+}
 
 function getPathFromURLPosix(url: URL) {
   if (url.hostname !== "") {
     throw new ERR_INVALID_FILE_URL_HOST();
   }
+
   const pathname = url.pathname;
   for (let n = 0; n < pathname.length; n++) {
     if (pathname[n] === "%") {
@@ -48,7 +112,7 @@ export const fileURLToPath: typeof url.fileURLToPath = function (
 ) {
   if (typeof path === "string") path = new URL(path);
   if (path.protocol !== "file:") throw new ERR_INVALID_URL_SCHEME("file");
-  return getPathFromURLPosix(path);
+  return isWindows ? getPathFromURLWin32(path) : getPathFromURLPosix(path);
 };
 
 // The following characters are percent-encoded when converting from file path
@@ -80,7 +144,7 @@ function encodePathChars(filepath: string) {
   return filepath;
 }
 
-export const pathToFileURL = function (filepath): URL {
+export const pathToFileURL: typeof url.pathToFileURL = (filepath): URL => {
   const outURL = new URL("file://");
 
   let resolved = path.resolve(filepath);
@@ -94,4 +158,4 @@ export const pathToFileURL = function (filepath): URL {
   outURL.pathname = encodePathChars(resolved);
 
   return outURL;
-} as typeof url.pathToFileURL;
+};

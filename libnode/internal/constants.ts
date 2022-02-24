@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 
-// const isWindows = process.platform === "win32";
+import { isWindows } from "./helper";
 
 // Alphabet chars.
 export const CHAR_UPPERCASE_A = 65; /* A */
@@ -50,5 +50,4 @@ export const CHAR_EQUAL = 61; /* = */
 // Digits
 export const CHAR_0 = 48; /* 0 */
 export const CHAR_9 = 57; /* 9 */
-// export const EOL = isWindows ? "\r\n" : "\n";
-export const EOL = "\n";
+export const EOL = isWindows ? "\r\n" : "\n";

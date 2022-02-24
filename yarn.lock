@@ -65,6 +65,112 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@griffon/libnode-buffer@workspace:*, @griffon/libnode-buffer@workspace:libnode/buffer":
+  version: 0.0.0-use.local
+  resolution: "@griffon/libnode-buffer@workspace:libnode/buffer"
+  dependencies:
+    buffer: 6.0.3
+  languageName: unknown
+  linkType: soft
+
+"@griffon/libnode-globals@workspace:libnode/globals":
+  version: 0.0.0-use.local
+  resolution: "@griffon/libnode-globals@workspace:libnode/globals"
+  dependencies:
+    "@griffon/libnode-buffer": "workspace:*"
+    "@griffon/libnode-os": "workspace:*"
+    "@griffon/libnode-path": "workspace:*"
+    "@griffon/libnode-punycode": "workspace:*"
+    "@griffon/libnode-querystring": "workspace:*"
+    "@griffon/libnode-timers": "workspace:*"
+    "@griffon/libnode-url": "workspace:*"
+    "@griffon/libnode-util": "workspace:*"
+    "@types/node": "*"
+  languageName: unknown
+  linkType: soft
+
+"@griffon/libnode-internal@workspace:*, @griffon/libnode-internal@workspace:libnode/internal":
+  version: 0.0.0-use.local
+  resolution: "@griffon/libnode-internal@workspace:libnode/internal"
+  dependencies:
+    "@types/node": "*"
+  languageName: unknown
+  linkType: soft
+
+"@griffon/libnode-os@workspace:*, @griffon/libnode-os@workspace:libnode/os":
+  version: 0.0.0-use.local
+  resolution: "@griffon/libnode-os@workspace:libnode/os"
+  dependencies:
+    "@griffon/libnode-internal": "workspace:*"
+    "@types/node": "*"
+  languageName: unknown
+  linkType: soft
+
+"@griffon/libnode-path@workspace:*, @griffon/libnode-path@workspace:libnode/path":
+  version: 0.0.0-use.local
+  resolution: "@griffon/libnode-path@workspace:libnode/path"
+  dependencies:
+    "@griffon/libnode-internal": "workspace:*"
+    "@types/node": "*"
+  languageName: unknown
+  linkType: soft
+
+"@griffon/libnode-process@workspace:libnode/process":
+  version: 0.0.0-use.local
+  resolution: "@griffon/libnode-process@workspace:libnode/process"
+  dependencies:
+    "@types/node": "*"
+  languageName: unknown
+  linkType: soft
+
+"@griffon/libnode-punycode@workspace:*, @griffon/libnode-punycode@workspace:libnode/punycode":
+  version: 0.0.0-use.local
+  resolution: "@griffon/libnode-punycode@workspace:libnode/punycode"
+  dependencies:
+    "@types/punycode": 2.1.0
+    punycode: 2.1.1
+  languageName: unknown
+  linkType: soft
+
+"@griffon/libnode-querystring@workspace:*, @griffon/libnode-querystring@workspace:libnode/querystring":
+  version: 0.0.0-use.local
+  resolution: "@griffon/libnode-querystring@workspace:libnode/querystring"
+  dependencies:
+    "@griffon/libnode-buffer": "workspace:*"
+    "@griffon/libnode-internal": "workspace:*"
+    "@types/node": "*"
+  languageName: unknown
+  linkType: soft
+
+"@griffon/libnode-timers@workspace:*, @griffon/libnode-timers@workspace:libnode/timers":
+  version: 0.0.0-use.local
+  resolution: "@griffon/libnode-timers@workspace:libnode/timers"
+  dependencies:
+    "@types/node": "*"
+    setimmediate: 1.0.5
+  languageName: unknown
+  linkType: soft
+
+"@griffon/libnode-url@workspace:*, @griffon/libnode-url@workspace:libnode/url":
+  version: 0.0.0-use.local
+  resolution: "@griffon/libnode-url@workspace:libnode/url"
+  dependencies:
+    "@griffon/libnode-internal": "workspace:*"
+    "@griffon/libnode-path": "workspace:*"
+    "@griffon/libnode-punycode": "workspace:*"
+    "@types/node": "*"
+  languageName: unknown
+  linkType: soft
+
+"@griffon/libnode-util@workspace:*, @griffon/libnode-util@workspace:libnode/util":
+  version: 0.0.0-use.local
+  resolution: "@griffon/libnode-util@workspace:libnode/util"
+  dependencies:
+    "@griffon/libnode-internal": "workspace:*"
+    "@types/node": "*"
+  languageName: unknown
+  linkType: soft
+
 "@griffon/scripts@workspace:scripts":
   version: 0.0.0-use.local
   resolution: "@griffon/scripts@workspace:scripts"
@@ -253,6 +359,13 @@ __metadata:
   version: 16.11.25
   resolution: "@types/node@npm:16.11.25"
   checksum: 0b6e25a81364be89256ad1a36341e27b387e646d3186e270108a8bb7b6ecdfdf5ae037aa1c75a5117b8a7509c80093b75431cd5cfcfbc4d553b52e7db2ca272e
+  languageName: node
+  linkType: hard
+
+"@types/punycode@npm:2.1.0":
+  version: 2.1.0
+  resolution: "@types/punycode@npm:2.1.0"
+  checksum: 6835698becab395eb9ac186970fd7879aeb522ea72d516ef9d681d787989653fcc2439ecc07d48280e1ca11862773b806efeec3fdbd1207528829a83b65d4275
   languageName: node
   linkType: hard
 
@@ -688,6 +801,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"base64-js@npm:^1.3.1":
+  version: 1.5.1
+  resolution: "base64-js@npm:1.5.1"
+  checksum: 669632eb3745404c2f822a18fc3a0122d2f9a7a13f7fb8b5823ee19d1d2ff9ee5b52c53367176ea4ad093c332fd5ab4bd0ebae5a8e27917a4105a4cfc86b1005
+  languageName: node
+  linkType: hard
+
 "binary-extensions@npm:^2.0.0":
   version: 2.2.0
   resolution: "binary-extensions@npm:2.2.0"
@@ -711,6 +831,16 @@ __metadata:
   dependencies:
     fill-range: ^7.0.1
   checksum: e2a8e769a863f3d4ee887b5fe21f63193a891c68b612ddb4b68d82d1b5f3ff9073af066c343e9867a393fe4c2555dcb33e89b937195feb9c1613d259edfcd459
+  languageName: node
+  linkType: hard
+
+"buffer@npm:6.0.3":
+  version: 6.0.3
+  resolution: "buffer@npm:6.0.3"
+  dependencies:
+    base64-js: ^1.3.1
+    ieee754: ^1.2.1
+  checksum: 5ad23293d9a731e4318e420025800b42bf0d264004c0286c8cc010af7a270c7a0f6522e84f54b9ad65cbd6db20b8badbfd8d2ebf4f80fa03dab093b89e68c3f9
   languageName: node
   linkType: hard
 
@@ -1829,6 +1959,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"ieee754@npm:^1.2.1":
+  version: 1.2.1
+  resolution: "ieee754@npm:1.2.1"
+  checksum: 5144c0c9815e54ada181d80a0b810221a253562422e7c6c3a60b1901154184f49326ec239d618c416c1c5945a2e197107aee8d986a3dd836b53dffefd99b5e7e
+  languageName: node
+  linkType: hard
+
 "ignore@npm:^4.0.6":
   version: 4.0.6
   resolution: "ignore@npm:4.0.6"
@@ -2541,7 +2678,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"punycode@npm:^2.1.0":
+"punycode@npm:2.1.1, punycode@npm:^2.1.0":
   version: 2.1.1
   resolution: "punycode@npm:2.1.1"
   checksum: 823bf443c6dd14f669984dea25757b37993f67e8d94698996064035edd43bed8a5a17a9f12e439c2b35df1078c6bec05a6c86e336209eb1061e8025c481168e8
@@ -2689,6 +2826,13 @@ __metadata:
   version: 2.0.0
   resolution: "set-blocking@npm:2.0.0"
   checksum: 6e65a05f7cf7ebdf8b7c75b101e18c0b7e3dff4940d480efed8aad3a36a4005140b660fa1d804cb8bce911cac290441dc728084a30504d3516ac2ff7ad607b02
+  languageName: node
+  linkType: hard
+
+"setimmediate@npm:1.0.5":
+  version: 1.0.5
+  resolution: "setimmediate@npm:1.0.5"
+  checksum: c9a6f2c5b51a2dabdc0247db9c46460152ffc62ee139f3157440bd48e7c59425093f42719ac1d7931f054f153e2d26cf37dfeb8da17a794a58198a2705e527fd
   languageName: node
   linkType: hard
 

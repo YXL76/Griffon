@@ -1,0 +1,7 @@
+{
+  "name": "@griffon/libnode-buffer",
+  "private": true,
+  "dependencies": {
+    "buffer": "6.0.3"
+  }
+}

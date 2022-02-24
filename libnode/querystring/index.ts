@@ -1,43 +1,35 @@
+/// <reference types="node/globals" />
 /// <reference types="node/querystring" />
 
 import type * as querystring from "node:querystring";
 import type { ParsedUrlQuery, ParsedUrlQueryInput } from "node:querystring";
-import { encodeStr, hexTable, isHexTable } from "./internal/querystring";
+import {
+  encodeStr,
+  hexTable,
+  isHexTable,
+} from "@griffon/libnode-internal/querystring";
+import { Buffer } from "@griffon/libnode-buffer";
 
+/* eslint-disable prettier/prettier */
 const unhexTable = new Int8Array([
-  // eslint-disable-next-line prettier/prettier
   -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, // 0 - 15
-  // eslint-disable-next-line prettier/prettier
   -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, // 16 - 31
-  // eslint-disable-next-line prettier/prettier
   -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, // 32 - 47
-  // eslint-disable-next-line prettier/prettier
   +0, +1, +2, +3, +4, +5, +6, +7, +8, +9, -1, -1, -1, -1, -1, -1, // 48 - 63
-  // eslint-disable-next-line prettier/prettier
   -1, 10, 11, 12, 13, 14, 15, -1, -1, -1, -1, -1, -1, -1, -1, -1, // 64 - 79
-  // eslint-disable-next-line prettier/prettier
   -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, // 80 - 95
-  // eslint-disable-next-line prettier/prettier
   -1, 10, 11, 12, 13, 14, 15, -1, -1, -1, -1, -1, -1, -1, -1, -1, // 96 - 111
-  // eslint-disable-next-line prettier/prettier
   -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, // 112 - 127
-  // eslint-disable-next-line prettier/prettier
   -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, // 128 ...
-  // eslint-disable-next-line prettier/prettier
   -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-  // eslint-disable-next-line prettier/prettier
   -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-  // eslint-disable-next-line prettier/prettier
   -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-  // eslint-disable-next-line prettier/prettier
   -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-  // eslint-disable-next-line prettier/prettier
   -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-  // eslint-disable-next-line prettier/prettier
   -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-  // eslint-disable-next-line prettier/prettier
   -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,  // ... 255
 ]);
+/* eslint-enable prettier/prettier */
 
 function unescapeBuffer(s: string, decodeSpaces?: boolean): Buffer {
   const out = Buffer.allocUnsafe(s.length);
@@ -95,25 +87,23 @@ function qsUnescape(s: string, decodeSpaces?: boolean): string {
 // digits
 // alpha (uppercase)
 // alpha (lowercase)
+/* eslint-disable prettier/prettier */
 const noEscape = new Int8Array([
-  // eslint-disable-next-line prettier/prettier
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0 - 15
-  // eslint-disable-next-line prettier/prettier
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 16 - 31
-  // eslint-disable-next-line prettier/prettier
   0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 0, // 32 - 47
-  // eslint-disable-next-line prettier/prettier
   1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, // 48 - 63
-  // eslint-disable-next-line prettier/prettier
   0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 64 - 79
-  // eslint-disable-next-line prettier/prettier
   1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, // 80 - 95
-  // eslint-disable-next-line prettier/prettier
   0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 96 - 111
-  // eslint-disable-next-line prettier/prettier
   1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0,  // 112 - 127
 ]);
+/* eslint-enable prettier/prettier */
 
+/**
+ * QueryString.escape() replaces encodeURIComponent()
+ * @see https://www.ecma-international.org/ecma-262/5.1/#sec-15.1.3.4
+ */
 function qsEscape(str: unknown): string {
   if (typeof str !== "string") {
     if (typeof str === "object") str = String(str);
@@ -155,12 +145,12 @@ function encodeStringifiedCustom(
   return encode(stringifyPrimitive(v));
 }
 
-export const stringify: typeof querystring.stringify = function (
+export const stringify: typeof querystring.stringify = (
   obj,
   sep,
   eq,
   options
-) {
+) => {
   sep = sep || "&";
   eq = eq || "=";
 
@@ -219,22 +209,6 @@ function addKeyVal(
   valEncoded: boolean,
   decode: (s: string, decodeSpaces?: boolean) => string
 ) {
-  /**
-   * V8 does not optimize functions with try-catch blocks, so we isolate them here
-   * to minimize the damage (Note: no longer true as of V8 5.4 -- but still will
-   * not be inlined).
-   */
-  function decodeStr(
-    s: string,
-    decoder: (v: string, decodeSpaces?: boolean) => string
-  ): string {
-    try {
-      return decoder(s);
-    } catch {
-      return qsUnescape(s, true);
-    }
-  }
-
   if (key.length > 0 && keyEncoded) key = decodeStr(key, decode);
   if (value.length > 0 && valEncoded) value = decodeStr(value, decode);
 
@@ -247,7 +221,7 @@ function addKeyVal(
   }
 }
 
-export const parse: typeof querystring.parse = function (qs, sep, eq, options) {
+export const parse: typeof querystring.parse = (qs, sep, eq, options) => {
   const obj = Object.create(null) as ParsedUrlQuery;
 
   if (typeof qs !== "string" || qs.length === 0) {
@@ -390,7 +364,23 @@ export const parse: typeof querystring.parse = function (qs, sep, eq, options) {
   return obj;
 };
 
-export const encode = stringify;
-export const decode = parse;
-export const unescape = qsUnescape;
-export const escape = qsEscape;
+export const encode: typeof querystring.encode = stringify;
+export const decode: typeof querystring.decode = parse;
+export const unescape: typeof querystring.unescape = qsUnescape;
+export const escape: typeof querystring.escape = qsEscape;
+
+/**
+ * V8 does not optimize functions with try-catch blocks, so we isolate them here
+ * to minimize the damage (Note: no longer true as of V8 5.4 -- but still will
+ * not be inlined).
+ */
+function decodeStr(
+  s: string,
+  decoder: (v: string, decodeSpaces?: boolean) => string
+): string {
+  try {
+    return decoder(s);
+  } catch {
+    return qsUnescape(s, true);
+  }
+}

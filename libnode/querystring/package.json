@@ -1,0 +1,11 @@
+{
+  "name": "@griffon/libnode-querystring",
+  "private": true,
+  "devDependencies": {
+    "@types/node": "*"
+  },
+  "dependencies": {
+    "@griffon/libnode-buffer": "workspace:*",
+    "@griffon/libnode-internal": "workspace:*"
+  }
+}

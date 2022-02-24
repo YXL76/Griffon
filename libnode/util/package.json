@@ -1,0 +1,10 @@
+{
+  "name": "@griffon/libnode-util",
+  "private": true,
+  "devDependencies": {
+    "@types/node": "*"
+  },
+  "dependencies": {
+    "@griffon/libnode-internal": "workspace:*"
+  }
+}

@@ -12,15 +12,14 @@ const config = {
   ],
   parser: "@typescript-eslint/parser",
   overrides: [
-    [["./scripts/**/*.ts"], "./scripts/tsconfig.json"],
-    [["./service/**/*.ts"], "./service/tsconfig.json"],
     [
-      ["./task/**/*.ts"],
-      "./task/tsconfig.json",
+      ["./libnode/**/*.ts"],
+      "./libnode/tsconfig.json",
       {
         // ignore node.js globals
         "no-restricted-globals": [
           "error",
+          "process",
           "Buffer",
           "__filename",
           "__dirname",
@@ -30,6 +29,9 @@ const config = {
         ],
       },
     ],
+    [["./scripts/**/*.ts"], "./scripts/tsconfig.json"],
+    [["./service/**/*.ts"], "./service/tsconfig.json"],
+    [["./task/**/*.ts"], "./task/tsconfig.json"],
     [["./user/**/*.ts"], "./user/tsconfig.json"],
     [["./window/**/*.ts"], "./window/tsconfig.json"],
     [["./worker/**/*.ts"], "./worker/tsconfig.json"],

@@ -10,8 +10,9 @@ import {
   CHAR_QUESTION_MARK,
   CHAR_UPPERCASE_A,
   CHAR_UPPERCASE_Z,
-} from "./internal/constants";
+} from "@griffon/libnode-internal/constants";
 import type { FormatInputPathObject, PlatformPath } from "node:path";
+import { _processCwd } from "@griffon/libnode-internal/helper";
 
 function isPathSeparator(code: number) {
   return code === CHAR_FORWARD_SLASH || code === CHAR_BACKWARD_SLASH;
@@ -106,7 +107,7 @@ function _format(sep: string, pathObject: FormatInputPathObject): string {
   return dir === pathObject.root ? `${dir}${base}` : `${dir}${sep}${base}`;
 }
 
-const win32: PlatformPath = {
+export const win32: PlatformPath = {
   sep: "\\",
   delimiter: ";",
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -131,14 +132,14 @@ const win32: PlatformPath = {
           continue;
         }
       } else if (resolvedDevice.length === 0) {
-        path = process.cwd();
+        path = _processCwd();
       } else {
         // Windows has the concept of drive-specific current working
         // directories. If we've resolved a drive letter but not yet an
         // absolute path, get cwd for that drive, or the process cwd if
         // the drive cwd is not available. We're sure the device is not
         // a UNC path at this points, because UNC paths are always absolute.
-        path = process.env[`=${resolvedDevice}`] || process.cwd();
+        path = /* _processEnv()[`=${resolvedDevice}`] || */ _processCwd();
 
         // Verify that a cwd was found and that it actually points
         // to our drive. If not, default to the drive's root.
@@ -241,7 +242,7 @@ const win32: PlatformPath = {
     }
 
     // At this point the path should be resolved to a full absolute path,
-    // but handle relative paths to be safe (might happen when process.cwd()
+    // but handle relative paths to be safe (might happen when _processCwd()
     // fails)
 
     // Normalize the tail path
@@ -930,7 +931,7 @@ const win32: PlatformPath = {
   },
 };
 
-const posix: PlatformPath = {
+export const posix: PlatformPath = {
   sep: "/",
   delimiter: ":",
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -977,7 +978,7 @@ const posix: PlatformPath = {
     let resolvedAbsolute = false;
 
     for (let i = args.length - 1; i >= -1 && !resolvedAbsolute; i--) {
-      const path = i >= 0 ? args[i] : process.cwd();
+      const path = i >= 0 ? args[i] : _processCwd();
 
       // Skip empty entries
       if (path.length === 0) continue;
@@ -987,7 +988,7 @@ const posix: PlatformPath = {
     }
 
     // At this point the path should be resolved to a full absolute path, but
-    // handle relative paths to be safe (might happen when process.cwd() fails)
+    // handle relative paths to be safe (might happen when _processCwd() fails)
 
     // Normalize the path
     resolvedPath = normalizeString(
