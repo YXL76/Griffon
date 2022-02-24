@@ -25,7 +25,7 @@ console.log("Service worker activated");
 
 navigator.serviceWorker.addEventListener("message", ({ data }) => {
   console.log("Received message:", data);
-  const worker = new Worker("task.js", { type: "module" });
+  const worker = new Worker("worker.js", { type: "module" });
   worker.postMessage({ type: "process", pid: data.pid, ppid: 0, cwd: "/" });
   worker.postMessage({
     type: "code",
