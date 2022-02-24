@@ -50,4 +50,5 @@ export const CHAR_EQUAL = 61; /* = */
 // Digits
 export const CHAR_0 = 48; /* 0 */
 export const CHAR_9 = 57; /* 9 */
-export const EOL = isWindows ? "\r\n" : "\n";
+// TODO
+export const EOL = isWindows() ? "\r\n" : "\n";

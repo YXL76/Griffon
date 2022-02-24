@@ -112,7 +112,7 @@ export const fileURLToPath: typeof url.fileURLToPath = function (
 ) {
   if (typeof path === "string") path = new URL(path);
   if (path.protocol !== "file:") throw new ERR_INVALID_URL_SCHEME("file");
-  return isWindows ? getPathFromURLWin32(path) : getPathFromURLPosix(path);
+  return isWindows() ? getPathFromURLWin32(path) : getPathFromURLPosix(path);
 };
 
 // The following characters are percent-encoded when converting from file path

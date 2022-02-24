@@ -29,7 +29,11 @@ function _require(id: string) {
     case "path":
       return path;
     case "process":
-      return process ?? ({} as NodeJS.Process);
+      try {
+        return process ?? {};
+      } catch {
+        return {};
+      }
     default:
       throw Error(`Module not found: ${id}`);
   }

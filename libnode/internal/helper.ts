@@ -1,28 +1,53 @@
 declare const process: NodeJS.Process | void;
 
-export const isWindows = !!process && process?.platform === "win32";
+export function isWindows() {
+  try {
+    return !!process && process?.platform === "win32";
+  } catch {
+    return false;
+  }
+}
 
 export function _processArch(): NodeJS.Process["arch"] {
-  return process?.arch || "x64";
+  try {
+    return process?.arch || "x64";
+  } catch {
+    return "x64";
+  }
 }
 
 export function _processPlatform(): NodeJS.Platform {
-  return process?.platform || "linux";
+  try {
+    return process?.platform || "linux";
+  } catch {
+    return "linux";
+  }
 }
 
 export function _processCwd(): ReturnType<NodeJS.Process["cwd"]> {
-  return process ? process.cwd() : "/";
+  try {
+    return process?.cwd() ?? "/";
+  } catch {
+    return "/";
+  }
 }
 
 export function _processEnv(): NodeJS.Process["env"] {
-  return process ? process.env : {};
+  try {
+    return process?.env ?? {};
+  } catch {
+    return {};
+  }
 }
 
 export function _processNextTick<T extends Array<unknown>>(
   callback: (...args: T) => unknown,
   ...args: T
 ): void {
-  process
-    ? process.nextTick(callback, ...args)
-    : queueMicrotask(() => callback(...args));
+  try {
+    if (process) process.nextTick(callback, ...args);
+    else throw Error;
+  } catch {
+    queueMicrotask(() => callback(...args));
+  }
 }
