@@ -10,6 +10,7 @@ import path from "@griffon/libnode-path";
 declare const process: NodeJS.Process | void;
 
 function _require(id: string) {
+  if (id.startsWith("node:")) id = id.slice(5);
   switch (id) {
     case "buffer":
       return buffer;

@@ -1,4 +1,8 @@
 {
   "name": "@griffon/worker",
-  "private": true
+  "private": true,
+  "dependencies": {
+    "@griffon/libnode-globals": "workspace:*",
+    "@griffon/libnode-process": "workspace:*"
+  }
 }

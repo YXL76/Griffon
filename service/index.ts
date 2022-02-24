@@ -1,23 +1,33 @@
-import { Task } from "./task";
+export {};
 
 declare const self: ServiceWorkerGlobalScope & typeof globalThis;
 
-self.addEventListener(
-  "install",
-  (e) => e.waitUntil(() => console.log("Installing Service Worker")),
-  { once: true }
-);
+{
+  const f = async () => {
+    console.log("Installing Service Worker");
+    await self.skipWaiting();
+  };
+  self.addEventListener("install", (e) => e.waitUntil(f()), { once: true });
+}
 
-self.addEventListener(
-  "activate",
-  (e) =>
-    e.waitUntil(async () => {
-      console.log("Activating Service Worker");
-      await self.clients.claim();
-      boot();
-    }),
-  { once: true }
-);
+{
+  const f = async () => {
+    console.log("Activating Service Worker");
+    await self.clients.claim();
+    boot();
+  };
+  self.addEventListener("activate", (e) => e.waitUntil(f()), { once: true });
+}
+
+let maxPid = 0;
+
+self.addEventListener("message", ({ data, source }) => {
+  switch (data.type) {
+    case "new-window":
+      source?.postMessage({ type: "new-window", pid: ++maxPid });
+      break;
+  }
+});
 
 function boot() {
   // new Task();

@@ -73,7 +73,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@griffon/libnode-globals@workspace:libnode/globals":
+"@griffon/libnode-globals@workspace:*, @griffon/libnode-globals@workspace:libnode/globals":
   version: 0.0.0-use.local
   resolution: "@griffon/libnode-globals@workspace:libnode/globals"
   dependencies:
@@ -115,7 +115,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@griffon/libnode-process@workspace:libnode/process":
+"@griffon/libnode-process@workspace:*, @griffon/libnode-process@workspace:libnode/process":
   version: 0.0.0-use.local
   resolution: "@griffon/libnode-process@workspace:libnode/process"
   dependencies:
@@ -205,6 +205,9 @@ __metadata:
 "@griffon/worker@workspace:worker":
   version: 0.0.0-use.local
   resolution: "@griffon/worker@workspace:worker"
+  dependencies:
+    "@griffon/libnode-globals": "workspace:*"
+    "@griffon/libnode-process": "workspace:*"
   languageName: unknown
   linkType: soft
 
