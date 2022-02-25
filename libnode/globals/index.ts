@@ -1,4 +1,7 @@
+export * from "@griffon/libnode-process";
+
 import * as buffer from "@griffon/libnode-buffer";
+import * as events from "@griffon/libnode-events";
 import * as os from "@griffon/libnode-os";
 import * as punycode from "@griffon/libnode-punycode";
 import * as querystring from "@griffon/libnode-querystring";
@@ -7,13 +10,15 @@ import * as url from "@griffon/libnode-url";
 import * as util from "@griffon/libnode-util";
 import path from "@griffon/libnode-path";
 
-declare const process: NodeJS.Process | void;
+declare const process: Partial<NodeJS.Process> | void;
 
 function _require(id: string) {
   if (id.startsWith("node:")) id = id.slice(5);
   switch (id) {
     case "buffer":
       return buffer;
+    case "events":
+      return events;
     case "os":
       return os;
     case "punycode":
@@ -29,11 +34,7 @@ function _require(id: string) {
     case "path":
       return path;
     case "process":
-      try {
-        return process ?? {};
-      } catch {
-        return {};
-      }
+      return typeof process == "object" ? process : {};
     default:
       throw Error(`Module not found: ${id}`);
   }

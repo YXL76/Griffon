@@ -1,5 +1,4 @@
-import { Process } from "@griffon/libnode-process";
-import { require } from "@griffon/libnode-globals";
+import { Process, require } from "@griffon/libnode-globals";
 
 declare const self: WorkerGlobalScope &
   typeof globalThis & { process?: Process };

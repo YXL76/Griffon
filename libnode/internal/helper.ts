@@ -1,53 +1,30 @@
-declare const process: NodeJS.Process | void;
+declare const process: Partial<NodeJS.Process> | void;
 
 export function isWindows() {
-  try {
-    return !!process && process?.platform === "win32";
-  } catch {
-    return false;
-  }
+  return typeof process == "object" && process?.platform === "win32";
 }
 
 export function _processArch(): NodeJS.Process["arch"] {
-  try {
-    return process?.arch || "x64";
-  } catch {
-    return "x64";
-  }
+  return typeof process == "object" ? process?.arch ?? "x64" : "x64";
 }
 
 export function _processPlatform(): NodeJS.Platform {
-  try {
-    return process?.platform || "linux";
-  } catch {
-    return "linux";
-  }
+  return typeof process == "object" ? process?.platform || "linux" : "linux";
 }
 
 export function _processCwd(): ReturnType<NodeJS.Process["cwd"]> {
-  try {
-    return process?.cwd() ?? "/";
-  } catch {
-    return "/";
-  }
+  return typeof process == "object" ? process?.cwd?.() ?? "/" : "/";
 }
 
 export function _processEnv(): NodeJS.Process["env"] {
-  try {
-    return process?.env ?? {};
-  } catch {
-    return {};
-  }
+  return typeof process == "object" ? process?.env ?? {} : {};
 }
 
 export function _processNextTick<T extends Array<unknown>>(
   callback: (...args: T) => unknown,
   ...args: T
 ): void {
-  try {
-    if (process) process.nextTick(callback, ...args);
-    else throw Error;
-  } catch {
-    queueMicrotask(() => callback(...args));
-  }
+  if (typeof process == "object" && typeof process?.nextTick === "function")
+    process.nextTick(callback, ...args);
+  else queueMicrotask(() => callback(...args));
 }

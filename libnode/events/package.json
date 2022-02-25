@@ -1,0 +1,7 @@
+{
+  "name": "@griffon/libnode-events",
+  "private": true,
+  "devDependencies": {
+    "@types/node": "*"
+  }
+}

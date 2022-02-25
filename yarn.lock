@@ -73,13 +73,23 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@griffon/libnode-events@workspace:*, @griffon/libnode-events@workspace:libnode/events":
+  version: 0.0.0-use.local
+  resolution: "@griffon/libnode-events@workspace:libnode/events"
+  dependencies:
+    "@types/node": "*"
+  languageName: unknown
+  linkType: soft
+
 "@griffon/libnode-globals@workspace:*, @griffon/libnode-globals@workspace:libnode/globals":
   version: 0.0.0-use.local
   resolution: "@griffon/libnode-globals@workspace:libnode/globals"
   dependencies:
     "@griffon/libnode-buffer": "workspace:*"
+    "@griffon/libnode-events": "workspace:*"
     "@griffon/libnode-os": "workspace:*"
     "@griffon/libnode-path": "workspace:*"
+    "@griffon/libnode-process": "workspace:*"
     "@griffon/libnode-punycode": "workspace:*"
     "@griffon/libnode-querystring": "workspace:*"
     "@griffon/libnode-timers": "workspace:*"
@@ -207,7 +217,6 @@ __metadata:
   resolution: "@griffon/worker@workspace:worker"
   dependencies:
     "@griffon/libnode-globals": "workspace:*"
-    "@griffon/libnode-process": "workspace:*"
   languageName: unknown
   linkType: soft
 

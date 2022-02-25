@@ -1,6 +1,6 @@
 /// <reference types="node/process" />
 
-export class Process implements NodeJS.Process {
+export abstract class Process implements NodeJS.Process {
   readonly stdin!: NodeJS.ReadStream & { fd: 0 };
 
   readonly stdout!: NodeJS.WriteStream & { fd: 1 };
