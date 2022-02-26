@@ -34,14 +34,21 @@ const basicConfig: BuildOptions = {
 (async () => {
   await rm(distPath, { force: true, recursive: true });
 
-  await build({
-    ...basicConfig,
-    entryPoints: {
-      service: resolve(servicePath, "index.ts"),
-      window: resolve(windowPath, "index.ts"),
-      worker: resolve(workerPath, "index.ts"),
-    },
-  });
+  await Promise.all([
+    build({
+      ...basicConfig,
+      entryPoints: {
+        service: resolve(servicePath, "index.ts"),
+      },
+    }),
+    build({
+      ...basicConfig,
+      entryPoints: {
+        window: resolve(windowPath, "index.ts"),
+        worker: resolve(workerPath, "index.ts"),
+      },
+    }),
+  ]);
 
   await copyFile(resolve("index.html"), resolve(distPath, "index.html"));
 })().catch(console.error);

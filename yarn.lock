@@ -77,7 +77,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@griffon/libnode-events@workspace:libnode/events"
   dependencies:
-    "@types/node": "workspace:*"
+    "@types/node-custom": "workspace:*"
   languageName: unknown
   linkType: soft
 
@@ -95,7 +95,7 @@ __metadata:
     "@griffon/libnode-timers": "workspace:*"
     "@griffon/libnode-url": "workspace:*"
     "@griffon/libnode-util": "workspace:*"
-    "@types/node": "workspace:*"
+    "@types/node-custom": "workspace:*"
   languageName: unknown
   linkType: soft
 
@@ -103,7 +103,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@griffon/libnode-internal@workspace:libnode/internal"
   dependencies:
-    "@types/node": "workspace:*"
+    "@types/node-custom": "workspace:*"
   languageName: unknown
   linkType: soft
 
@@ -112,7 +112,7 @@ __metadata:
   resolution: "@griffon/libnode-os@workspace:libnode/os"
   dependencies:
     "@griffon/libnode-internal": "workspace:*"
-    "@types/node": "workspace:*"
+    "@types/node-custom": "workspace:*"
   languageName: unknown
   linkType: soft
 
@@ -121,7 +121,7 @@ __metadata:
   resolution: "@griffon/libnode-path@workspace:libnode/path"
   dependencies:
     "@griffon/libnode-internal": "workspace:*"
-    "@types/node": "workspace:*"
+    "@types/node-custom": "workspace:*"
   languageName: unknown
   linkType: soft
 
@@ -130,7 +130,7 @@ __metadata:
   resolution: "@griffon/libnode-process@workspace:libnode/process"
   dependencies:
     "@griffon/libnode-events": "workspace:*"
-    "@types/node": "workspace:*"
+    "@types/node-custom": "workspace:*"
   languageName: unknown
   linkType: soft
 
@@ -149,7 +149,7 @@ __metadata:
   dependencies:
     "@griffon/libnode-buffer": "workspace:*"
     "@griffon/libnode-internal": "workspace:*"
-    "@types/node": "workspace:*"
+    "@types/node-custom": "workspace:*"
   languageName: unknown
   linkType: soft
 
@@ -157,7 +157,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@griffon/libnode-timers@workspace:libnode/timers"
   dependencies:
-    "@types/node": "workspace:*"
+    "@types/node-custom": "workspace:*"
     setimmediate: 1.0.5
   languageName: unknown
   linkType: soft
@@ -169,7 +169,7 @@ __metadata:
     "@griffon/libnode-internal": "workspace:*"
     "@griffon/libnode-path": "workspace:*"
     "@griffon/libnode-punycode": "workspace:*"
-    "@types/node": "workspace:*"
+    "@types/node-custom": "workspace:*"
   languageName: unknown
   linkType: soft
 
@@ -178,7 +178,7 @@ __metadata:
   resolution: "@griffon/libnode-util@workspace:libnode/util"
   dependencies:
     "@griffon/libnode-internal": "workspace:*"
-    "@types/node": "workspace:*"
+    "@types/node-custom": "workspace:*"
   languageName: unknown
   linkType: soft
 
@@ -380,23 +380,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@*, @types/node@workspace:*, @types/node@workspace:libnode/@types-node":
+"@types/node-custom@workspace:*, @types/node-custom@workspace:libnode/@types-node":
   version: 0.0.0-use.local
-  resolution: "@types/node@workspace:libnode/@types-node"
+  resolution: "@types/node-custom@workspace:libnode/@types-node"
   languageName: unknown
   linkType: soft
 
-"@types/node@npm:16.11.26":
-  version: 16.11.26
-  resolution: "@types/node@npm:16.11.26"
-  checksum: 57757caaba3f0d95de82198cb276a1002c49b710108c932a1d02d7c91ff2fa57cfe2dd19fde60853b6dd90b0964b3cf35557981d2628e20aed6a909057aedfe6
-  languageName: node
-  linkType: hard
-
-"@types/node@npm:^13.7.0":
-  version: 13.13.52
-  resolution: "@types/node@npm:13.13.52"
-  checksum: 8f1afff497ebeba209e2dc340d823284e087a47632afe99a7daa30eaff80893e520f222ad400cd1f2d3b8288e93cf3eaded52a8e64eaefb8aacfe6c35de98f42
+"@types/node@npm:16.11.25":
+  version: 16.11.25
+  resolution: "@types/node@npm:16.11.25"
+  checksum: 0b6e25a81364be89256ad1a36341e27b387e646d3186e270108a8bb7b6ecdfdf5ae037aa1c75a5117b8a7509c80093b75431cd5cfcfbc4d553b52e7db2ca272e
   languageName: node
   linkType: hard
 

@@ -2,7 +2,7 @@
   "name": "@griffon/libnode-timers",
   "private": true,
   "devDependencies": {
-    "@types/node": "workspace:*"
+    "@types/node-custom": "workspace:*"
   },
   "dependencies": {
     "setimmediate": "1.0.5"

@@ -2,7 +2,7 @@
   "name": "@griffon/libnode-path",
   "private": true,
   "devDependencies": {
-    "@types/node": "workspace:*"
+    "@types/node-custom": "workspace:*"
   },
   "dependencies": {
     "@griffon/libnode-internal": "workspace:*"

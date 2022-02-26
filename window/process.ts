@@ -97,7 +97,9 @@ export class ChildProcess {
     console.log(isAbsolute("/foo/bar"));
     console.log(join("/foo", "bar", "baz/asdf", "quux", ".."));
           
-    console.log(process.cwd());`,
+    console.log(process.cwd());
+    
+    process.exit();`,
     };
     this.postMessage(codeMsg);
   }
