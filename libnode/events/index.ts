@@ -12,8 +12,7 @@ interface EventEmitterOptions {
 }
 
 type EventName = string | symbol;
-interface ListenerFn {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+interface ListenerFn /* eslint-disable-next-line @typescript-eslint/no-explicit-any */ {
   (...args: any[]): void;
   listener?: ListenerFn;
 }
@@ -35,8 +34,6 @@ export function listenerCount(emitter: EventEmitter, eventName: EventName) {
 }
 
 export const errorMonitor = Symbol("events.errorMonitor");
-
-export default EventEmitter;
 
 /*!
  * EventEmitter2

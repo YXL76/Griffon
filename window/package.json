@@ -1,4 +1,8 @@
 {
   "name": "@griffon/window",
-  "private": true
+  "private": true,
+  "dependencies": {
+    "@griffon/libnode-globals": "workspace:*",
+    "@griffon/shared": "workspace:*"
+  }
 }

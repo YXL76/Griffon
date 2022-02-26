@@ -1,4 +1,5 @@
 export * from "@griffon/libnode-process";
+export * from "@griffon/libnode-events";
 
 import * as buffer from "@griffon/libnode-buffer";
 import * as events from "@griffon/libnode-events";
@@ -51,8 +52,7 @@ _require.cache = {};
 _require.extensions = {} as RequireExtensions;
 
 function _resolve(
-  id: string,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  /* eslint-disable-next-line @typescript-eslint/no-unused-vars */ id: string,
   _options?: { paths?: string[] | undefined }
 ): string {
   return path.resolve(id);

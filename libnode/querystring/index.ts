@@ -1,14 +1,17 @@
-/// <reference types="node/globals" />
 /// <reference types="node/querystring" />
 
 import type * as querystring from "node:querystring";
-import type { ParsedUrlQuery, ParsedUrlQueryInput } from "node:querystring";
 import {
   encodeStr,
   hexTable,
   isHexTable,
 } from "@griffon/libnode-internal/querystring";
 import { Buffer } from "@griffon/libnode-buffer";
+
+interface Dict<T> {
+  [key: string]: T | undefined;
+}
+type ParsedUrlQuery = Dict<string | string[]>;
 
 /* eslint-disable prettier/prettier */
 const unhexTable = new Int8Array([
@@ -162,12 +165,20 @@ export const stringify: typeof querystring.stringify = (
     encode === qsEscape ? encodeStringified : encodeStringifiedCustom;
 
   if (obj !== null && typeof obj === "object") {
-    const keys = Object.keys(obj) as (keyof ParsedUrlQueryInput)[];
+    const keys = Object.keys(obj);
     const len = keys.length;
     let fields = "";
     for (let i = 0; i < len; ++i) {
       const k = keys[i];
-      const v = obj[k];
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      const v = obj[k] as
+        | string
+        | number
+        | boolean
+        | ReadonlyArray<string>
+        | ReadonlyArray<number>
+        | ReadonlyArray<boolean>;
       let ks = convert(k, encode);
       ks += eq;
 

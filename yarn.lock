@@ -129,6 +129,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@griffon/libnode-process@workspace:libnode/process"
   dependencies:
+    "@griffon/libnode-events": "workspace:*"
     "@types/node": "*"
   languageName: unknown
   linkType: soft
@@ -195,6 +196,14 @@ __metadata:
 "@griffon/service@workspace:service":
   version: 0.0.0-use.local
   resolution: "@griffon/service@workspace:service"
+  dependencies:
+    "@griffon/shared": "workspace:*"
+  languageName: unknown
+  linkType: soft
+
+"@griffon/shared@workspace:*, @griffon/shared@workspace:shared":
+  version: 0.0.0-use.local
+  resolution: "@griffon/shared@workspace:shared"
   languageName: unknown
   linkType: soft
 
@@ -209,6 +218,9 @@ __metadata:
 "@griffon/window@workspace:window":
   version: 0.0.0-use.local
   resolution: "@griffon/window@workspace:window"
+  dependencies:
+    "@griffon/libnode-globals": "workspace:*"
+    "@griffon/shared": "workspace:*"
   languageName: unknown
   linkType: soft
 
@@ -217,6 +229,7 @@ __metadata:
   resolution: "@griffon/worker@workspace:worker"
   dependencies:
     "@griffon/libnode-globals": "workspace:*"
+    "@griffon/shared": "workspace:*"
   languageName: unknown
   linkType: soft
 

@@ -1,12 +1,11 @@
 /// <reference types="node/process" />
 
-export abstract class Process implements NodeJS.Process {
-  readonly stdin!: NodeJS.ReadStream & { fd: 0 };
+import { EventEmitter } from "@griffon/libnode-events";
 
-  readonly stdout!: NodeJS.WriteStream & { fd: 1 };
-
-  readonly stderr!: NodeJS.WriteStream & { fd: 2 };
-
+export abstract class BaseProcess
+  extends EventEmitter
+  implements Omit<NodeJS.Process, keyof EventEmitter>
+{
   readonly argv: string[] = ["node"];
 
   readonly execArgv: string[] = [];
@@ -25,8 +24,6 @@ export abstract class Process implements NodeJS.Process {
 
   readonly config = {} as NodeJS.ProcessConfig;
 
-  title = "griffon";
-
   readonly arch = "x64";
 
   readonly platform = "linux" as NodeJS.Platform;
@@ -35,17 +32,15 @@ export abstract class Process implements NodeJS.Process {
 
   readonly memoryUsage = _memoryUsage;
 
-  features = {
+  features = /* eslint-disable @typescript-eslint/naming-convention */ {
     inspector: false,
     debug: false,
     uv: false,
     ipv6: false,
-    /* eslint-disable @typescript-eslint/naming-convention */
     tls_alpn: false,
     tls_sni: false,
     tls_ocsp: false,
-    /* eslint-enable @typescript-eslint/naming-convention */
-    tls: false,
+    tls: false /* eslint-enable @typescript-eslint/naming-convention */,
   };
 
   readonly release = {} as NodeJS.ProcessRelease;
@@ -56,17 +51,23 @@ export abstract class Process implements NodeJS.Process {
 
   allowedNodeEnvironmentFlags = new Set<string>();
 
-  report?: NodeJS.ProcessReport | undefined;
+  report?: NodeJS.ProcessReport;
 
   traceDeprecation = false;
 
   private readonly _startTime = performance.now();
 
   constructor(
+    public readonly stdin: NodeJS.ReadStream & { fd: 0 },
+    public readonly stdout: NodeJS.WriteStream & { fd: 1 },
+    public readonly stderr: NodeJS.WriteStream & { fd: 2 },
     public readonly pid: number,
     public readonly ppid: number,
-    private _cwd: string
-  ) {}
+    public title: string,
+    private readonly _uid: number
+  ) {
+    super();
+  }
 
   get argv0() {
     return this.argv[0];
@@ -74,19 +75,6 @@ export abstract class Process implements NodeJS.Process {
 
   openStdin(): NodeJS.Socket {
     throw Error("Not implemented");
-  }
-
-  abort(): never {
-    throw Error("Not implemented");
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  chdir(_directory: string) {
-    // noop
-  }
-
-  cwd() {
-    return this._cwd;
   }
 
   /* eslint-disable @typescript-eslint/ban-types */
@@ -111,15 +99,15 @@ export abstract class Process implements NodeJS.Process {
     /* eslint-enable @typescript-eslint/ban-types, @typescript-eslint/no-unused-vars */
   ): void {
     console.error(warning);
+    console.trace();
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  exit(_code?: number): never {
+  getuid() {
+    return this._uid;
+  }
+
+  getgid(): number {
     throw Error("Not implemented");
-  }
-
-  getgid() {
-    return 0;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -127,17 +115,8 @@ export abstract class Process implements NodeJS.Process {
     throw Error("Not implemented");
   }
 
-  getuid() {
-    return 0;
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  setuid(_id: number | string) {
+  geteuid(): number {
     throw Error("Not implemented");
-  }
-
-  geteuid() {
-    return 0;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -145,8 +124,8 @@ export abstract class Process implements NodeJS.Process {
     throw Error("Not implemented");
   }
 
-  getegid() {
-    return 0;
+  getegid(): number {
+    throw Error("Not implemented");
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -173,11 +152,6 @@ export abstract class Process implements NodeJS.Process {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  kill(_pid: number, _signal?: string | number) {
-    return true as const;
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   cpuUsage(_previousValue?: NodeJS.CpuUsage): NodeJS.CpuUsage {
     throw Error("Not implemented");
   }
@@ -189,11 +163,6 @@ export abstract class Process implements NodeJS.Process {
     queueMicrotask(() => callback(...args));
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  umask(_mask?: string | number): number {
-    throw Error("Not implemented");
-  }
-
   uptime() {
     return (performance.now() - this._startTime) / 1000;
   }
@@ -201,92 +170,22 @@ export abstract class Process implements NodeJS.Process {
   send?( // eslint-disable-next-line @typescript-eslint/no-explicit-any
     message: any, // eslint-disable-next-line @typescript-eslint/no-explicit-any
     sendHandle?: any,
-    options?: {
-      swallowErrors?: boolean | undefined;
-    },
+    options?: { swallowErrors?: boolean | undefined },
     callback?: (error: Error | null) => void
   ): boolean;
-
-  disconnect() {
-    // noop
-  }
 
   resourceUsage() {
     return {} as NodeJS.ResourceUsage;
   }
 
-  addListener() {
-    return this;
-  }
-
-  emit(event: "beforeExit", code: number): boolean;
-  emit(event: "disconnect"): boolean;
-  emit(event: "exit", code: number): boolean;
-  emit(event: "rejectionHandled", promise: Promise<unknown>): boolean;
-  emit(event: "uncaughtException", error: Error): boolean;
-  emit(event: "uncaughtExceptionMonitor", error: Error): boolean;
-  emit(
-    event: "unhandledRejection",
-    reason: unknown,
-    promise: Promise<unknown>
-  ): boolean;
-  emit(event: "warning", warning: Error): boolean;
-  emit(event: "message", message: unknown, sendHandle: unknown): this;
-  emit(event: NodeJS.Signals, signal: NodeJS.Signals): boolean;
-  emit(
-    event: "multipleResolves",
-    type: NodeJS.MultipleResolveType,
-    promise: Promise<unknown>,
-    value: unknown
-  ): this;
-  emit(event: "worker", listener: NodeJS.WorkerListener): this;
-  emit(
-    event: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _msg?:
-      | number
-      | Promise<unknown>
-      | Error
-      | NodeJS.Signals
-      | NodeJS.MultipleResolveType
-      | NodeJS.WorkerListener
-  ): boolean | this | void {
-    switch (event) {
-      case "beforeExit":
-      case "disconnect":
-      case "exit":
-      case "rejectionHandled":
-      case "uncaughtException":
-      case "uncaughtExceptionMonitor":
-      case "unhandledRejection":
-      case "warning":
-        return true;
-      case "message":
-      case "multipleResolves":
-      case "worker":
-        return this;
-    }
-  }
-
-  on() {
-    return this;
-  }
-
-  once() {
-    return this;
-  }
-
-  prependListener() {
-    return this;
-  }
-
-  prependOnceListener() {
-    return this;
-  }
-
-  listeners() {
-    return [];
-  }
+  abstract chdir(directory: string): void;
+  abstract cwd(): string;
+  abstract exit(code?: number): never;
+  abstract abort(): never;
+  abstract setuid(id: number | string): void;
+  abstract kill(pid: number, signal?: string | number): true;
+  abstract umask(mask?: string | number): number;
+  abstract disconnect(): void;
 }
 
 function _memoryUsage() {

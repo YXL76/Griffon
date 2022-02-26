@@ -112,8 +112,7 @@ export const win32: PlatformPath = {
   delimiter: ";",
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
-  win32: null,
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  /* eslint-disable-next-line @typescript-eslint/ban-ts-comment */ win32: null,
   // @ts-ignore
   posix: null,
 
@@ -936,8 +935,7 @@ export const posix: PlatformPath = {
   delimiter: ":",
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
-  win32: null,
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  /* eslint-disable-next-line @typescript-eslint/ban-ts-comment */ win32: null,
   // @ts-ignore
   posix: null,
 

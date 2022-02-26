@@ -8,8 +8,7 @@ export const customPromisifyArgs = kCustomPromisifyArgsSymbol;
 export function promisify<T1, T2, TResult>(
   original: (
     arg1: T1,
-    arg2: T2,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */ arg2: T2,
     callback: (err: any, result: TResult) => void
   ) => void
 ): (arg1: T1, arg2: T2) => Promise<TResult> {

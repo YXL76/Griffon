@@ -41,6 +41,10 @@ class Timeout implements NodeJS.Timeout {
     return this._id;
   }
 
+  toJSON() {
+    return this._id;
+  }
+
   // TODO
   refresh() {
     return this;

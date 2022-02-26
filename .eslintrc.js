@@ -1,3 +1,16 @@
+const ignoreNodeGlobal = {
+  "no-restricted-globals": [
+    "error",
+    "process",
+    "Buffer",
+    "__filename",
+    "__dirname",
+    "require",
+    "module",
+    "exports",
+  ],
+};
+
 /**@type {import('eslint').Linter.Config}*/
 const config = {
   env: {
@@ -12,29 +25,13 @@ const config = {
   ],
   parser: "@typescript-eslint/parser",
   overrides: [
-    [
-      ["./libnode/**/*.ts"],
-      "./libnode/tsconfig.json",
-      {
-        // ignore node.js globals
-        "no-restricted-globals": [
-          "error",
-          "process",
-          "Buffer",
-          "__filename",
-          "__dirname",
-          "require",
-          "module",
-          "exports",
-        ],
-      },
-    ],
+    [["./libnode/**/*.ts"], "./libnode/tsconfig.json", ignoreNodeGlobal],
     [["./scripts/**/*.ts"], "./scripts/tsconfig.json"],
-    [["./service/**/*.ts"], "./service/tsconfig.json"],
-    [["./task/**/*.ts"], "./task/tsconfig.json"],
+    [["./service/**/*.ts"], "./service/tsconfig.json", ignoreNodeGlobal],
+    [["./shared/**/*.ts"], "./shared/tsconfig.json", ignoreNodeGlobal],
     [["./user/**/*.ts"], "./user/tsconfig.json"],
-    [["./window/**/*.ts"], "./window/tsconfig.json"],
-    [["./worker/**/*.ts"], "./worker/tsconfig.json"],
+    [["./window/**/*.ts"], "./window/tsconfig.json", ignoreNodeGlobal],
+    [["./worker/**/*.ts"], "./worker/tsconfig.json", ignoreNodeGlobal],
   ].map(([files, project, rules]) => ({
     files,
     parserOptions: {
