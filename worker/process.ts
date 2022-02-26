@@ -1,7 +1,17 @@
 import { BaseProcess } from "@griffon/libnode-globals";
+import { WinWkrTp } from "@griffon/shared";
+import { msg2Window } from "./helper";
 
 export class Process extends BaseProcess {
-  constructor(uid: number, pid: number, ppid: number, private _cwd: string) {
+  private readonly _int32: Int32Array;
+
+  constructor(
+    uid: number,
+    pid: number,
+    ppid: number,
+    private _cwd: string,
+    private readonly _sab: SharedArrayBuffer
+  ) {
     super(
       { fd: 0 } as BaseProcess["stdin"],
       { fd: 1 } as BaseProcess["stdout"],
@@ -11,6 +21,7 @@ export class Process extends BaseProcess {
       pid.toString(),
       uid
     );
+    this._int32 = new Int32Array(this._sab);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -24,11 +35,12 @@ export class Process extends BaseProcess {
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   exit(_code?: number): never {
-    throw Error("Not implemented");
+    return self.close() as never;
   }
 
   abort(): never {
-    throw Error("Not implemented");
+    msg2Window({ type: WinWkrTp.terminate });
+    return Atomics.wait(this._int32, 0, 0) as never;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
