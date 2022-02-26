@@ -9,7 +9,7 @@
     "pnp": "yarn sdks vscode vim"
   },
   "resolutions": {
-    "@types/node": "16.11.25",
+    "@types/node": "workspace:*",
     "esbuild": "0.14.23"
   },
   "devDependencies": {

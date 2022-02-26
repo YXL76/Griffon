@@ -25,14 +25,20 @@ const config = {
   ],
   parser: "@typescript-eslint/parser",
   overrides: [
-    [["./libnode/**/*.ts"], "./libnode/tsconfig.json", ignoreNodeGlobal],
+    [
+      ["./libnode/**/*.ts"],
+      "./libnode/tsconfig.json",
+      ignoreNodeGlobal,
+      ["./libnode/@types-node/**/*.ts"],
+    ],
     [["./scripts/**/*.ts"], "./scripts/tsconfig.json"],
     [["./service/**/*.ts"], "./service/tsconfig.json", ignoreNodeGlobal],
     [["./shared/**/*.ts"], "./shared/tsconfig.json", ignoreNodeGlobal],
     [["./user/**/*.ts"], "./user/tsconfig.json"],
     [["./window/**/*.ts"], "./window/tsconfig.json", ignoreNodeGlobal],
     [["./worker/**/*.ts"], "./worker/tsconfig.json", ignoreNodeGlobal],
-  ].map(([files, project, rules]) => ({
+  ].map(([files, project, rules, excludedFiles]) => ({
+    excludedFiles,
     files,
     parserOptions: {
       ecmaVersion: 2021,
