@@ -1,4 +1,4 @@
-import { copyFile, mkdir } from "fs/promises";
+import { copyFile, rm } from "fs/promises";
 import type { BuildOptions } from "esbuild";
 import { build } from "esbuild";
 import { pnpPlugin } from "@yarnpkg/esbuild-plugin-pnp";
@@ -23,7 +23,8 @@ const basicConfig: BuildOptions = {
   minify: prod,
 
   bundle: true,
-  splitting: false,
+  splitting: true,
+  outdir: distPath,
   platform: "browser",
   loader: { ".ts": "ts", ".js": "js" },
   banner: { js: "'use strict';" },
@@ -31,27 +32,16 @@ const basicConfig: BuildOptions = {
 };
 
 (async () => {
-  await mkdir(distPath, { recursive: true });
+  await rm(distPath, { force: true, recursive: true });
 
-  await Promise.all([
-    copyFile(
-      resolve(process.cwd(), "index.html"),
-      resolve(distPath, "index.html")
-    ),
-    build({
-      ...basicConfig,
-      outfile: resolve(distPath, "service.js"),
-      entryPoints: [resolve(servicePath, "index.ts")],
-    }),
-    build({
-      ...basicConfig,
-      outfile: resolve(distPath, "window.js"),
-      entryPoints: [resolve(windowPath, "index.ts")],
-    }),
-    build({
-      ...basicConfig,
-      outfile: resolve(distPath, "worker.js"),
-      entryPoints: [resolve(workerPath, "index.ts")],
-    }),
-  ]);
+  await build({
+    ...basicConfig,
+    entryPoints: {
+      service: resolve(servicePath, "index.ts"),
+      window: resolve(windowPath, "index.ts"),
+      worker: resolve(workerPath, "index.ts"),
+    },
+  });
+
+  await copyFile(resolve("index.html"), resolve(distPath, "index.html"));
 })().catch(console.error);
