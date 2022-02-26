@@ -10,7 +10,7 @@ export async function boot() {
       .then((reg) => {
         self.mySWR = reg;
         self.mySW = reg.installing ?? reg.waiting ?? <ServiceWorker>reg.active;
-        if (self.mySW.state !== "activated") return;
+        if (self.mySW.state === "activated") return;
 
         return new Promise<void>((resolve) => {
           const listener = () => {
