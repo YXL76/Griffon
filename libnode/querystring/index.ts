@@ -6,11 +6,6 @@ import {
 } from "@griffon/libnode-internal/querystring";
 import { Buffer } from "@griffon/libnode-buffer";
 
-interface Dict<T> {
-  [key: string]: T | undefined;
-}
-type ParsedUrlQuery = Dict<string | string[]>;
-
 /* eslint-disable prettier/prettier */
 const unhexTable = new Int8Array([
   -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, // 0 - 15
@@ -168,15 +163,7 @@ export const stringify: typeof querystring.stringify = (
     let fields = "";
     for (let i = 0; i < len; ++i) {
       const k = keys[i];
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      const v = obj[k] as
-        | string
-        | number
-        | boolean
-        | ReadonlyArray<string>
-        | ReadonlyArray<number>
-        | ReadonlyArray<boolean>;
+      const v = obj[k];
       let ks = convert(k, encode);
       ks += eq;
 
@@ -211,7 +198,7 @@ const defSepCodes = [38]; // &
 const defEqCodes = [61]; // =
 
 function addKeyVal(
-  obj: ParsedUrlQuery,
+  obj: querystring.ParsedUrlQuery,
   key: string,
   value: string,
   keyEncoded: boolean,
@@ -231,7 +218,7 @@ function addKeyVal(
 }
 
 export const parse: typeof querystring.parse = (qs, sep, eq, options) => {
-  const obj = Object.create(null) as ParsedUrlQuery;
+  const obj = Object.create(null) as querystring.ParsedUrlQuery;
 
   if (typeof qs !== "string" || qs.length === 0) {
     return obj;

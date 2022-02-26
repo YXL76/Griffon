@@ -1,13 +1,8 @@
+import type { EventEmitterOptions } from "node:events";
+
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 declare const process: Partial<NodeJS.Process> | void;
-
-interface EventEmitterOptions {
-  /**
-   * Enables automatic capturing of promise rejection.
-   */
-  captureRejections?: boolean | undefined;
-}
 
 type EventName = string | symbol;
 interface ListenerFn /* eslint-disable-next-line @typescript-eslint/no-explicit-any */ {

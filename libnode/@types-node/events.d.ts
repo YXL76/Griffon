@@ -35,7 +35,7 @@
  * @see [source](https://github.com/nodejs/node/blob/v16.9.0/lib/events.js)
  */
 declare module 'events' {
-    interface EventEmitterOptions {
+    export interface EventEmitterOptions {
         /**
          * Enables automatic capturing of promise rejection.
          */
