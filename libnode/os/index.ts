@@ -1,5 +1,3 @@
-/// <reference types="node/os" />
-
 import type * as os from "node:os";
 import {
   _processArch,

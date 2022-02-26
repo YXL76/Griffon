@@ -2,7 +2,7 @@ declare module 'process' {
     import * as tty from 'node:tty';
     import { Worker } from 'node:worker_threads';
     global {
-        var process: NodeJS.Process;
+        // var process: NodeJS.Process;
         namespace NodeJS {
             // this namespace merge is here because these are specifically used
             // as the type for process.stdin, process.stdout, and process.stderr.

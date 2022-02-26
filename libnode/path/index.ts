@@ -1,5 +1,3 @@
-/// <reference types="node/path" />
-
 import {
   CHAR_BACKWARD_SLASH,
   CHAR_COLON,

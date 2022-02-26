@@ -5,7 +5,7 @@
   },
   "devDependencies": {
     "@digitak/esrun": "3.1.2",
-    "@types/node": "*",
+    "@types/node": "16.11.26",
     "@yarnpkg/esbuild-plugin-pnp": "2.0.1",
     "esbuild": "*"
   },

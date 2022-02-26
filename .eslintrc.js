@@ -1,16 +1,3 @@
-const ignoreNodeGlobal = {
-  "no-restricted-globals": [
-    "error",
-    "process",
-    "Buffer",
-    "__filename",
-    "__dirname",
-    "require",
-    "module",
-    "exports",
-  ],
-};
-
 /**@type {import('eslint').Linter.Config}*/
 const config = {
   env: {
@@ -25,27 +12,21 @@ const config = {
   ],
   parser: "@typescript-eslint/parser",
   overrides: [
-    [
-      ["./libnode/**/*.ts"],
-      "./libnode/tsconfig.json",
-      ignoreNodeGlobal,
-      ["./libnode/@types-node/**/*.ts"],
-    ],
-    [["./scripts/**/*.ts"], "./scripts/tsconfig.json"],
-    [["./service/**/*.ts"], "./service/tsconfig.json", ignoreNodeGlobal],
-    [["./shared/**/*.ts"], "./shared/tsconfig.json", ignoreNodeGlobal],
-    [["./user/**/*.ts"], "./user/tsconfig.json"],
-    [["./window/**/*.ts"], "./window/tsconfig.json", ignoreNodeGlobal],
-    [["./worker/**/*.ts"], "./worker/tsconfig.json", ignoreNodeGlobal],
-  ].map(([files, project, rules, excludedFiles]) => ({
+    ["libnode", ["./libnode/@types-node/**/*.ts"]],
+    ["scripts"],
+    ["service"],
+    ["shared"],
+    ["user"],
+    ["window"],
+    ["worker"],
+  ].map(([dir, excludedFiles]) => ({
     excludedFiles,
-    files,
+    files: [`./${dir}/**/*.ts`],
     parserOptions: {
       ecmaVersion: 2021,
-      project,
+      project: `./${dir}/tsconfig.json`,
       sourceType: "module",
     },
-    rules,
   })),
   plugins: ["@typescript-eslint", "prettier"],
   rules: {

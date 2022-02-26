@@ -24,22 +24,22 @@ interface NodeRequire extends NodeJS.Require { }
 interface RequireResolve extends NodeJS.RequireResolve { }
 interface NodeModule extends NodeJS.Module { }
 
-declare var process: NodeJS.Process;
-declare var console: Console;
+// declare var process: NodeJS.Process;
+// declare var console: Console;
 
-declare var __filename: string;
-declare var __dirname: string;
+// declare var __filename: string;
+// declare var __dirname: string;
 
-declare var require: NodeRequire;
-declare var module: NodeModule;
+// declare var require: NodeRequire;
+// declare var module: NodeModule;
 
 // Same as module.exports
-declare var exports: any;
+// declare var exports: any;
 
 /**
  * Only available if `--expose-gc` is passed to the process.
  */
-declare var gc: undefined | (() => void);
+// declare var gc: undefined | (() => void);
 
 //#region borrowed
 // from https://github.com/microsoft/TypeScript/blob/38da7c600c83e7b31193a62495239a0fe478cb67/lib/lib.webworker.d.ts#L633 until moved to separate lib
@@ -64,16 +64,16 @@ interface AbortSignal {
     readonly aborted: boolean;
 }
 
-declare var AbortController: {
-    prototype: AbortController;
-    new(): AbortController;
-};
+// declare var AbortController: {
+//    prototype: AbortController;
+//    new(): AbortController;
+// };
 
-declare var AbortSignal: {
-    prototype: AbortSignal;
-    new(): AbortSignal;
-    // TODO: Add abort() static
-};
+// declare var AbortSignal: {
+//     prototype: AbortSignal;
+//     new(): AbortSignal;
+//     // TODO: Add abort() static
+// };
 //#endregion borrowed
 
 //#region ArrayLike.at()

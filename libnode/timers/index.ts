@@ -1,5 +1,3 @@
-/// <reference types="node/timers" />
-
 import "setimmediate";
 
 const webSetTimeout = self.setTimeout;

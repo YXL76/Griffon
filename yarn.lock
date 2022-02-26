@@ -41,9 +41,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@eslint/eslintrc@npm:^1.1.0":
-  version: 1.1.0
-  resolution: "@eslint/eslintrc@npm:1.1.0"
+"@eslint/eslintrc@npm:^1.2.0":
+  version: 1.2.0
+  resolution: "@eslint/eslintrc@npm:1.2.0"
   dependencies:
     ajv: ^6.12.4
     debug: ^4.3.2
@@ -54,7 +54,7 @@ __metadata:
     js-yaml: ^4.1.0
     minimatch: ^3.0.4
     strip-json-comments: ^3.1.1
-  checksum: 784aa2157e2808b52bbbaf1d1cfca9a6ba0b2faaa3696eb7a1229d4b357400fbd8a6aa09a16e7ae0868ea075d3a8f365cf5928b6d05a1df47f40a1167423a4fa
+  checksum: a5e51dcf02627363567094456d7880b46b6a14a285d7a057f083ca903bdd862483bb6314cbc9fb6fa2d2c4537d50e0d28bd5e39650840241ae4796faaec65d2e
   languageName: node
   linkType: hard
 
@@ -77,7 +77,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@griffon/libnode-events@workspace:libnode/events"
   dependencies:
-    "@types/node": "*"
+    "@types/node": "workspace:*"
   languageName: unknown
   linkType: soft
 
@@ -95,7 +95,7 @@ __metadata:
     "@griffon/libnode-timers": "workspace:*"
     "@griffon/libnode-url": "workspace:*"
     "@griffon/libnode-util": "workspace:*"
-    "@types/node": "*"
+    "@types/node": "workspace:*"
   languageName: unknown
   linkType: soft
 
@@ -103,7 +103,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@griffon/libnode-internal@workspace:libnode/internal"
   dependencies:
-    "@types/node": "*"
+    "@types/node": "workspace:*"
   languageName: unknown
   linkType: soft
 
@@ -112,7 +112,7 @@ __metadata:
   resolution: "@griffon/libnode-os@workspace:libnode/os"
   dependencies:
     "@griffon/libnode-internal": "workspace:*"
-    "@types/node": "*"
+    "@types/node": "workspace:*"
   languageName: unknown
   linkType: soft
 
@@ -121,7 +121,7 @@ __metadata:
   resolution: "@griffon/libnode-path@workspace:libnode/path"
   dependencies:
     "@griffon/libnode-internal": "workspace:*"
-    "@types/node": "*"
+    "@types/node": "workspace:*"
   languageName: unknown
   linkType: soft
 
@@ -130,7 +130,7 @@ __metadata:
   resolution: "@griffon/libnode-process@workspace:libnode/process"
   dependencies:
     "@griffon/libnode-events": "workspace:*"
-    "@types/node": "*"
+    "@types/node": "workspace:*"
   languageName: unknown
   linkType: soft
 
@@ -149,7 +149,7 @@ __metadata:
   dependencies:
     "@griffon/libnode-buffer": "workspace:*"
     "@griffon/libnode-internal": "workspace:*"
-    "@types/node": "*"
+    "@types/node": "workspace:*"
   languageName: unknown
   linkType: soft
 
@@ -157,7 +157,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@griffon/libnode-timers@workspace:libnode/timers"
   dependencies:
-    "@types/node": "*"
+    "@types/node": "workspace:*"
     setimmediate: 1.0.5
   languageName: unknown
   linkType: soft
@@ -169,7 +169,7 @@ __metadata:
     "@griffon/libnode-internal": "workspace:*"
     "@griffon/libnode-path": "workspace:*"
     "@griffon/libnode-punycode": "workspace:*"
-    "@types/node": "*"
+    "@types/node": "workspace:*"
   languageName: unknown
   linkType: soft
 
@@ -178,7 +178,7 @@ __metadata:
   resolution: "@griffon/libnode-util@workspace:libnode/util"
   dependencies:
     "@griffon/libnode-internal": "workspace:*"
-    "@types/node": "*"
+    "@types/node": "workspace:*"
   languageName: unknown
   linkType: soft
 
@@ -187,7 +187,7 @@ __metadata:
   resolution: "@griffon/scripts@workspace:scripts"
   dependencies:
     "@digitak/esrun": 3.1.2
-    "@types/node": "*"
+    "@types/node": 16.11.26
     "@yarnpkg/esbuild-plugin-pnp": 2.0.1
     esbuild: "*"
   languageName: unknown
@@ -211,7 +211,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@griffon/user@workspace:user"
   dependencies:
-    "@types/node": "*"
+    "@types/node": 16.11.26
   languageName: unknown
   linkType: soft
 
@@ -234,13 +234,13 @@ __metadata:
   linkType: soft
 
 "@humanwhocodes/config-array@npm:^0.9.2":
-  version: 0.9.3
-  resolution: "@humanwhocodes/config-array@npm:0.9.3"
+  version: 0.9.5
+  resolution: "@humanwhocodes/config-array@npm:0.9.5"
   dependencies:
     "@humanwhocodes/object-schema": ^1.2.1
     debug: ^4.1.1
     minimatch: ^3.0.4
-  checksum: 6e5d7d274941c459bab0a14a87e372206d89fad3e4879d982edc942e8cc34da6510ea3644b8535a2a9edaa6527e91dccceabc6837ffa8ee506d66bca5d269ebc
+  checksum: 8ba6281bc0590f6c6eadeefc14244b5a3e3f5903445aadd1a32099ed80e753037674026ce1b3c945ab93561bea5eb29e3c5bff67060e230c295595ba517a3492
   languageName: node
   linkType: hard
 
@@ -299,9 +299,9 @@ __metadata:
   linkType: hard
 
 "@sindresorhus/is@npm:^4.0.0":
-  version: 4.4.0
-  resolution: "@sindresorhus/is@npm:4.4.0"
-  checksum: 1d2471a75e03ce2182c3a3d014d027addeaeae1a7a2adfdb03c91cce17900b207e493db012e35ffa21808c563ce3b8e2e7c24646b3d5c27467e08bef8b0e16f0
+  version: 4.5.0
+  resolution: "@sindresorhus/is@npm:4.5.0"
+  checksum: 1fd3cfa8850357bd5fe2d33410d561dc684555688c0fbbf6614bccfd555bf7d1e1005f3abc51b9fe6c28f0820ca9cb863db4fb0db8a653434b4743df920ef665
   languageName: node
   linkType: hard
 
@@ -380,11 +380,25 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@workspace:*, @types/node@workspace:libnode/@types-node":
+"@types/node@*, @types/node@workspace:*, @types/node@workspace:libnode/@types-node":
   version: 0.0.0-use.local
   resolution: "@types/node@workspace:libnode/@types-node"
   languageName: unknown
   linkType: soft
+
+"@types/node@npm:16.11.26":
+  version: 16.11.26
+  resolution: "@types/node@npm:16.11.26"
+  checksum: 57757caaba3f0d95de82198cb276a1002c49b710108c932a1d02d7c91ff2fa57cfe2dd19fde60853b6dd90b0964b3cf35557981d2628e20aed6a909057aedfe6
+  languageName: node
+  linkType: hard
+
+"@types/node@npm:^13.7.0":
+  version: 13.13.52
+  resolution: "@types/node@npm:13.13.52"
+  checksum: 8f1afff497ebeba209e2dc340d823284e087a47632afe99a7daa30eaff80893e520f222ad400cd1f2d3b8288e93cf3eaded52a8e64eaefb8aacfe6c35de98f42
+  languageName: node
+  linkType: hard
 
 "@types/punycode@npm:2.1.0":
   version: 2.1.0
@@ -1012,13 +1026,13 @@ __metadata:
   linkType: hard
 
 "clipanion@npm:^3.2.0-rc.4":
-  version: 3.2.0-rc.9
-  resolution: "clipanion@npm:3.2.0-rc.9"
+  version: 3.2.0-rc.10
+  resolution: "clipanion@npm:3.2.0-rc.10"
   dependencies:
     typanion: ^3.3.1
   peerDependencies:
     typanion: "*"
-  checksum: 00690c6112649314ad7c57c7d310d6dca26691d2c473d2a3682394cd1ec056ef229fc2c12856dce48806a51d481d1153f4f50435675f2b252b0be80e5e7f22f8
+  checksum: 8e45be128201607620c6b154fc4ee2c6211cc9ff7ecad2959999269c9c1d8b8a12915345101aecdd81fee856daeccb43c143fefb451649c7b8d1862aa50d16b4
   languageName: node
   linkType: hard
 
@@ -1510,11 +1524,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint@npm:8.9.0":
-  version: 8.9.0
-  resolution: "eslint@npm:8.9.0"
+"eslint@npm:8.10.0":
+  version: 8.10.0
+  resolution: "eslint@npm:8.10.0"
   dependencies:
-    "@eslint/eslintrc": ^1.1.0
+    "@eslint/eslintrc": ^1.2.0
     "@humanwhocodes/config-array": ^0.9.2
     ajv: ^6.10.0
     chalk: ^4.0.0
@@ -1551,7 +1565,7 @@ __metadata:
     v8-compile-cache: ^2.0.3
   bin:
     eslint: bin/eslint.js
-  checksum: 8efecdb9752ee6cb4d2787a14e00cbeab29562ed95dd71c6f3f8ac410426a067d5aa659416d2290e46ca44bc5607e6a6e6c62f814694d8639f80666f522022a7
+  checksum: 8b31ab3de5b48b6828bf13c09c9e62ee0045fa0afa017efaa73eedcf4dc33bc204ee4c467d4677e37967d1645f73816ddef4271422e691fded352040f8f83093
   languageName: node
   linkType: hard
 
@@ -1882,7 +1896,7 @@ __metadata:
     "@typescript-eslint/eslint-plugin": 5.12.1
     "@typescript-eslint/parser": 5.12.1
     "@yarnpkg/sdks": 2.6.0
-    eslint: 8.9.0
+    eslint: 8.10.0
     eslint-config-prettier: 8.4.0
     eslint-plugin-prettier: 4.0.0
     prettier: 2.5.1

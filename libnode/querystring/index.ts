@@ -1,5 +1,3 @@
-/// <reference types="node/querystring" />
-
 import type * as querystring from "node:querystring";
 import {
   encodeStr,

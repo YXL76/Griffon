@@ -2,6 +2,6 @@
   "name": "@griffon/user",
   "private": true,
   "devDependencies": {
-    "@types/node": "*"
+    "@types/node": "16.11.26"
   }
 }

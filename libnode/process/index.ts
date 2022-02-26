@@ -1,5 +1,3 @@
-/// <reference types="node/process" />
-
 import { EventEmitter } from "@griffon/libnode-events";
 
 export abstract class BaseProcess
