@@ -2,8 +2,8 @@ import type { Svc2Win, Win2Svc, Win2Wkr } from "@griffon/shared";
 import { WinSvcTp, WinWkrTp } from "@griffon/shared";
 
 export function msg2Service(message: Win2Svc, transfer?: Transferable[]) {
-  if (transfer) mySW.postMessage(message, transfer);
-  else mySW.postMessage(message);
+  if (transfer) self.mySW.postMessage(message, transfer);
+  else self.mySW.postMessage(message);
 }
 
 export function msg2Worker(worker: Worker, msg: Win2Wkr) {

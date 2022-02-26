@@ -1,7 +1,9 @@
 import type { Process } from "./process";
 
-export declare global {
-  let mySW: ServiceWorker;
-  let mySWR: ServiceWorkerRegistration;
-  let process: Process;
+/* eslint-disable no-var */
+declare global {
+  var mySW: ServiceWorker;
+  var mySWR: ServiceWorkerRegistration;
+  var process: Process;
 }
+/* eslint-enable no-var */

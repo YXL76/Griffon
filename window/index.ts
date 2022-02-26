@@ -8,20 +8,20 @@ export async function boot() {
     navigator.serviceWorker
       .register("./service.js", { type: "module" })
       .then((reg) => {
-        mySWR = reg;
-        mySW = reg.installing ?? reg.waiting ?? (reg.active as ServiceWorker);
-        if (mySW.state !== "activated") return;
+        self.mySWR = reg;
+        self.mySW = reg.installing ?? reg.waiting ?? <ServiceWorker>reg.active;
+        if (self.mySW.state !== "activated") return;
 
         return new Promise<void>((resolve) => {
           const listener = () => {
-            if (mySW.state === "activated")
-              resolve(mySW.removeEventListener("statechange", listener));
+            if (self.mySW.state === "activated")
+              resolve(self.mySW.removeEventListener("statechange", listener));
           };
-          mySW.addEventListener("statechange", listener);
+          self.mySW.addEventListener("statechange", listener);
         });
       })
       .then(() => {
-        if (mySW !== navigator.serviceWorker.controller)
+        if (self.mySW !== navigator.serviceWorker.controller)
           throw Error("Service worker not activated");
         console.log("Service worker activated");
 
@@ -29,7 +29,7 @@ export async function boot() {
           "message",
           ({ data }: MessageEvent<Svc2Win>) => {
             if (data.type === WinSvcTp.user)
-              return resolve((process = new Process(data.pid, data.uid)));
+              return resolve((self.process = new Process(data.pid, data.uid)));
             svcMsgHandler(data);
           }
         );
