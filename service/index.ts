@@ -22,13 +22,13 @@ declare const self: ServiceWorkerGlobalScope & typeof globalThis;
 
 self.addEventListener("message", ({ data, source }) => {
   if (!source) return;
-  if (Object.prototype.hasOwnProperty.call(source, "type")) {
-    switch ((source as Client).type) {
+  if ("type" in source /* Client */) {
+    switch (source.type) {
       case "window":
-        winMsgHandler(data as Win2Svc, source as Client);
+        winMsgHandler(data as Win2Svc, source);
         break;
       case "worker":
-        wkrMsgHandler(data as Wkr2Svc, source as Client);
+        wkrMsgHandler(data as Wkr2Svc, source);
         break;
     }
   }
