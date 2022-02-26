@@ -18,8 +18,7 @@
       "headers": [
         {
           "key": "Content-Type",
-          "value": "application/javascript",
-          "comment": "https://bugs.chromium.org/p/chromium/issues/detail?id=1292379"
+          "value": "application/javascript"
         }
       ]
     }
