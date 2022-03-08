@@ -1,5 +1,5 @@
+import type { Win2Svc, Win2SvcChan, Wkr2Svc } from "@griffon/shared";
 import { winChanMsgHandler, winMsgHandler, wkrMsgHandler } from "./helper";
-import type { Wkr2Svc } from "@griffon/shared";
 
 declare const self: ServiceWorkerGlobalScope & typeof globalThis;
 
@@ -25,13 +25,11 @@ self.addEventListener("message", ({ data, source, ports }) => {
   if ("type" in source /* Client */) {
     switch (source.type) {
       case "window":
-        if (ports.length === 2) {
-          ports[0].onmessage = winMsgHandler.bind(undefined, ports[0]);
-          ports[1].onmessage = winChanMsgHandler.bind(undefined, ports[1]);
-        }
+        if (ports.length) winChanMsgHandler(ports[0], data as Win2SvcChan);
+        else winMsgHandler(source, data as Win2Svc);
         break;
       case "worker":
-        wkrMsgHandler(data as Wkr2Svc, source);
+        wkrMsgHandler(source, data as Wkr2Svc);
         break;
     }
   }

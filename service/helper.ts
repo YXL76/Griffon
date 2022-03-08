@@ -9,17 +9,14 @@ import { WinSvcChanTp } from "@griffon/shared";
 let maxUid = 0;
 let maxPid = 0;
 
-export function winMsgHandler(
-  port: MessagePort,
-  { data }: MessageEvent<Win2Svc>
-) {
+export function winMsgHandler(source: Client, data: Win2Svc) {
   switch (data.t) {
     /* eslint-disable-next-line @typescript-eslint/restrict-template-expressions */ default:
       throw Error(`Unknown message type from window: ${JSON.stringify(data)}`);
   }
 }
 
-function winChanMsgDataHandler<D extends Win2SvcChan["data"]>(
+function winChanMsgDataHandler<D extends Win2SvcChan>(
   data: D
 ): Win2SvcMap[D["t"]]["data"] {
   switch (data.t) {
@@ -32,14 +29,11 @@ function winChanMsgDataHandler<D extends Win2SvcChan["data"]>(
   }
 }
 
-export function winChanMsgHandler(
-  port: MessagePort,
-  { data: { data, chan } }: MessageEvent<Win2SvcChan>
-) {
-  port.postMessage({ chan, data: winChanMsgDataHandler(data) });
+export function winChanMsgHandler(port: MessagePort, data: Win2SvcChan) {
+  port.postMessage(winChanMsgDataHandler(data));
 }
 
-export function wkrMsgHandler(data: Wkr2Svc, source: Client) {
+export function wkrMsgHandler(source: Client, data: Wkr2Svc) {
   switch (data.t) {
     /* eslint-disable-next-line @typescript-eslint/restrict-template-expressions */ default:
       throw Error(`Unknown message type from window: ${JSON.stringify(data)}`);

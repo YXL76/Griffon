@@ -18,16 +18,18 @@ export type Win2Svc = Msg<WinSvcTp.none>;
 
 export type Svc2Win = Msg<WinSvcTp.none>;
 
-type ChMsgReq<T extends WinSvcChanTp, D = Dict> = {
+type ChanMsg<T extends WinSvcChanTp, D = Dict> = { t: T } & D;
+
+/* type ChMsgReq<T extends WinSvcChanTp, D = Dict> = {
   chan: number;
   data: { t: T } & D;
-};
+}; */
 
 type ChMsgRes<D = Dict> = { chan: number; data: D };
 
 export type Win2SvcChan =
-  | ChMsgReq<WinSvcChanTp.user>
-  | ChMsgReq<WinSvcChanTp.proc, { uid: number }>;
+  | ChanMsg<WinSvcChanTp.user>
+  | ChanMsg<WinSvcChanTp.proc, { uid: number }>;
 
 export interface Win2SvcMap {
   // These should never be sent
