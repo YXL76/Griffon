@@ -1,7 +1,9 @@
 export const enum WinWkrTp {
-  process,
+  /** Placeholder */
+  none,
+  proc,
   code,
-  terminate,
+  term,
 }
 
 // eslint-disable-next-line @typescript-eslint/ban-types
@@ -9,7 +11,7 @@ type Msg<T extends WinWkrTp, D = {}> = { type: T } & D;
 
 export type Win2Wkr =
   | Msg<
-      WinWkrTp.process,
+      WinWkrTp.proc,
       {
         pid: number;
         ppid: number;
@@ -20,4 +22,4 @@ export type Win2Wkr =
     >
   | Msg<WinWkrTp.code, { code: string }>;
 
-export type Wkr2Win = Msg<WinWkrTp.terminate>;
+export type Wkr2Win = Msg<WinWkrTp.term>;

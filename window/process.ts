@@ -1,9 +1,12 @@
+import { BaseChildProcess, BaseProcess } from "@griffon/libnode-globals";
 import type { Win2Wkr, Wkr2Win } from "@griffon/shared";
-import { BaseProcess } from "@griffon/libnode-globals";
-import { WinWkrTp } from "@griffon/shared";
+import { WinSvcTp, WinWkrTp } from "@griffon/shared";
+import { chanMsg2Svc } from "./helper";
 
 export class Process extends BaseProcess {
   private _cwd: string;
+
+  private readonly _children = new Map<number, ChildProcess>();
 
   constructor(pid: number, uid: number) {
     super(
@@ -29,11 +32,11 @@ export class Process extends BaseProcess {
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   exit(_code?: number): never {
-    return close() as never;
+    return self.close() as never;
   }
 
   abort(): never {
-    return close() as never;
+    return self.close() as never;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -42,8 +45,8 @@ export class Process extends BaseProcess {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  kill(_pid: number, _signal?: string | number): true {
-    return true;
+  kill(_pid: number, _signal?: string | number) {
+    return true as const;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -54,31 +57,47 @@ export class Process extends BaseProcess {
   disconnect() {
     // noop
   }
+
+  async _newChildProcess() {
+    const { pid } = await chanMsg2Svc({ type: WinSvcTp.proc, uid: this._uid });
+    this._children.set(pid, new ChildProcess(pid));
+  }
+
+  _removeChildProcess(pid: number) {
+    this._children.delete(pid);
+  }
 }
 
-export class ChildProcess {
-  private readonly _worker: Worker;
+export class ChildProcess extends BaseChildProcess {
+  private _worker?: Worker;
 
   private readonly _sab = new SharedArrayBuffer(8);
 
-  constructor(public readonly pid: number) {
+  private readonly _children = new Map<number, ChildProcess>();
+
+  constructor(
+    public override readonly pid: number,
+    private readonly _parent: ChildProcess | Process = process
+  ) {
+    super();
+
     this._worker = new Worker("worker.js", { type: "module" });
 
     this._worker.addEventListener(
       "message",
       ({ data }: MessageEvent<Wkr2Win>) => {
         switch (data.type) {
-          case WinWkrTp.terminate:
-            this._worker.terminate();
+          case WinWkrTp.term:
+            this.kill();
             break;
         }
       }
     );
 
     const procMsg: Win2Wkr = {
-      type: WinWkrTp.process,
+      type: WinWkrTp.proc,
       pid,
-      ppid: process.pid,
+      ppid: _parent.pid,
       cwd: process.cwd(),
       uid: process.getuid(),
       sab: this._sab,
@@ -104,7 +123,33 @@ export class ChildProcess {
     this.postMessage(codeMsg);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  kill(_signal?: number) {
+    if (this.killed) return true;
+    this._worker?.terminate();
+    this._worker = undefined;
+    this.killed = true;
+    this._parent._removeChildProcess(this.pid);
+    return true;
+  }
+
   postMessage(msg: Win2Wkr) {
-    this._worker.postMessage(msg);
+    this._worker?.postMessage(msg);
+  }
+
+  disconnect() {
+    // noop
+  }
+
+  unref() {
+    // noop
+  }
+
+  ref() {
+    // noop
+  }
+
+  _removeChildProcess(pid: number) {
+    this._children.delete(pid);
   }
 }

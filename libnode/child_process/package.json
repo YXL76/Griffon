@@ -1,0 +1,10 @@
+{
+  "name": "@griffon/libnode-child_process",
+  "private": true,
+  "devDependencies": {
+    "@types/node-custom": "workspace:*"
+  },
+  "dependencies": {
+    "@griffon/libnode-events": "workspace:*"
+  }
+}

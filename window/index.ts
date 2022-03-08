@@ -1,6 +1,6 @@
-import { msg2Service, svcMsgHandler } from "./helper";
+import type { Svc2Win, Win2SvcMap } from "@griffon/shared";
+import { chanMsg2Svc, svcMsgHandler, svcMsgPool } from "./helper";
 import { Process } from "./process";
-import type { Svc2Win } from "@griffon/shared";
 import { WinSvcTp } from "@griffon/shared";
 
 export async function boot() {
@@ -27,19 +27,24 @@ export async function boot() {
 
         navigator.serviceWorker.addEventListener(
           "message",
-          ({ data }: MessageEvent<Svc2Win>) => {
-            if (data.type === WinSvcTp.user)
-              return resolve((self.process = new Process(data.pid, data.uid)));
-            svcMsgHandler(data);
+          <K extends WinSvcTp>({
+            data,
+          }: MessageEvent<Svc2Win | Win2SvcMap[K]>) => {
+            if ("chan" in data) {
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+              const { resolve } = svcMsgPool.get(data.chan)!;
+              resolve(data);
+              svcMsgPool.delete(data.chan);
+            } else svcMsgHandler(data);
           }
         );
 
-        msg2Service({ type: WinSvcTp.user });
+        return chanMsg2Svc({ type: WinSvcTp.user });
       })
+      .then(({ uid, pid }) => resolve((self.process = new Process(pid, uid))))
       .catch(reject);
   });
 }
 
 await boot();
-
-msg2Service({ type: WinSvcTp.process, uid: process.getuid() });
+await process._newChildProcess();

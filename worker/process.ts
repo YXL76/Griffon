@@ -39,7 +39,7 @@ export class Process extends BaseProcess {
   }
 
   abort(): never {
-    msg2Window({ type: WinWkrTp.terminate });
+    msg2Window({ type: WinWkrTp.term });
     return Atomics.wait(this._int32, 0, 0) as never;
   }
 
@@ -49,8 +49,8 @@ export class Process extends BaseProcess {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  kill(_pid: number, _signal?: string | number): true {
-    return true;
+  kill(_pid: number, _signal?: string | number) {
+    return true as const;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars

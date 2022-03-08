@@ -62,7 +62,7 @@ export abstract class BaseProcess
     public readonly pid: number,
     public readonly ppid: number,
     public title: string,
-    private readonly _uid: number
+    protected readonly _uid: number
   ) {
     super();
   }

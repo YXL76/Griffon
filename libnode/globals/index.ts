@@ -1,5 +1,6 @@
-export * from "@griffon/libnode-process";
+export * from "@griffon/libnode-child_process";
 export * from "@griffon/libnode-events";
+export * from "@griffon/libnode-process";
 
 import * as buffer from "@griffon/libnode-buffer";
 import * as events from "@griffon/libnode-events";

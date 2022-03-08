@@ -1,18 +1,37 @@
-import type { Svc2Win, Win2Svc } from "@griffon/shared";
-import { ChildProcess } from "./process";
-import { WinSvcTp } from "@griffon/shared";
+import type {
+  ChMshPool,
+  Svc2Win,
+  Win2Svc,
+  Win2SvcChan,
+  Win2SvcMap,
+} from "@griffon/shared";
 
-export function msg2Service(message: Win2Svc, transfer?: Transferable[]) {
-  if (transfer) self.mySW.postMessage(message, transfer);
-  else self.mySW.postMessage(message);
+let chan = 0;
+
+export const svcMsgPool: ChMshPool = new Map();
+
+export function chanMsg2Svc<D extends Win2SvcChan["data"]>(
+  data: D,
+  transfer?: Transferable[]
+): Promise<Win2SvcMap[D["type"]]["data"]> {
+  return new Promise((resolve, reject) => {
+    svcMsgPool.set(++chan, { resolve, reject });
+    const message = { data, chan };
+    if (!transfer) self.mySW.postMessage(message);
+    else self.mySW.postMessage(message, transfer);
+  });
 }
 
-export function svcMsgHandler(data: Exclude<Svc2Win, { type: WinSvcTp.user }>) {
+// export const wrkMsgPool: ChMshPool = new Map();
+
+export function msg2Svc(message: Win2Svc, transfer?: Transferable[]) {
+  if (!transfer) self.mySW.postMessage(message);
+  else self.mySW.postMessage(message, transfer);
+}
+
+export function svcMsgHandler(data: Svc2Win) {
   switch (data.type) {
-    case WinSvcTp.process:
-      new ChildProcess(data.pid);
-      break;
     /* eslint-disable-next-line @typescript-eslint/restrict-template-expressions */ default:
-      console.error(`Unknown message type from service: ${data}`);
+      throw Error(`Unknown message type from service: ${data}`);
   }
 }
