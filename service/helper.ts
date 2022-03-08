@@ -12,7 +12,7 @@ let maxPid = 0;
 export function winMsgHandler(data: Win2Svc, source: Client) {
   switch (data.type) {
     /* eslint-disable-next-line @typescript-eslint/restrict-template-expressions */ default:
-      throw Error(`Unknown message type from window: ${data}`);
+      throw Error(`Unknown message type from window: ${JSON.stringify(data)}`);
   }
 }
 
@@ -25,7 +25,7 @@ function _winChanMsgDataHandler<D extends Win2SvcChan["data"]>(
     case WinSvcTp.proc:
       return { pid: ++maxPid };
     /* eslint-disable-next-line @typescript-eslint/restrict-template-expressions */ default:
-      throw Error(`Unknown message type from window: ${data}`);
+      throw Error(`Unknown message type from window: ${JSON.stringify(data)}`);
   }
 }
 
@@ -37,6 +37,6 @@ export function winChanMsgHandler(data: Win2SvcChan, source: Client) {
 export function wkrMsgHandler(data: Wkr2Svc, source: Client) {
   switch (data.type) {
     /* eslint-disable-next-line @typescript-eslint/restrict-template-expressions */ default:
-      throw Error(`Unknown message type from window: ${data}`);
+      throw Error(`Unknown message type from window: ${JSON.stringify(data)}`);
   }
 }

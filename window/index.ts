@@ -33,7 +33,7 @@ export async function boot() {
             if ("chan" in data) {
               // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
               const { resolve } = svcMsgPool.get(data.chan)!;
-              resolve(data);
+              resolve(data.data);
               svcMsgPool.delete(data.chan);
             } else svcMsgHandler(data);
           }

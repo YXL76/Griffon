@@ -8,7 +8,7 @@ declare const self: WorkerGlobalScope &
 
 self.addEventListener("message", ({ data }: MessageEvent<Win2Wkr>) => {
   switch (data.type) {
-    case WinWkrTp.process: {
+    case WinWkrTp.proc: {
       const { uid, pid, ppid, cwd, sab } = data;
       self.process = new Process(uid, pid, ppid, cwd, sab);
       break;
