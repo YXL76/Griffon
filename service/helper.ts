@@ -4,38 +4,43 @@ import type {
   Win2SvcMap,
   Wkr2Svc,
 } from "@griffon/shared";
-import { WinSvcTp } from "@griffon/shared";
+import { WinSvcChanTp } from "@griffon/shared";
 
 let maxUid = 0;
 let maxPid = 0;
 
-export function winMsgHandler(data: Win2Svc, source: Client) {
-  switch (data.type) {
+export function winMsgHandler(
+  port: MessagePort,
+  { data }: MessageEvent<Win2Svc>
+) {
+  switch (data.t) {
     /* eslint-disable-next-line @typescript-eslint/restrict-template-expressions */ default:
       throw Error(`Unknown message type from window: ${JSON.stringify(data)}`);
   }
 }
 
-function _winChanMsgDataHandler<D extends Win2SvcChan["data"]>(
+function winChanMsgDataHandler<D extends Win2SvcChan["data"]>(
   data: D
-): Win2SvcMap[D["type"]]["data"] {
-  switch (data.type) {
-    case WinSvcTp.user:
+): Win2SvcMap[D["t"]]["data"] {
+  switch (data.t) {
+    case WinSvcChanTp.user:
       return { uid: ++maxUid, pid: ++maxPid };
-    case WinSvcTp.proc:
+    case WinSvcChanTp.proc:
       return { pid: ++maxPid };
     /* eslint-disable-next-line @typescript-eslint/restrict-template-expressions */ default:
       throw Error(`Unknown message type from window: ${JSON.stringify(data)}`);
   }
 }
 
-export function winChanMsgHandler(data: Win2SvcChan, source: Client) {
-  const ret = _winChanMsgDataHandler(data.data);
-  source.postMessage({ chan: data.chan, data: ret });
+export function winChanMsgHandler(
+  port: MessagePort,
+  { data: { data, chan } }: MessageEvent<Win2SvcChan>
+) {
+  port.postMessage({ chan, data: winChanMsgDataHandler(data) });
 }
 
 export function wkrMsgHandler(data: Wkr2Svc, source: Client) {
-  switch (data.type) {
+  switch (data.t) {
     /* eslint-disable-next-line @typescript-eslint/restrict-template-expressions */ default:
       throw Error(`Unknown message type from window: ${JSON.stringify(data)}`);
   }

@@ -1,34 +1,38 @@
+import type { Dict } from ".";
+
 export const enum WinSvcTp {
+  /** Placeholder */
+  none,
+}
+
+export const enum WinSvcChanTp {
   /** Placeholder */
   none,
   user,
   proc,
 }
 
-type Msg<T extends WinSvcTp, D = Record<never, never>> = { type: T } & D;
+type Msg<T extends WinSvcTp, D = Dict> = { t: T } & D;
 
 export type Win2Svc = Msg<WinSvcTp.none>;
 
 export type Svc2Win = Msg<WinSvcTp.none>;
 
-type ChMsgReq<T extends WinSvcTp, D = Record<never, never>> = {
+type ChMsgReq<T extends WinSvcChanTp, D = Dict> = {
   chan: number;
-  data: Msg<T, D>;
+  data: { t: T } & D;
 };
 
-type ChMsgRes<D = Record<never, never>> = {
-  chan: number;
-  data: D;
-};
+type ChMsgRes<D = Dict> = { chan: number; data: D };
 
 export type Win2SvcChan =
-  | ChMsgReq<WinSvcTp.user>
-  | ChMsgReq<WinSvcTp.proc, { uid: number }>;
+  | ChMsgReq<WinSvcChanTp.user>
+  | ChMsgReq<WinSvcChanTp.proc, { uid: number }>;
 
 export interface Win2SvcMap {
   // These should never be sent
-  [WinSvcTp.none]: ChMsgRes;
+  [WinSvcChanTp.none]: ChMsgRes;
 
-  [WinSvcTp.user]: ChMsgRes<{ uid: number; pid: number }>;
-  [WinSvcTp.proc]: ChMsgRes<{ pid: number }>;
+  [WinSvcChanTp.user]: ChMsgRes<{ uid: number; pid: number }>;
+  [WinSvcChanTp.proc]: ChMsgRes<{ pid: number }>;
 }

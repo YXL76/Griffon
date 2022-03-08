@@ -1,3 +1,5 @@
+import type { Dict } from ".";
+
 export const enum WinWkrTp {
   /** Placeholder */
   none,
@@ -6,8 +8,7 @@ export const enum WinWkrTp {
   term,
 }
 
-// eslint-disable-next-line @typescript-eslint/ban-types
-type Msg<T extends WinWkrTp, D = {}> = { type: T } & D;
+type Msg<T extends WinWkrTp, D = Dict> = { t: T } & D;
 
 export type Win2Wkr =
   | Msg<

@@ -1,6 +1,6 @@
 import { BaseChildProcess, BaseProcess } from "@griffon/libnode-globals";
 import type { Win2Wkr, Wkr2Win } from "@griffon/shared";
-import { WinSvcTp, WinWkrTp } from "@griffon/shared";
+import { WinSvcChanTp, WinWkrTp } from "@griffon/shared";
 import { chanMsg2Svc } from "./helper";
 
 export class Process extends BaseProcess {
@@ -59,7 +59,7 @@ export class Process extends BaseProcess {
   }
 
   async _newChildProcess() {
-    const { pid } = await chanMsg2Svc({ type: WinSvcTp.proc, uid: this._uid });
+    const { pid } = await chanMsg2Svc({ t: WinSvcChanTp.proc, uid: this._uid });
     this._children.set(pid, new ChildProcess(pid));
   }
 
@@ -86,7 +86,7 @@ export class ChildProcess extends BaseChildProcess {
     this._worker.addEventListener(
       "message",
       ({ data }: MessageEvent<Wkr2Win>) => {
-        switch (data.type) {
+        switch (data.t) {
           case WinWkrTp.term:
             this.kill();
             break;
@@ -95,7 +95,7 @@ export class ChildProcess extends BaseChildProcess {
     );
 
     const procMsg: Win2Wkr = {
-      type: WinWkrTp.proc,
+      t: WinWkrTp.proc,
       pid,
       ppid: _parent.pid,
       cwd: process.cwd(),
@@ -105,7 +105,7 @@ export class ChildProcess extends BaseChildProcess {
     this.postMessage(procMsg);
 
     const codeMsg: Win2Wkr = {
-      type: WinWkrTp.code,
+      t: WinWkrTp.code,
       code: `'use strict';
     const { basename, win32, dirname, extname, isAbsolute, join } = require("path");
           

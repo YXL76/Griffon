@@ -1,10 +1,11 @@
+import type { Dict } from ".";
+
 export const enum SvcWkrTp {
   /** Placeholder */
   none,
 }
 
-// eslint-disable-next-line @typescript-eslint/ban-types
-type Msg<T extends SvcWkrTp, D = {}> = { type: T } & D;
+type Msg<T extends SvcWkrTp, D = Dict> = { t: T } & D;
 
 export type Svc2Wkr = Msg<SvcWkrTp.none>;
 

@@ -5,5 +5,7 @@ declare global {
   var mySW: ServiceWorker;
   var mySWR: ServiceWorkerRegistration;
   var process: Process;
+  var svcOneWay: MessagePort;
+  var svcTwoWay: MessagePort;
 }
 /* eslint-enable no-var */

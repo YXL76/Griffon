@@ -39,7 +39,7 @@ export class Process extends BaseProcess {
   }
 
   abort(): never {
-    msg2Window({ type: WinWkrTp.term });
+    msg2Window({ t: WinWkrTp.term });
     return Atomics.wait(this._int32, 0, 0) as never;
   }
 

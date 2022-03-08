@@ -1,7 +1,11 @@
-import type { Svc2Win, Win2SvcMap } from "@griffon/shared";
-import { chanMsg2Svc, svcMsgHandler, svcMsgPool } from "./helper";
+import {
+  chanMsg2Svc,
+  svcMsgPool as svcChanPool,
+  svcMsgHandler,
+} from "./helper";
 import { Process } from "./process";
-import { WinSvcTp } from "@griffon/shared";
+import type { Win2SvcMap } from "@griffon/shared";
+import { WinSvcChanTp } from "@griffon/shared";
 
 export async function boot() {
   return new Promise<Process>((resolve, reject) => {
@@ -25,21 +29,23 @@ export async function boot() {
           throw Error("Service worker not activated");
         console.log("Service worker activated");
 
-        navigator.serviceWorker.addEventListener(
-          "message",
-          <K extends WinSvcTp>({
-            data,
-          }: MessageEvent<Svc2Win | Win2SvcMap[K]>) => {
-            if ("chan" in data) {
-              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-              const { resolve } = svcMsgPool.get(data.chan)!;
-              resolve(data.data);
-              svcMsgPool.delete(data.chan);
-            } else svcMsgHandler(data);
-          }
-        );
+        const upChan = new MessageChannel();
+        const updownChan = new MessageChannel();
+        self.svcOneWay = upChan.port1;
+        self.svcTwoWay = updownChan.port1;
+        self.mySW.postMessage("", [upChan.port2, updownChan.port2]);
 
-        return chanMsg2Svc({ type: WinSvcTp.user });
+        self.svcOneWay.onmessage = svcMsgHandler.bind(undefined);
+        self.svcTwoWay.onmessage = <K extends WinSvcChanTp>({
+          data: { chan, data },
+        }: MessageEvent<Win2SvcMap[K]>) => {
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          const { resolve } = svcChanPool.get(chan)!;
+          resolve(data);
+          svcChanPool.delete(chan);
+        };
+
+        return chanMsg2Svc({ t: WinSvcChanTp.user });
       })
       .then(({ uid, pid }) => resolve((self.process = new Process(pid, uid))))
       .catch(reject);
