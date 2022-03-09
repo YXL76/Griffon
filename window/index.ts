@@ -26,7 +26,7 @@ export async function boot() {
         console.log("Service worker activated");
 
         swc.addEventListener("message", svcMsgHandler.bind(undefined));
-        return chanMsg2Svc({ t: WinSvcChanTp.user });
+        return chanMsg2Svc({ _t: WinSvcChanTp.user });
       })
       .then(({ uid, pid }) => resolve((self.process = new Process(pid, uid))))
       .catch(reject);
@@ -34,4 +34,7 @@ export async function boot() {
 }
 
 await boot();
-await process._newChildProcess();
+const ch1 = await process._newChildProcess();
+ch1.exec("/root/path.js");
+const ch2 = await process._newChildProcess();
+ch2.exec("root/src/url.js");

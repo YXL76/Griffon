@@ -8,7 +8,7 @@ export const enum WinWkrTp {
   term,
 }
 
-type Msg<T extends WinWkrTp, D = Dict> = { t: T } & D;
+type Msg<T extends WinWkrTp, D = Dict> = { _t: T } & D;
 
 export type Win2Wkr =
   | Msg<

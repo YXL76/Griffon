@@ -5,7 +5,7 @@ export const enum SvcWkrTp {
   none,
 }
 
-type Msg<T extends SvcWkrTp, D = Dict> = { t: T } & D;
+type Msg<T extends SvcWkrTp, D = Dict> = { _t: T } & D;
 
 export type Svc2Wkr = Msg<SvcWkrTp.none>;
 

@@ -2,7 +2,7 @@
   "name": "@griffon/libnode-process",
   "private": true,
   "devDependencies": {
-    "@types/node-custom": "workspace:*"
+    "@types/node": "workspace:*"
   },
   "dependencies": {
     "@griffon/libnode-events": "workspace:*"

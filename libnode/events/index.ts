@@ -1,7 +1,5 @@
 import type { EventEmitterOptions } from "node:events";
 
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
 declare const process: Partial<NodeJS.Process> | void;
 
 type EventName = string | symbol;

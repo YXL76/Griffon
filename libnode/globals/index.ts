@@ -1,3 +1,4 @@
+export * from "@griffon/libnode-buffer";
 export * from "@griffon/libnode-child_process";
 export * from "@griffon/libnode-events";
 export * from "@griffon/libnode-process";
@@ -14,8 +15,17 @@ import path from "@griffon/libnode-path";
 
 declare const process: Partial<NodeJS.Process> | void;
 
+const modules = new Map<string, unknown>();
+
+export function injectModule(name: string, module: unknown) {
+  modules.set(name, module);
+}
+
 function _require(id: string) {
   if (id.startsWith("node:")) id = id.slice(5);
+  const ret = modules.get(id);
+  if (ret) return ret;
+
   switch (id) {
     case "buffer":
       return buffer;

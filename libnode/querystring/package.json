@@ -2,7 +2,7 @@
   "name": "@griffon/libnode-querystring",
   "private": true,
   "devDependencies": {
-    "@types/node-custom": "workspace:*"
+    "@types/node": "workspace:*"
   },
   "dependencies": {
     "@griffon/libnode-buffer": "workspace:*",

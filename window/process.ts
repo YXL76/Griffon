@@ -1,6 +1,7 @@
 import { BaseChildProcess, BaseProcess } from "@griffon/libnode-globals";
 import type { Win2Wkr, Wkr2Win } from "@griffon/shared";
 import { WinSvcChanTp, WinWkrTp } from "@griffon/shared";
+import { FileSystem } from "./fs";
 import { chanMsg2Svc } from "./helper";
 
 export class Process extends BaseProcess {
@@ -59,8 +60,13 @@ export class Process extends BaseProcess {
   }
 
   async _newChildProcess() {
-    const { pid } = await chanMsg2Svc({ t: WinSvcChanTp.proc, uid: this._uid });
-    this._children.set(pid, new ChildProcess(pid));
+    const { pid } = await chanMsg2Svc({
+      _t: WinSvcChanTp.proc,
+      uid: this._uid,
+    });
+    const child = new ChildProcess(pid);
+    this._children.set(pid, child);
+    return child;
   }
 
   _removeChildProcess(pid: number) {
@@ -86,7 +92,7 @@ export class ChildProcess extends BaseChildProcess {
     this._worker.addEventListener(
       "message",
       ({ data }: MessageEvent<Wkr2Win>) => {
-        switch (data.t) {
+        switch (data._t) {
           case WinWkrTp.term:
             this.kill();
             break;
@@ -94,33 +100,22 @@ export class ChildProcess extends BaseChildProcess {
       }
     );
 
-    const procMsg: Win2Wkr = {
-      t: WinWkrTp.proc,
+    this.postMessage({
+      _t: WinWkrTp.proc,
       pid,
       ppid: _parent.pid,
       cwd: process.cwd(),
       uid: process.getuid(),
       sab: this._sab,
-    };
-    this.postMessage(procMsg);
+    });
+  }
 
-    const codeMsg: Win2Wkr = {
-      t: WinWkrTp.code,
-      code: `'use strict';
-    const { basename, win32, dirname, extname, isAbsolute, join } = require("path");
-          
-    console.log(basename("/foo/bar/baz/asdf/quux.html"));
-    console.log(win32.basename("C:\\\\foo.html", ".html"));
-    console.log(dirname("/foo/bar/baz/asdf/quux"));
-    console.log(extname("index.html"));
-    console.log(isAbsolute("/foo/bar"));
-    console.log(join("/foo", "bar", "baz/asdf", "quux", ".."));
-          
-    console.log(process.cwd());
-    
-    process.exit();`,
-    };
-    this.postMessage(codeMsg);
+  exec(path: string) {
+    FileSystem.readFile(path, {}, (err, data) => {
+      if (!err) {
+        this.postMessage({ _t: WinWkrTp.code, code: data.toString() });
+      }
+    });
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars

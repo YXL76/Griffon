@@ -1,5 +1,9 @@
-import type { Win2Svc, Win2SvcChan, Wkr2Svc } from "@griffon/shared";
-import { winChanMsgHandler, winMsgHandler, wkrMsgHandler } from "./helper";
+import {
+  fsMsgHandler,
+  winChanMsgHandler,
+  winMsgHandler,
+  wkrMsgHandler,
+} from "./helper";
 
 declare const self: ServiceWorkerGlobalScope & typeof globalThis;
 
@@ -23,15 +27,19 @@ declare const self: ServiceWorkerGlobalScope & typeof globalThis;
 self.addEventListener("message", ({ data, source, ports }) => {
   if (!source) return;
   if ("type" in source /* Client */) {
+    /* eslint-disable @typescript-eslint/no-unsafe-argument */
     switch (source.type) {
       case "window":
-        if (ports.length) winChanMsgHandler(ports[0], data as Win2SvcChan);
-        else winMsgHandler(source, data as Win2Svc);
+        if (ports.length) {
+          if ((<{ _t?: number }>data)._t) winChanMsgHandler(ports[0], data);
+          else void fsMsgHandler(ports[0], data);
+        } else winMsgHandler(source, data);
         break;
       case "worker":
-        wkrMsgHandler(source, data as Wkr2Svc);
+        wkrMsgHandler(source, data);
         break;
     }
+    /* eslint-enable @typescript-eslint/no-unsafe-argument */
   }
 });
 

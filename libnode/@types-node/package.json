@@ -1,5 +1,5 @@
 {
-    "name": "@types/node-custom",
+    "name": "@types/node",
     "version": "16.11.25",
     "description": "TypeScript definitions for Node.js",
     "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/node",
