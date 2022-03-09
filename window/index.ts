@@ -37,4 +37,4 @@ await boot();
 const ch1 = await process._newChildProcess();
 ch1.exec("/root/path.js");
 const ch2 = await process._newChildProcess();
-ch2.exec("root/src/url.js");
+ch2.exec("/root/src/url.js");

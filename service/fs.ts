@@ -4,7 +4,7 @@ export class FileSystem implements IFileSystem {
   private static _instance: FileSystem;
 
   private readonly json: Record<string, string> = {
-    "root/path.js": `'use strict';
+    "/root/path.js": `'use strict';
 const { basename, win32, dirname, extname, isAbsolute, join } = require("path");
 
 console.log(basename("/foo/bar/baz/asdf/quux.html"));
@@ -17,7 +17,7 @@ console.log(join("/foo", "bar", "baz/asdf", "quux", ".."));
 console.log(process.cwd());
 
 process.exit();`,
-    "root/src/url.js": `const url = require('url');
+    "/root/src/url.js": `const url = require('url');
 const myURL = new URL('https://a:b@測試?abc#foo');
 
 console.log(myURL.href);

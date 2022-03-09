@@ -27,7 +27,9 @@ export const format = ((
   if (options.fragment === false) tmp.hash = "";
   if (options.search === false) tmp.search = "";
   const ret = tmp.toString();
-  return options.unicode ? toUnicode(ret) : ret;
+  return options.unicode
+    ? ret.replace(urlObject.hostname, toUnicode(urlObject.hostname))
+    : ret;
 }) as typeof url.format;
 
 export const domainToASCII: typeof url.domainToASCII = function (domain) {
