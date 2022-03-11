@@ -8,7 +8,7 @@ export abstract class BaseProcess
 
   readonly execArgv: string[] = [];
 
-  readonly execPath = "node";
+  readonly execPath = "/usr/bin/node";
 
   readonly debugPort = 0;
 

@@ -5,6 +5,7 @@
     "@types/node": "workspace:*"
   },
   "dependencies": {
-    "@griffon/libnode-events": "workspace:*"
+    "@griffon/libnode-events": "workspace:*",
+    "@griffon/libnode-internal": "workspace:*"
   }
 }

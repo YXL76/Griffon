@@ -2192,7 +2192,7 @@ declare module 'buffer' {
              */
             values(): IterableIterator<number>;
         }
-        var Buffer: BufferConstructor;
+        // var Buffer: BufferConstructor;
         /**
          * Decodes a string of Base64-encoded data into bytes, and encodes those bytes
          * into a string using Latin-1 (ISO-8859-1).
@@ -2208,7 +2208,7 @@ declare module 'buffer' {
          * @deprecated Use `Buffer.from(data, 'base64')` instead.
          * @param data The Base64-encoded input string.
          */
-        function atob(data: string): string;
+        // function atob(data: string): string;
         /**
          * Decodes a string into bytes using Latin-1 (ISO-8859), and encodes those bytes
          * into a string using Base64.
@@ -2224,7 +2224,7 @@ declare module 'buffer' {
          * @deprecated Use `buf.toString('base64')` instead.
          * @param data An ASCII (Latin1) string.
          */
-        function btoa(data: string): string;
+        // function btoa(data: string): string;
     }
 }
 declare module 'node:buffer' {

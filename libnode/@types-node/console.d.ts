@@ -406,7 +406,7 @@ declare module 'node:console' {
                 new (options: ConsoleConstructorOptions): Console;
             }
         }
-        var console: Console;
+        // var console: Console;
     }
     export = globalThis.console;
 }

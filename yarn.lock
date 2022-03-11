@@ -78,6 +78,7 @@ __metadata:
   resolution: "@griffon/libnode-child_process@workspace:libnode/child_process"
   dependencies:
     "@griffon/libnode-events": "workspace:*"
+    "@griffon/libnode-internal": "workspace:*"
     "@types/node": "workspace:*"
   languageName: unknown
   linkType: soft
@@ -233,6 +234,7 @@ __metadata:
   dependencies:
     "@griffon/libnode-globals": "workspace:*"
     "@griffon/shared": "workspace:*"
+    "@types/node": "workspace:*"
   languageName: unknown
   linkType: soft
 

@@ -62,7 +62,7 @@ declare module 'timers' {
                 [Symbol.toPrimitive](): number;
             }
         }
-        function setTimeout<TArgs extends any[]>(callback: (...args: TArgs) => void, ms?: number, ...args: TArgs): NodeJS.Timeout;
+        /* function setTimeout<TArgs extends any[]>(callback: (...args: TArgs) => void, ms?: number, ...args: TArgs): NodeJS.Timeout;
         // util.promisify no rest args compability
         // tslint:disable-next-line void-return
         function setTimeout(callback: (args: void) => void, ms?: number): NodeJS.Timeout;
@@ -86,7 +86,7 @@ declare module 'timers' {
             const __promisify__: typeof setImmediatePromise;
         }
         function clearImmediate(immediateId: NodeJS.Immediate): void;
-        function queueMicrotask(callback: () => void): void;
+        function queueMicrotask(callback: () => void): void; */
     }
 }
 declare module 'node:timers' {
