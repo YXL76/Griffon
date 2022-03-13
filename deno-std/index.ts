@@ -94,6 +94,7 @@ export const Deno: Omit<
 > & {
   _cwd_: string;
   _uid_: number;
+  _env_: Map<string, string>;
 } = {
   errors: /* eslint-disable @typescript-eslint/naming-convention */ {
     NotFound,
@@ -148,11 +149,12 @@ export const Deno: Omit<
   test: _notImplemented,
   exit: _notImplemented,
 
+  _env_: new Map(),
   env: {
-    get: _notImplemented,
-    set: _notImplemented,
-    delete: _notImplemented,
-    toObject: _notImplemented,
+    get: (key: string) => Deno._env_.get(key),
+    set: (key: string, value: string) => Deno._env_.set(key, value),
+    delete: (key: string) => Deno._env_.delete(key),
+    toObject: () => Object.fromEntries(Deno._env_),
   },
 
   execPath: () => "/usr/bin/deno",
@@ -181,9 +183,9 @@ export const Deno: Omit<
   fdatasync: _notImplemented,
   close: _notImplemented,
 
-  stdin: null as unknown as typeof DenoType.stdin,
-  stdout: null as unknown as typeof DenoType.stdout,
-  stderr: null as unknown as typeof DenoType.stderr,
+  stdin: { rid: 0 } as typeof DenoType.stdin,
+  stdout: { rid: 1 } as typeof DenoType.stdout,
+  stderr: { rid: 2 } as typeof DenoType.stderr,
 
   isatty: _notImplemented,
 
@@ -323,5 +325,10 @@ Object.defineProperty(Deno, "_cwd_", {
 
 Object.defineProperty(Deno, "_uid_", {
   value: Deno._uid_,
+  writable: true,
+});
+
+Object.defineProperty(Deno, "_env_", {
+  value: Deno._env_,
   writable: true,
 });
