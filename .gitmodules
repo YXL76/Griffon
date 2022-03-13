@@ -1,3 +1,4 @@
 [submodule "deno-std/deno_std"]
 	path = deno-std/deno_std
-	url = https://github.com/denoland/deno_std
+	url = https://github.com/YXL76/deno_std
+	branch = griffon
