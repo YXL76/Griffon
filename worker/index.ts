@@ -40,7 +40,7 @@ function hackDeno() {
 }
 
 /**
- * Must be called after {@linkcode hackDeno}, because
+ * Must be called after {@link hackDeno}, because
  * it needs Deno global object.
  */
 async function hackNode() {
