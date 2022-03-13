@@ -2,7 +2,7 @@
   "search.exclude": {
     "**/.yarn": true,
     "**/.pnp.*": true,
-    "libnode/@types-node": true
+    "deno-std/deno_std": true
   },
   "typescript.tsdk": ".yarn/sdks/typescript/lib",
   "typescript.enablePromptUseWorkspaceTsdk": true,

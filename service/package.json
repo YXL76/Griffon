@@ -1,11 +1,7 @@
 {
   "name": "@griffon/service",
   "private": true,
-  "devDependencies": {
-    "@types/node": "workspace:*"
-  },
   "dependencies": {
-    "@griffon/libnode-globals": "workspace:*",
     "@griffon/shared": "workspace:*"
   }
 }

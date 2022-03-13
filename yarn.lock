@@ -41,20 +41,20 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@eslint/eslintrc@npm:^1.2.0":
-  version: 1.2.0
-  resolution: "@eslint/eslintrc@npm:1.2.0"
+"@eslint/eslintrc@npm:^1.2.1":
+  version: 1.2.1
+  resolution: "@eslint/eslintrc@npm:1.2.1"
   dependencies:
     ajv: ^6.12.4
     debug: ^4.3.2
     espree: ^9.3.1
     globals: ^13.9.0
-    ignore: ^4.0.6
+    ignore: ^5.2.0
     import-fresh: ^3.2.1
     js-yaml: ^4.1.0
     minimatch: ^3.0.4
     strip-json-comments: ^3.1.1
-  checksum: a5e51dcf02627363567094456d7880b46b6a14a285d7a057f083ca903bdd862483bb6314cbc9fb6fa2d2c4537d50e0d28bd5e39650840241ae4796faaec65d2e
+  checksum: 1f797b9f94d71b965992cf6c44e3bcb574643014fd1e3d4862d25056bd5568f59c488461a7e9a1c1758ca7f0def5d3cb69c3d8b38581bcf4a53af74371243797
   languageName: node
   linkType: hard
 
@@ -65,131 +65,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@griffon/libnode-buffer@workspace:*, @griffon/libnode-buffer@workspace:libnode/buffer":
+"@griffon/deno-std@workspace:*, @griffon/deno-std@workspace:deno-std":
   version: 0.0.0-use.local
-  resolution: "@griffon/libnode-buffer@workspace:libnode/buffer"
-  dependencies:
-    buffer: 6.0.3
-  languageName: unknown
-  linkType: soft
-
-"@griffon/libnode-child_process@workspace:*, @griffon/libnode-child_process@workspace:libnode/child_process":
-  version: 0.0.0-use.local
-  resolution: "@griffon/libnode-child_process@workspace:libnode/child_process"
-  dependencies:
-    "@griffon/libnode-events": "workspace:*"
-    "@griffon/libnode-internal": "workspace:*"
-    "@types/node": "workspace:*"
-  languageName: unknown
-  linkType: soft
-
-"@griffon/libnode-events@workspace:*, @griffon/libnode-events@workspace:libnode/events":
-  version: 0.0.0-use.local
-  resolution: "@griffon/libnode-events@workspace:libnode/events"
-  dependencies:
-    "@types/node": "workspace:*"
-  languageName: unknown
-  linkType: soft
-
-"@griffon/libnode-globals@workspace:*, @griffon/libnode-globals@workspace:libnode/globals":
-  version: 0.0.0-use.local
-  resolution: "@griffon/libnode-globals@workspace:libnode/globals"
-  dependencies:
-    "@griffon/libnode-buffer": "workspace:*"
-    "@griffon/libnode-child_process": "workspace:*"
-    "@griffon/libnode-events": "workspace:*"
-    "@griffon/libnode-os": "workspace:*"
-    "@griffon/libnode-path": "workspace:*"
-    "@griffon/libnode-process": "workspace:*"
-    "@griffon/libnode-punycode": "workspace:*"
-    "@griffon/libnode-querystring": "workspace:*"
-    "@griffon/libnode-timers": "workspace:*"
-    "@griffon/libnode-url": "workspace:*"
-    "@griffon/libnode-util": "workspace:*"
-    "@types/node": "workspace:*"
-  languageName: unknown
-  linkType: soft
-
-"@griffon/libnode-internal@workspace:*, @griffon/libnode-internal@workspace:libnode/internal":
-  version: 0.0.0-use.local
-  resolution: "@griffon/libnode-internal@workspace:libnode/internal"
-  dependencies:
-    "@types/node": "workspace:*"
-  languageName: unknown
-  linkType: soft
-
-"@griffon/libnode-os@workspace:*, @griffon/libnode-os@workspace:libnode/os":
-  version: 0.0.0-use.local
-  resolution: "@griffon/libnode-os@workspace:libnode/os"
-  dependencies:
-    "@griffon/libnode-internal": "workspace:*"
-    "@types/node": "workspace:*"
-  languageName: unknown
-  linkType: soft
-
-"@griffon/libnode-path@workspace:*, @griffon/libnode-path@workspace:libnode/path":
-  version: 0.0.0-use.local
-  resolution: "@griffon/libnode-path@workspace:libnode/path"
-  dependencies:
-    "@griffon/libnode-internal": "workspace:*"
-    "@types/node": "workspace:*"
-  languageName: unknown
-  linkType: soft
-
-"@griffon/libnode-process@workspace:*, @griffon/libnode-process@workspace:libnode/process":
-  version: 0.0.0-use.local
-  resolution: "@griffon/libnode-process@workspace:libnode/process"
-  dependencies:
-    "@griffon/libnode-events": "workspace:*"
-    "@types/node": "workspace:*"
-  languageName: unknown
-  linkType: soft
-
-"@griffon/libnode-punycode@workspace:*, @griffon/libnode-punycode@workspace:libnode/punycode":
-  version: 0.0.0-use.local
-  resolution: "@griffon/libnode-punycode@workspace:libnode/punycode"
-  dependencies:
-    "@types/punycode": 2.1.0
-    punycode: 2.1.1
-  languageName: unknown
-  linkType: soft
-
-"@griffon/libnode-querystring@workspace:*, @griffon/libnode-querystring@workspace:libnode/querystring":
-  version: 0.0.0-use.local
-  resolution: "@griffon/libnode-querystring@workspace:libnode/querystring"
-  dependencies:
-    "@griffon/libnode-buffer": "workspace:*"
-    "@griffon/libnode-internal": "workspace:*"
-    "@types/node": "workspace:*"
-  languageName: unknown
-  linkType: soft
-
-"@griffon/libnode-timers@workspace:*, @griffon/libnode-timers@workspace:libnode/timers":
-  version: 0.0.0-use.local
-  resolution: "@griffon/libnode-timers@workspace:libnode/timers"
-  dependencies:
-    "@types/node": "workspace:*"
-    setimmediate: 1.0.5
-  languageName: unknown
-  linkType: soft
-
-"@griffon/libnode-url@workspace:*, @griffon/libnode-url@workspace:libnode/url":
-  version: 0.0.0-use.local
-  resolution: "@griffon/libnode-url@workspace:libnode/url"
-  dependencies:
-    "@griffon/libnode-internal": "workspace:*"
-    "@griffon/libnode-path": "workspace:*"
-    "@griffon/libnode-punycode": "workspace:*"
-    "@types/node": "workspace:*"
-  languageName: unknown
-  linkType: soft
-
-"@griffon/libnode-util@workspace:*, @griffon/libnode-util@workspace:libnode/util":
-  version: 0.0.0-use.local
-  resolution: "@griffon/libnode-util@workspace:libnode/util"
-  dependencies:
-    "@griffon/libnode-internal": "workspace:*"
-    "@types/node": "workspace:*"
+  resolution: "@griffon/deno-std@workspace:deno-std"
   languageName: unknown
   linkType: soft
 
@@ -208,9 +86,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@griffon/service@workspace:service"
   dependencies:
-    "@griffon/libnode-globals": "workspace:*"
     "@griffon/shared": "workspace:*"
-    "@types/node": "workspace:*"
   languageName: unknown
   linkType: soft
 
@@ -220,21 +96,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@griffon/user@workspace:user":
-  version: 0.0.0-use.local
-  resolution: "@griffon/user@workspace:user"
-  dependencies:
-    "@types/node": 16.11.26
-  languageName: unknown
-  linkType: soft
-
 "@griffon/window@workspace:window":
   version: 0.0.0-use.local
   resolution: "@griffon/window@workspace:window"
   dependencies:
-    "@griffon/libnode-globals": "workspace:*"
+    "@griffon/deno-std": "workspace:*"
     "@griffon/shared": "workspace:*"
-    "@types/node": "workspace:*"
   languageName: unknown
   linkType: soft
 
@@ -242,7 +109,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@griffon/worker@workspace:worker"
   dependencies:
-    "@griffon/libnode-globals": "workspace:*"
+    "@griffon/deno-std": "workspace:*"
     "@griffon/shared": "workspace:*"
   languageName: unknown
   linkType: soft
@@ -394,11 +261,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@*, @types/node@workspace:*, @types/node@workspace:libnode/@types-node":
-  version: 0.0.0-use.local
-  resolution: "@types/node@workspace:libnode/@types-node"
-  languageName: unknown
-  linkType: soft
+"@types/node@npm:*":
+  version: 17.0.21
+  resolution: "@types/node@npm:17.0.21"
+  checksum: 89dcd2fe82f21d3634266f8384e9c865cf8af49685639fbdbd799bdd1040480fb1e8eeda2d3b9fce41edbe704d2a4be9f427118c4ae872e8d9bb7cbeb3c41a94
+  languageName: node
+  linkType: hard
 
 "@types/node@npm:16.11.26":
   version: 16.11.26
@@ -411,13 +279,6 @@ __metadata:
   version: 13.13.52
   resolution: "@types/node@npm:13.13.52"
   checksum: 8f1afff497ebeba209e2dc340d823284e087a47632afe99a7daa30eaff80893e520f222ad400cd1f2d3b8288e93cf3eaded52a8e64eaefb8aacfe6c35de98f42
-  languageName: node
-  linkType: hard
-
-"@types/punycode@npm:2.1.0":
-  version: 2.1.0
-  resolution: "@types/punycode@npm:2.1.0"
-  checksum: 6835698becab395eb9ac186970fd7879aeb522ea72d516ef9d681d787989653fcc2439ecc07d48280e1ca11862773b806efeec3fdbd1207528829a83b65d4275
   languageName: node
   linkType: hard
 
@@ -853,13 +714,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"base64-js@npm:^1.3.1":
-  version: 1.5.1
-  resolution: "base64-js@npm:1.5.1"
-  checksum: 669632eb3745404c2f822a18fc3a0122d2f9a7a13f7fb8b5823ee19d1d2ff9ee5b52c53367176ea4ad093c332fd5ab4bd0ebae5a8e27917a4105a4cfc86b1005
-  languageName: node
-  linkType: hard
-
 "binary-extensions@npm:^2.0.0":
   version: 2.2.0
   resolution: "binary-extensions@npm:2.2.0"
@@ -883,16 +737,6 @@ __metadata:
   dependencies:
     fill-range: ^7.0.1
   checksum: e2a8e769a863f3d4ee887b5fe21f63193a891c68b612ddb4b68d82d1b5f3ff9073af066c343e9867a393fe4c2555dcb33e89b937195feb9c1613d259edfcd459
-  languageName: node
-  linkType: hard
-
-"buffer@npm:6.0.3":
-  version: 6.0.3
-  resolution: "buffer@npm:6.0.3"
-  dependencies:
-    base64-js: ^1.3.1
-    ieee754: ^1.2.1
-  checksum: 5ad23293d9a731e4318e420025800b42bf0d264004c0286c8cc010af7a270c7a0f6522e84f54b9ad65cbd6db20b8badbfd8d2ebf4f80fa03dab093b89e68c3f9
   languageName: node
   linkType: hard
 
@@ -1548,11 +1392,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint@npm:8.10.0":
-  version: 8.10.0
-  resolution: "eslint@npm:8.10.0"
+"eslint@npm:8.11.0":
+  version: 8.11.0
+  resolution: "eslint@npm:8.11.0"
   dependencies:
-    "@eslint/eslintrc": ^1.2.0
+    "@eslint/eslintrc": ^1.2.1
     "@humanwhocodes/config-array": ^0.9.2
     ajv: ^6.10.0
     chalk: ^4.0.0
@@ -1589,7 +1433,7 @@ __metadata:
     v8-compile-cache: ^2.0.3
   bin:
     eslint: bin/eslint.js
-  checksum: 8b31ab3de5b48b6828bf13c09c9e62ee0045fa0afa017efaa73eedcf4dc33bc204ee4c467d4677e37967d1645f73816ddef4271422e691fded352040f8f83093
+  checksum: a06a2ea37002d6c0a4f462fe31b4411185dc3da7857fafb896eb392ba95a1289cc3538056474b2f44f08012f265bede01a39d46df4ac39ebc6d7be90e2c8f9fa
   languageName: node
   linkType: hard
 
@@ -1788,10 +1632,9 @@ __metadata:
   linkType: hard
 
 "gauge@npm:^4.0.0":
-  version: 4.0.2
-  resolution: "gauge@npm:4.0.2"
+  version: 4.0.3
+  resolution: "gauge@npm:4.0.3"
   dependencies:
-    ansi-regex: ^5.0.1
     aproba: ^1.0.3 || ^2.0.0
     color-support: ^1.1.3
     console-control-strings: ^1.1.0
@@ -1800,7 +1643,7 @@ __metadata:
     string-width: ^4.2.3
     strip-ansi: ^6.0.1
     wide-align: ^1.1.5
-  checksum: 65077b87a7138bf465c7ea9541a81cdaeba42224f8650427529d47dda99c0a9273b596a8ee54a62af2a04a31682fa49de9b35ef7dd52ed8da5f0436d288ead23
+  checksum: baf982238a5270def90a4895f2e083b5cf8e6f7df20b53b24a932845aec363a6cf411f88b33dcb016a43c9334fdfccd956e4514ee875d70af016bf6fead3d3ae
   languageName: node
   linkType: hard
 
@@ -1920,7 +1763,7 @@ __metadata:
     "@typescript-eslint/eslint-plugin": 5.14.0
     "@typescript-eslint/parser": 5.14.0
     "@yarnpkg/sdks": 2.6.0
-    eslint: 8.10.0
+    eslint: 8.11.0
     eslint-config-prettier: 8.5.0
     eslint-plugin-prettier: 4.0.0
     prettier: 2.5.1
@@ -2018,20 +1861,6 @@ __metadata:
   dependencies:
     safer-buffer: ">= 2.1.2 < 3.0.0"
   checksum: 3f60d47a5c8fc3313317edfd29a00a692cc87a19cac0159e2ce711d0ebc9019064108323b5e493625e25594f11c6236647d8e256fbe7a58f4a3b33b89e6d30bf
-  languageName: node
-  linkType: hard
-
-"ieee754@npm:^1.2.1":
-  version: 1.2.1
-  resolution: "ieee754@npm:1.2.1"
-  checksum: 5144c0c9815e54ada181d80a0b810221a253562422e7c6c3a60b1901154184f49326ec239d618c416c1c5945a2e197107aee8d986a3dd836b53dffefd99b5e7e
-  languageName: node
-  linkType: hard
-
-"ignore@npm:^4.0.6":
-  version: 4.0.6
-  resolution: "ignore@npm:4.0.6"
-  checksum: 248f82e50a430906f9ee7f35e1158e3ec4c3971451dd9f99c9bc1548261b4db2b99709f60ac6c6cac9333494384176cc4cc9b07acbe42d52ac6a09cad734d800
   languageName: node
   linkType: hard
 
@@ -2271,9 +2100,9 @@ __metadata:
   linkType: hard
 
 "lru-cache@npm:^7.4.1":
-  version: 7.4.1
-  resolution: "lru-cache@npm:7.4.1"
-  checksum: de6d8aa83b0a304943a1e1ec2a982d9b44ef36963c20bd01950f13dcb3eb482c57bfa15ab49b1baa15c682d6d33a10842bb7b33d8a449845009ffab6a2faec3c
+  version: 7.4.4
+  resolution: "lru-cache@npm:7.4.4"
+  checksum: c042ac73b48c1eddd22cc061eb41c4738c2eb71818ba503f625df4b3199d789281d7a2da18a017095a1304b5808f9d91fff7a77d69e3fefecef2b460460ed6d6
   languageName: node
   linkType: hard
 
@@ -2747,7 +2576,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"punycode@npm:2.1.1, punycode@npm:^2.1.0":
+"punycode@npm:^2.1.0":
   version: 2.1.1
   resolution: "punycode@npm:2.1.1"
   checksum: 823bf443c6dd14f669984dea25757b37993f67e8d94698996064035edd43bed8a5a17a9f12e439c2b35df1078c6bec05a6c86e336209eb1061e8025c481168e8
@@ -2895,13 +2724,6 @@ __metadata:
   version: 2.0.0
   resolution: "set-blocking@npm:2.0.0"
   checksum: 6e65a05f7cf7ebdf8b7c75b101e18c0b7e3dff4940d480efed8aad3a36a4005140b660fa1d804cb8bce911cac290441dc728084a30504d3516ac2ff7ad607b02
-  languageName: node
-  linkType: hard
-
-"setimmediate@npm:1.0.5":
-  version: 1.0.5
-  resolution: "setimmediate@npm:1.0.5"
-  checksum: c9a6f2c5b51a2dabdc0247db9c46460152ffc62ee139f3157440bd48e7c59425093f42719ac1d7931f054f153e2d26cf37dfeb8da17a794a58198a2705e527fd
   languageName: node
   linkType: hard
 

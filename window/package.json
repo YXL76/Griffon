@@ -1,11 +1,8 @@
 {
   "name": "@griffon/window",
   "private": true,
-  "devDependencies": {
-    "@types/node": "workspace:*"
-  },
   "dependencies": {
-    "@griffon/libnode-globals": "workspace:*",
+    "@griffon/deno-std": "workspace:*",
     "@griffon/shared": "workspace:*"
   }
 }

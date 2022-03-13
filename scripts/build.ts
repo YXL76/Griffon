@@ -19,14 +19,14 @@ const basicConfig: BuildOptions = {
   color: true,
   format: "esm",
   logLevel: "warning",
-  target: "chrome97",
+  target: "chrome99",
   minify: prod,
 
   bundle: true,
   splitting: true,
   outdir: distPath,
   platform: "browser",
-  loader: { ".ts": "ts", ".js": "js" },
+  loader: { ".ts": "ts", ".js": "js", ".cjs": "js", ".mjs": "js" },
   banner: { js: "'use strict';" },
   plugins: [pnpPlugin()],
 };
@@ -39,11 +39,6 @@ const basicConfig: BuildOptions = {
       ...basicConfig,
       entryPoints: {
         service: resolve(servicePath, "index.ts"),
-      },
-    }),
-    build({
-      ...basicConfig,
-      entryPoints: {
         window: resolve(windowPath, "index.ts"),
         worker: resolve(workerPath, "index.ts"),
       },

@@ -2,8 +2,9 @@
   "compilerOptions": {
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "lib": ["es2021", "webworker"],
-    "module": "es2022",
+    "isolatedModules": true,
+    "lib": ["esnext", "webworker"],
+    "module": "esnext",
     "moduleResolution": "node",
     "noEmit": true,
     "noFallthroughCasesInSwitch": true,
@@ -13,7 +14,7 @@
     "noUnusedParameters": true,
     "skipLibCheck": true,
     "strict": true,
-    "target": "es2021"
+    "target": "esnext"
   },
   "include": ["."]
 }

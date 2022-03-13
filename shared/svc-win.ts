@@ -1,33 +1,39 @@
-import type { Dict } from ".";
+import type { ChanWrap, Dict } from ".";
 
+/**
+ * One-way communication from Window to Service Worker.
+ */
 export const enum WinSvcTp {
-  /** Placeholder */
+  /** Placeholder. */
   none,
+  /** A Window is closing. */
+  exit,
 }
 
+/**
+ * Two-way Communication Channel between Window and Service Worker.
+ * (Window -> Service Worker -> Window)
+ */
 export const enum WinSvcChanTp {
-  /** Placeholder */
+  /** Placeholder. */
   none,
+  /** A new Window is created, ask for a new PID and UID. */
   user,
+  /** Spawn a new process, ask for a new PID. */
   proc,
 }
 
 type Msg<T extends WinSvcTp, D = Dict> = { _t: T } & D;
 
-export type Win2Svc = Msg<WinSvcTp.none>;
-
-export type Svc2Win = Msg<WinSvcTp.none>;
+export type Win2Svc = Msg<WinSvcTp.exit, { pid: number }>;
 
 type ChanMsg<T extends WinSvcChanTp, D = Dict> = { _t: T } & D;
 
 export type Win2SvcChan =
   | ChanMsg<WinSvcChanTp.user>
-  | ChanMsg<WinSvcChanTp.proc, { uid: number }>;
-
-// I don't know why, but the compiler like this:
-type Wrap<T> = { data: T };
+  | ChanMsg<WinSvcChanTp.proc, { ppid: number }>;
 
 export interface Win2SvcMap {
-  [WinSvcChanTp.user]: Wrap<{ uid: number; pid: number }>;
-  [WinSvcChanTp.proc]: Wrap<{ pid: number }>;
+  [WinSvcChanTp.user]: ChanWrap<{ uid: number; pid: number }>;
+  [WinSvcChanTp.proc]: ChanWrap<{ pid: number }>;
 }

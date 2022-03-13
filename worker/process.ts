@@ -1,64 +1,122 @@
-import { BaseProcess } from "@griffon/libnode-globals";
-import { WinWkrTp } from "@griffon/shared";
-import { msg2Window } from "./helper";
+import { CONST, ParentChildTp, WkrSvcChanTp, WkrSvcTp } from "@griffon/shared";
+import { Channel, msg2Svc } from "./message";
+import type { Child2Parent, Parent2Child } from "@griffon/shared";
+import type { DenoType } from "@griffon/deno-std";
 
-export class Process extends BaseProcess {
-  private readonly _int32: Int32Array;
+export class DenoProcess implements DenoType.Process {
+  #worker?: Worker;
+
+  #code = 0;
+
+  #output = new Uint8Array();
+
+  #stderrOutput = new Uint8Array();
+
+  readonly #statusQueue: ((value: DenoType.ProcessStatus) => void)[] = [];
+
+  readonly #outputQueue: ((value: Uint8Array) => void)[] = [];
+
+  readonly #stderrOutputQueue: ((value: Uint8Array) => void)[] = [];
+
+  readonly rid = NaN;
+
+  pid = NaN;
+
+  readonly stdin = null;
+
+  readonly stdout = null;
+
+  readonly stderr = null;
 
   constructor(
-    uid: number,
-    pid: number,
-    ppid: number,
-    private _cwd: string,
-    private readonly _sab: SharedArrayBuffer
+    opt: DenoType.RunOptions & {
+      clearEnv?: boolean;
+      gid?: number;
+      uid?: number;
+    }
   ) {
-    super(
-      { fd: 0 } as BaseProcess["stdin"],
-      { fd: 1 } as BaseProcess["stdout"],
-      { fd: 2 } as BaseProcess["stderr"],
-      pid,
-      ppid,
-      pid.toString(),
-      uid
-    );
-    this._int32 = new Int32Array(this._sab);
+    const cwd = opt.cwd ?? self.Deno._cwd_;
+    const uid = opt.uid ?? self.Deno._uid_;
+    const ppid = self.Deno.pid;
+
+    const wkrSvc = new MessageChannel();
+
+    Channel.svc({ _t: WkrSvcChanTp.proc, ppid }, [wkrSvc.port1])
+      .then(({ pid }) => {
+        this.pid = pid;
+        this.#worker = new Worker(CONST.workerURL, { type: "module" });
+        this.#worker.onmessage = ({ data }: MessageEvent<Child2Parent>) => {
+          switch (data._t) {
+            case ParentChildTp.exit:
+              this.#code = data.code;
+              this.close();
+              break;
+          }
+        };
+
+        this.#toChild({ _t: ParentChildTp.proc, pid, ppid, cwd, uid }, [
+          wkrSvc.port1,
+        ]);
+      })
+      .catch(() => {
+        //
+      });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  chdir(_directory: string) {
-    // noop
+  status(): Promise<DenoType.ProcessStatus> {
+    if (!this.#worker)
+      return Promise.resolve(
+        this.#code === 0
+          ? { success: true, code: this.#code }
+          : { success: false, code: this.#code }
+      );
+
+    return new Promise((resolve) => this.#statusQueue.push(resolve));
   }
 
-  cwd(): string {
-    return this._cwd;
+  output(): Promise<Uint8Array> {
+    if (!this.#worker) return Promise.resolve(this.#output);
+
+    return new Promise((resolve) => this.#outputQueue.push(resolve));
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  exit(_code?: number): never {
-    return self.close() as never;
+  stderrOutput(): Promise<Uint8Array> {
+    if (!this.#worker) return Promise.resolve(this.#stderrOutput);
+
+    return new Promise((resolve) => this.#stderrOutputQueue.push(resolve));
   }
 
-  abort(): never {
-    msg2Window({ _t: WinWkrTp.term });
-    return Atomics.wait(this._int32, 0, 0) as never;
+  close() {
+    if (!this.#worker) return;
+
+    msg2Svc({ _t: WkrSvcTp.exit, pid: this.pid });
+    this.#worker.terminate();
+    this.#worker = undefined;
+
+    if (this.#statusQueue.length) {
+      const status: DenoType.ProcessStatus =
+        this.#code === 0
+          ? { success: true, code: this.#code }
+          : { success: false, code: this.#code };
+      this.#statusQueue.forEach((q) => q(status));
+      this.#statusQueue.length = 0;
+    }
+    if (this.#outputQueue.length) {
+      this.#outputQueue.forEach((q) => q(this.#output));
+      this.#outputQueue.length = 0;
+    }
+    if (this.#stderrOutputQueue.length) {
+      this.#stderrOutputQueue.forEach((q) => q(this.#stderrOutput));
+      this.#stderrOutputQueue.length = 0;
+    }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  setuid(_id: number | string): void {
-    // noop
+  kill(signo: DenoType.Signal) {
+    throw new Error("Not implemented");
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  kill(_pid: number, _signal?: string | number) {
-    return true as const;
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  umask(_mask?: string | number) {
-    return 0;
-  }
-
-  disconnect() {
-    // noop
+  #toChild(msg: Parent2Child, transfer: Transferable[]) {
+    if (!transfer) this.#worker?.postMessage(msg);
+    else this.#worker?.postMessage(msg, transfer);
   }
 }

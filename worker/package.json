@@ -2,7 +2,7 @@
   "name": "@griffon/worker",
   "private": true,
   "dependencies": {
-    "@griffon/libnode-globals": "workspace:*",
+    "@griffon/deno-std": "workspace:*",
     "@griffon/shared": "workspace:*"
   }
 }

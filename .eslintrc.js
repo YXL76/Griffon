@@ -12,11 +12,9 @@ const config = {
   ],
   parser: "@typescript-eslint/parser",
   overrides: [
-    ["libnode", ["./libnode/@types-node/**/*.ts"]],
-    ["scripts"],
+    ["deno-std", "deno-std/deno_std/**/*.*"],
     ["service"],
     ["shared"],
-    ["user"],
     ["window"],
     ["worker"],
   ].map(([dir, excludedFiles]) => ({
@@ -35,6 +33,7 @@ const config = {
     "@typescript-eslint/member-ordering": "warn",
     "@typescript-eslint/naming-convention": "warn",
     "@typescript-eslint/semi": "warn",
+    "@typescript-eslint/switch-exhaustiveness-check": "error",
     "sort-imports": [
       "warn",
       {
