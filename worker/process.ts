@@ -65,6 +65,32 @@ export class DenoProcess implements DenoType.Process {
     // Different from the main thread.
     if (Atomics.wait(sab, 0, 0) !== "ok") throw Error("Atomics.wait failed");
     this.pid = Atomics.exchange(sab, 0, 0);
+
+    if (this.pid < 4) {
+      // Temporary
+      this.#toChild({
+        _t: ParentChildTp.code,
+        code: `const { createHash } = require("crypto");
+const { spawn } = require("child_process");
+
+const hash = createHash("sha256");
+
+hash.on("readable", () => {
+  const data = hash.read();
+  if (data) console.log(data.toString("hex"));
+});
+
+hash.write("some data to hash");
+hash.end();
+
+const node = spawn("node", { stdio: "ignore" });
+node.on("close", (code) =>
+  console.log(\`child process \${process.pid} exited with code \${code}\`)
+);
+
+setTimeout(() => process.exit(), 0);`,
+      });
+    }
   }
 
   status(): Promise<DenoType.ProcessStatus> {

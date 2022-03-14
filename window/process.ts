@@ -73,6 +73,7 @@ export class DenoProcess implements DenoType.Process {
     this.#toChild({
       _t: ParentChildTp.code,
       code: `const { createHash } = require("crypto");
+const { spawn } = require("child_process");
 
 const hash = createHash("sha256");
 
@@ -84,7 +85,12 @@ hash.on("readable", () => {
 hash.write("some data to hash");
 hash.end();
 
-process.exit();`,
+const node = spawn("node", { stdio: "ignore" });
+node.on("close", (code) =>
+  console.log(\`child process \${process.pid} exited with code \${code}\`)
+);
+
+setTimeout(() => process.exit(), 0);`,
     });
   }
 

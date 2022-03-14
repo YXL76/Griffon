@@ -1,6 +1,7 @@
 import { Channel, msg2Parent } from "./message";
 import { ParentChildTp, WkrSvcChanTp } from "@griffon/shared";
 import { Deno } from "@griffon/deno-std";
+import { DenoProcess } from "./process";
 import type { Parent2Child } from "@griffon/shared";
 
 self.Deno = Deno;
@@ -47,6 +48,8 @@ function hackDeno() {
     msg2Parent({ _t: ParentChildTp.exit, code });
     return self.close() as never;
   };
+
+  self.Deno.run = (opt: Parameters<typeof Deno.run>[0]) => new DenoProcess(opt);
 }
 
 /**
