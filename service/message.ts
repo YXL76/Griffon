@@ -19,7 +19,7 @@ declare const self: ServiceWorkerGlobalScope & typeof globalThis;
 self.onmessage = ({ data, source, ports }) => {
   if (source instanceof Client && source.type === "window") {
     /* eslint-disable @typescript-eslint/no-unsafe-argument */
-    if (ports.length) winChanHandler(ports, data);
+    if ((<{ chan?: true }>data).chan) winChanHandler(ports, data);
     else winHandler(ports, data);
     /* eslint-enable @typescript-eslint/no-unsafe-argument */
   }
@@ -59,7 +59,7 @@ function winChanHandler(ports: ReadonlyArray<MessagePort>, data: Win2SvcChan) {
 function wkrListener({ data, source, ports }: MessageEvent) {
   if (source instanceof MessagePort) {
     /* eslint-disable @typescript-eslint/no-unsafe-argument */
-    if (ports.length) wkrChanHandler(ports, data);
+    if ((<{ chan?: true }>data).chan) wkrChanHandler(ports, data);
     else wkrHandler(ports, data);
     /* eslint-enable @typescript-eslint/no-unsafe-argument */
   }

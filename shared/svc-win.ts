@@ -27,7 +27,7 @@ type Msg<T extends WinSvcTp, D = Dict> = { _t: T } & D;
 
 export type Win2Svc = Msg<WinSvcTp.proc> | Msg<WinSvcTp.exit, { pid: number }>;
 
-type ChanMsg<T extends WinSvcChanTp, D = Dict> = { _t: T } & D;
+type ChanMsg<T extends WinSvcChanTp, D = Dict> = { _t: T; chan: true } & D;
 
 export type Win2SvcChan = ChanMsg<WinSvcChanTp.user>;
 

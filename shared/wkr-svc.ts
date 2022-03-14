@@ -22,7 +22,7 @@ export type Svc2Wkr = Msg<WkrSvcTp.none>;
 
 export type Wkr2Svc = Msg<WkrSvcTp.proc> | Msg<WkrSvcTp.exit, { pid: number }>;
 
-type ChanMsg<T extends WkrSvcChanTp, D = Dict> = { _t: T } & D;
+type ChanMsg<T extends WkrSvcChanTp, D = Dict> = { _t: T; chan: true } & D;
 
 export type Wkr2SvcChan = ChanMsg<WkrSvcChanTp.pid, { ppid: number }>;
 
