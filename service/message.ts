@@ -28,18 +28,13 @@ self.onmessageerror = console.error;
 
 function winHandler(ports: ReadonlyArray<MessagePort>, data: Win2Svc) {
   switch (data._t) {
-    case WinSvcTp.exit:
-      pTree.del(data.pid);
-      break;
     case WinSvcTp.proc: {
-      const pid = pTree.nextPid;
-      Atomics.store(data.sab, 0, pid);
-      pTree.set(pid, data.ppid);
-      break;
-    }
-    case WinSvcTp.port:
       ports[0].onmessage = wkrListener;
       ports[0].onmessageerror = console.error;
+      break;
+    }
+    case WinSvcTp.exit:
+      pTree.del(data.pid);
       break;
   }
 }
@@ -52,9 +47,8 @@ function winChanHandler(ports: ReadonlyArray<MessagePort>, data: Win2SvcChan) {
     switch (data._t) {
       case WinSvcChanTp.user: {
         const pid = pTree.nextPid;
-        const sab = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT);
         pTree.set(pid);
-        return { uid: pTree.nextUid, pid, sab };
+        return { uid: pTree.nextUid, pid };
       }
     }
   }
@@ -66,13 +60,17 @@ function wkrListener({ data, source, ports }: MessageEvent) {
   if (source instanceof MessagePort) {
     /* eslint-disable @typescript-eslint/no-unsafe-argument */
     if (ports.length) wkrChanHandler(ports, data);
-    else wkrHandler(source, data);
+    else wkrHandler(ports, data);
     /* eslint-enable @typescript-eslint/no-unsafe-argument */
   }
 }
 
-function wkrHandler(source: MessagePort, data: Wkr2Svc) {
+function wkrHandler(ports: ReadonlyArray<MessagePort>, data: Wkr2Svc) {
   switch (data._t) {
+    case WkrSvcTp.proc:
+      ports[0].onmessage = wkrListener;
+      ports[0].onmessageerror = console.error;
+      break;
     case WkrSvcTp.exit:
       pTree.del(data.pid);
       break;
@@ -85,11 +83,9 @@ function wkrChanHandler(ports: ReadonlyArray<MessagePort>, data: Wkr2SvcChan) {
     data: D
   ): Wkr2SvcMap[D["_t"]]["data"] {
     switch (data._t) {
-      case WkrSvcChanTp.proc: {
+      case WkrSvcChanTp.pid: {
         const pid = pTree.nextPid;
         pTree.set(pid, data.ppid);
-        ports[1].onmessage = wkrListener;
-        ports[1].onmessageerror = console.error;
         return { pid };
       }
     }

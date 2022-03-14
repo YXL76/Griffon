@@ -28,8 +28,7 @@ export async function boot() {
 
       return Channel.svc({ _t: WinSvcChanTp.user });
     })
-    .then(({ uid, pid, sab }) => {
-      console.log(sab);
+    .then(({ uid, pid }) => {
       self.Deno._uid_ = uid;
       self.Deno.pid = pid;
       self.Deno._cwd_ = `/home/${uid}`;

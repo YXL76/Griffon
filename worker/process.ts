@@ -1,7 +1,7 @@
-import { CONST, ParentChildTp, WkrSvcChanTp, WkrSvcTp } from "@griffon/shared";
-import { Channel, msg2Svc } from "./message";
+import { CONST, ParentChildTp, WkrSvcTp } from "@griffon/shared";
 import type { Child2Parent, Parent2Child } from "@griffon/shared";
 import type { DenoType } from "@griffon/deno-std";
+import { msg2Svc } from "./message";
 
 export class DenoProcess implements DenoType.Process {
   #worker?: Worker;
@@ -18,9 +18,11 @@ export class DenoProcess implements DenoType.Process {
 
   readonly #stderrOutputQueue: ((value: Uint8Array) => void)[] = [];
 
+  readonly #sab = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT);
+
   readonly rid = NaN;
 
-  pid = NaN;
+  pid = 0;
 
   readonly stdin = null;
 
@@ -35,33 +37,34 @@ export class DenoProcess implements DenoType.Process {
       uid?: number;
     }
   ) {
+    const file = opt.cmd[0];
+    if (file instanceof URL || (file !== "deno" && file !== "node"))
+      throw new Error("Invalid command");
+
+    this.#worker = new Worker(CONST.workerURL, { type: "module" });
+    this.#worker.onmessage = ({ data }: MessageEvent<Child2Parent>) => {
+      switch (data._t) {
+        case ParentChildTp.exit:
+          this.#code = data.code;
+          this.close();
+          break;
+      }
+    };
+    this.#worker.onmessageerror = console.error;
+
     const cwd = opt.cwd ?? self.Deno._cwd_;
     const uid = opt.uid ?? self.Deno._uid_;
     const ppid = self.Deno.pid;
+    const sab = new Int32Array(this.#sab);
 
-    const wkrSvc = new MessageChannel();
+    // Make the child process can communicate with the Service Worker.
+    const { port1, port2 } = new MessageChannel();
+    msg2Svc({ _t: WkrSvcTp.proc }, [port1]);
+    this.#toChild({ _t: ParentChildTp.proc, ppid, cwd, uid, sab }, [port2]);
 
-    Channel.svc({ _t: WkrSvcChanTp.proc, ppid }, [wkrSvc.port1])
-      .then(({ pid }) => {
-        this.pid = pid;
-        this.#worker = new Worker(CONST.workerURL, { type: "module" });
-        this.#worker.onmessage = ({ data }: MessageEvent<Child2Parent>) => {
-          switch (data._t) {
-            case ParentChildTp.exit:
-              this.#code = data.code;
-              this.close();
-              break;
-          }
-        };
-        this.#worker.onmessageerror = console.error;
-
-        this.#toChild({ _t: ParentChildTp.proc, pid, ppid, cwd, uid }, [
-          wkrSvc.port1,
-        ]);
-      })
-      .catch(() => {
-        //
-      });
+    // Different from the main thread.
+    if (Atomics.wait(sab, 0, 0) !== "ok") throw Error("Atomics.wait failed");
+    this.pid = Atomics.exchange(sab, 0, 0);
   }
 
   status(): Promise<DenoType.ProcessStatus> {

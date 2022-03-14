@@ -18,9 +18,11 @@ export class DenoProcess implements DenoType.Process {
 
   readonly #stderrOutputQueue: ((value: Uint8Array) => void)[] = [];
 
+  readonly #sab = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT);
+
   readonly rid = NaN;
 
-  pid = NaN;
+  pid = 0;
 
   readonly stdin = null;
 
@@ -39,23 +41,6 @@ export class DenoProcess implements DenoType.Process {
     if (file instanceof URL || (file !== "deno" && file !== "node"))
       throw new Error("Invalid command");
 
-    const cwd = opt.cwd ?? self.Deno._cwd_;
-    const uid = opt.uid ?? self.Deno._uid_;
-    const ppid = self.Deno.pid;
-
-    const sab = new Int32Array(
-      new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT)
-    );
-    msg2Svc(sab);
-    msg2Svc({ _t: WinSvcTp.proc, ppid, sab });
-
-    const wkrSvc = new MessageChannel();
-    msg2Svc({ _t: WinSvcTp.port }, [wkrSvc.port1]);
-
-    let pid = 0;
-    while (pid === 0) pid = Atomics.exchange(sab, 0, 0);
-
-    this.pid = pid;
     this.#worker = new Worker(CONST.workerURL, { type: "module" });
     this.#worker.onmessage = ({ data }: MessageEvent<Child2Parent>) => {
       switch (data._t) {
@@ -67,9 +52,18 @@ export class DenoProcess implements DenoType.Process {
     };
     this.#worker.onmessageerror = console.error;
 
-    this.#toChild({ _t: ParentChildTp.proc, pid, ppid, cwd, uid }, [
-      wkrSvc.port2,
-    ]);
+    const cwd = opt.cwd ?? self.Deno._cwd_;
+    const uid = opt.uid ?? self.Deno._uid_;
+    const ppid = self.Deno.pid;
+    const sab = new Int32Array(this.#sab);
+
+    // Make the child process can communicate with the Service Worker.
+    const { port1, port2 } = new MessageChannel();
+    msg2Svc({ _t: WinSvcTp.proc }, [port1]);
+    this.#toChild({ _t: ParentChildTp.proc, ppid, cwd, uid, sab }, [port2]);
+
+    // Cannot use Atomics.wait on the main thread.
+    while (this.pid === 0) this.pid = Atomics.exchange(sab, 0, 0);
 
     // Temporary
     this.#toChild({

@@ -1,7 +1,7 @@
+import { Channel, msg2Parent } from "./message";
+import { ParentChildTp, WkrSvcChanTp } from "@griffon/shared";
 import { Deno } from "@griffon/deno-std";
 import type { Parent2Child } from "@griffon/shared";
-import { ParentChildTp } from "@griffon/shared";
-import { msg2Parent } from "./message";
 
 self.Deno = Deno;
 hackDeno();
@@ -10,13 +10,22 @@ const require = await hackNode();
 self.onmessage = ({ data, ports }: MessageEvent<Parent2Child>) => {
   switch (data._t) {
     case ParentChildTp.proc: {
-      const { uid, pid, ppid, cwd } = data;
+      const { uid, ppid, cwd, sab } = data;
+
       self.Deno._uid_ = uid;
-      self.Deno.pid = pid;
       self.Deno.ppid = ppid;
       self.Deno._cwd_ = cwd;
 
+      self.SAB = sab;
       self.SW = ports[0];
+
+      // Ask for PID.
+      void Channel.svc({ _t: WkrSvcChanTp.pid, ppid }).then(({ pid }) => {
+        self.Deno.pid = pid;
+        Atomics.store(self.SAB, 0, pid);
+        Atomics.notify(self.SAB, 0);
+      });
+
       break;
     }
     case ParentChildTp.code:

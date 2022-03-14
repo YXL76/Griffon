@@ -16,7 +16,7 @@ type Msg<T extends ParentChildTp, D = Dict> = { _t: T } & D;
 export type Parent2Child =
   | Msg<
       ParentChildTp.proc,
-      { pid: number; ppid: number; cwd: string; uid: number }
+      { ppid: number; cwd: string; uid: number; sab: Int32Array }
     >
   | Msg<ParentChildTp.code, { code: string }>;
 

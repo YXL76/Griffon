@@ -5,6 +5,8 @@ declare global {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   var Deno: typeof DenoType;
   var SW: MessagePort;
+  /** SharedArrayBuffer from parent process. */
+  var SAB: Int32Array;
 
   /** [Node.js globals](../deno-std/deno_std/node/global.ts) */
   var global: globalThis;
