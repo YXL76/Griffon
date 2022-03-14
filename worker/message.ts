@@ -10,10 +10,11 @@ export class Channel {
     data: D,
     transfer?: Transferable[]
   ): Promise<Wkr2SvcMap[D["_t"]]["data"]> {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       const channel = new MessageChannel();
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       channel.port1.onmessage = ({ data }) => resolve(data);
+      channel.port1.onmessageerror = reject;
       if (!transfer) self.SW.postMessage(data, [channel.port2]);
       else self.SW.postMessage(data, [channel.port2, ...transfer]);
     });

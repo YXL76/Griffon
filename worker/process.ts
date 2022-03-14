@@ -53,6 +53,7 @@ export class DenoProcess implements DenoType.Process {
               break;
           }
         };
+        this.#worker.onmessageerror = console.error;
 
         this.#toChild({ _t: ParentChildTp.proc, pid, ppid, cwd, uid }, [
           wkrSvc.port1,
@@ -115,7 +116,7 @@ export class DenoProcess implements DenoType.Process {
     throw new Error("Not implemented");
   }
 
-  #toChild(msg: Parent2Child, transfer: Transferable[]) {
+  #toChild(msg: Parent2Child, transfer?: Transferable[]) {
     if (!transfer) this.#worker?.postMessage(msg);
     else this.#worker?.postMessage(msg, transfer);
   }

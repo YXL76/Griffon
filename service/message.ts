@@ -20,15 +20,26 @@ self.onmessage = ({ data, source, ports }) => {
   if (source instanceof Client && source.type === "window") {
     /* eslint-disable @typescript-eslint/no-unsafe-argument */
     if (ports.length) winChanHandler(ports, data);
-    else winHandler(source, data);
+    else winHandler(ports, data);
     /* eslint-enable @typescript-eslint/no-unsafe-argument */
   }
 };
+self.onmessageerror = console.error;
 
-function winHandler(source: Client, data: Win2Svc) {
+function winHandler(ports: ReadonlyArray<MessagePort>, data: Win2Svc) {
   switch (data._t) {
     case WinSvcTp.exit:
       pTree.del(data.pid);
+      break;
+    case WinSvcTp.proc: {
+      const pid = pTree.nextPid;
+      Atomics.store(data.sab, 0, pid);
+      pTree.set(pid, data.ppid);
+      break;
+    }
+    case WinSvcTp.port:
+      ports[0].onmessage = wkrListener;
+      ports[0].onmessageerror = console.error;
       break;
   }
 }
@@ -40,15 +51,10 @@ function winChanHandler(ports: ReadonlyArray<MessagePort>, data: Win2SvcChan) {
   ): Win2SvcMap[D["_t"]]["data"] {
     switch (data._t) {
       case WinSvcChanTp.user: {
-        const pid = pTree.pid;
+        const pid = pTree.nextPid;
+        const sab = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT);
         pTree.set(pid);
-        return { uid: pTree.uid, pid };
-      }
-      case WinSvcChanTp.proc: {
-        const pid = pTree.pid;
-        pTree.set(pid, data.ppid);
-        ports[1].onmessage = wkrListener;
-        return { pid };
+        return { uid: pTree.nextUid, pid, sab };
       }
     }
   }
@@ -80,9 +86,10 @@ function wkrChanHandler(ports: ReadonlyArray<MessagePort>, data: Wkr2SvcChan) {
   ): Wkr2SvcMap[D["_t"]]["data"] {
     switch (data._t) {
       case WkrSvcChanTp.proc: {
-        const pid = pTree.pid;
+        const pid = pTree.nextPid;
         pTree.set(pid, data.ppid);
         ports[1].onmessage = wkrListener;
+        ports[1].onmessageerror = console.error;
         return { pid };
       }
     }

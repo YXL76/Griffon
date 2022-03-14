@@ -17,11 +17,11 @@ class PTree {
    */
   #cache = new Map<number, NestedProcessTree>();
 
-  get pid() {
+  get nextPid() {
     return ++this.#maxPid;
   }
 
-  get uid() {
+  get nextUid() {
     return ++this.#maxUid;
   }
 

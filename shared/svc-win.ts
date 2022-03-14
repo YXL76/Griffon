@@ -8,6 +8,10 @@ export const enum WinSvcTp {
   none,
   /** A Window is closing. */
   exit,
+  /** Spawn a new process, ask for a new PID. */
+  proc,
+  /** A MessagePort connected to the Service Worker. */
+  port,
 }
 
 /**
@@ -19,21 +23,23 @@ export const enum WinSvcChanTp {
   none,
   /** A new Window is created, ask for a new PID and UID. */
   user,
-  /** Spawn a new process, ask for a new PID. */
-  proc,
 }
 
 type Msg<T extends WinSvcTp, D = Dict> = { _t: T } & D;
 
-export type Win2Svc = Msg<WinSvcTp.exit, { pid: number }>;
+export type Win2Svc =
+  | Msg<WinSvcTp.exit, { pid: number }>
+  | Msg<WinSvcTp.proc, { ppid: number; sab: Int32Array }>
+  | Msg<WinSvcTp.port>;
 
 type ChanMsg<T extends WinSvcChanTp, D = Dict> = { _t: T } & D;
 
-export type Win2SvcChan =
-  | ChanMsg<WinSvcChanTp.user>
-  | ChanMsg<WinSvcChanTp.proc, { ppid: number }>;
+export type Win2SvcChan = ChanMsg<WinSvcChanTp.user>;
 
 export interface Win2SvcMap {
-  [WinSvcChanTp.user]: ChanWrap<{ uid: number; pid: number }>;
-  [WinSvcChanTp.proc]: ChanWrap<{ pid: number }>;
+  [WinSvcChanTp.user]: ChanWrap<{
+    uid: number;
+    pid: number;
+    sab: SharedArrayBuffer;
+  }>;
 }
