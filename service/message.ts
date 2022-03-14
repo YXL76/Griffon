@@ -27,10 +27,11 @@ self.onmessage = ({ data, source, ports }) => {
 self.onmessageerror = console.error;
 
 function winHandler(ports: ReadonlyArray<MessagePort>, data: Win2Svc) {
+  const source = ports[0];
   switch (data._t) {
     case WinSvcTp.proc: {
-      ports[0].onmessage = wkrListener;
-      ports[0].onmessageerror = console.error;
+      source.onmessage = wkrListener;
+      source.onmessageerror = console.error;
       break;
     }
     case WinSvcTp.exit:
@@ -53,23 +54,23 @@ function winChanHandler(ports: ReadonlyArray<MessagePort>, data: Win2SvcChan) {
     }
   }
 
-  ports[0].postMessage(winChanDataHandler(ports, data));
+  const source = ports[0];
+  source.postMessage(winChanDataHandler(ports, data));
 }
 
-function wkrListener({ data, source, ports }: MessageEvent) {
-  if (source instanceof MessagePort) {
-    /* eslint-disable @typescript-eslint/no-unsafe-argument */
-    if ((<{ chan?: true }>data).chan) wkrChanHandler(ports, data);
-    else wkrHandler(ports, data);
-    /* eslint-enable @typescript-eslint/no-unsafe-argument */
-  }
+function wkrListener({ data, ports }: MessageEvent) {
+  /* eslint-disable @typescript-eslint/no-unsafe-argument */
+  if ((<{ chan?: true }>data).chan) wkrChanHandler(ports, data);
+  else wkrHandler(ports, data);
+  /* eslint-enable @typescript-eslint/no-unsafe-argument */
 }
 
 function wkrHandler(ports: ReadonlyArray<MessagePort>, data: Wkr2Svc) {
+  const source = ports[0];
   switch (data._t) {
     case WkrSvcTp.proc:
-      ports[0].onmessage = wkrListener;
-      ports[0].onmessageerror = console.error;
+      source.onmessage = wkrListener;
+      source.onmessageerror = console.error;
       break;
     case WkrSvcTp.exit:
       pTree.del(data.pid);
@@ -91,5 +92,6 @@ function wkrChanHandler(ports: ReadonlyArray<MessagePort>, data: Wkr2SvcChan) {
     }
   }
 
-  ports[0].postMessage(wkrChanDataHandler(ports, data));
+  const source = ports[0];
+  source.postMessage(wkrChanDataHandler(ports, data));
 }

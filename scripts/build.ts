@@ -26,11 +26,6 @@ const basicConfig: BuildOptions = {
   splitting: true,
   outdir: distPath,
   platform: "browser",
-  external: [
-    /** {@link file://../deno-std/deno_std/node/_events.mjs:153:30} */
-    "internal/event_target",
-    /** {@link file://../deno-std/deno_std/node/internal/readline/interface.mjs:1190:27} */
-    "stream"],
   loader: { ".ts": "ts", ".js": "js", ".cjs": "js", ".mjs": "js" },
   banner: { js: "'use strict';" },
   plugins: [pnpPlugin()],

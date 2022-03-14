@@ -62,8 +62,12 @@ export class DenoProcess implements DenoType.Process {
     msg2Svc({ _t: WinSvcTp.proc }, [port1]);
     this.#toChild({ _t: ParentChildTp.proc, ppid, cwd, uid, sab }, [port2]);
 
-    // Cannot use Atomics.wait on the main thread.
-    while (this.pid === 0) this.pid = Atomics.exchange(sab, 0, 0);
+    // Cannot use `Atomics.wait` on the main thread. Be careful
+    // to modify the shared array buffer.
+    const timerID = setInterval(() => {
+      this.pid = Atomics.exchange(sab, 0, 0);
+      if (this.pid || !this.#worker) clearInterval(timerID);
+    }, 16);
 
     // Temporary
     this.#toChild({
