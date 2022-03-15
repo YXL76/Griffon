@@ -1,12 +1,11 @@
-import { Channel, msg2Parent } from "./message";
-import { ParentChildTp, WkrSvcChanTp } from "@griffon/shared";
 import { Deno } from "@griffon/deno-std";
 import { DenoProcess } from "./process";
 import type { Parent2Child } from "@griffon/shared";
+import { ParentChildTp } from "@griffon/shared";
+import { msg2Parent } from "./message";
 
 self.Deno = Deno;
 hackDeno();
-const require = await hackNode();
 
 self.onmessage = ({ data, ports }: MessageEvent<Parent2Child>) => {
   switch (data._t) {
@@ -19,25 +18,22 @@ self.onmessage = ({ data, ports }: MessageEvent<Parent2Child>) => {
 
       self.SAB = sab;
       self.SW = ports[0];
-
-      // Ask for PID.
-      void Channel.svc({ _t: WkrSvcChanTp.pid, ppid }).then(({ pid }) => {
-        self.Deno.pid = pid;
-        Atomics.store(self.SAB, 0, pid);
-        Atomics.notify(self.SAB, 0);
-      });
-
       break;
     }
+    case ParentChildTp.pid:
+      self.Deno.pid = data.pid;
+      break;
     case ParentChildTp.code:
-      try {
-        /** @see {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/eval#never_use_eval! Never use eval()!} */
-        // eslint-disable-next-line @typescript-eslint/no-implied-eval
-        new Function("require", data.code)(require);
-      } catch (err) {
-        console.error(self.name, `${(err as Error | string).toString()}`);
-        self.Deno.exit(1); // The process exit unsuccessfully.
-      }
+      hackNode()
+        .then((require) => {
+          /** @see {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/eval#never_use_eval! Never use eval()!} */
+          // eslint-disable-next-line @typescript-eslint/no-implied-eval
+          new Function("require", data.code)(require);
+        })
+        .catch((err: Error | string) => {
+          console.error(self.name, `${err.toString()}`);
+          self.Deno.exit((process as { exitCode?: number })?.exitCode || 1); // The process exit unsuccessfully.
+        });
   }
 };
 

@@ -1,7 +1,7 @@
 import { CONST, WinSvcChanTp, WinSvcTp } from "@griffon/shared";
 import { Channel, msg2Svc } from "./message";
+import { DenoProcess, askPid } from "./process";
 import { Deno } from "@griffon/deno-std";
-import { DenoProcess } from "./process";
 
 export async function boot() {
   self.Deno = Deno;
@@ -36,6 +36,10 @@ export async function boot() {
       self.addEventListener("unload", () =>
         msg2Svc({ _t: WinSvcTp.exit, pid: self.Deno.pid })
       );
+      return askPid(pid);
+    })
+    .then((pid) => {
+      self.PRE_RSVD_PID = pid;
       return hackNode();
     });
 }

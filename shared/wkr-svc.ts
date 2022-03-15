@@ -12,8 +12,6 @@ export const enum WkrSvcTp {
 export const enum WkrSvcChanTp {
   /** Placeholder. */
   none,
-  /** Ask for the PID */
-  pid,
 }
 
 type Msg<T extends WkrSvcTp, D = Dict> = { _t: T } & D;
@@ -24,8 +22,8 @@ export type Wkr2Svc = Msg<WkrSvcTp.proc> | Msg<WkrSvcTp.exit, { pid: number }>;
 
 type ChanMsg<T extends WkrSvcChanTp, D = Dict> = { _t: T; chan: true } & D;
 
-export type Wkr2SvcChan = ChanMsg<WkrSvcChanTp.pid, { ppid: number }>;
+export type Wkr2SvcChan = ChanMsg<WkrSvcChanTp.none>;
 
 export interface Wkr2SvcMap {
-  [WkrSvcChanTp.pid]: ChanWrap<{ pid: number }>;
+  [WkrSvcChanTp.none]: ChanWrap<Dict>;
 }

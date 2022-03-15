@@ -1,7 +1,12 @@
-import { CONST, ParentChildTp, WinSvcTp } from "@griffon/shared";
+import { CONST, FetchPath, ParentChildTp, WinSvcTp } from "@griffon/shared";
 import type { Child2Parent, Parent2Child } from "@griffon/shared";
 import type { DenoType } from "@griffon/deno-std";
 import { msg2Svc } from "./message";
+
+export async function askPid(ppid: number) {
+  const res = await fetch(`${FetchPath.pid}?ppid=${ppid.toString(10)}`);
+  return parseInt(await res.text(), 10);
+}
 
 export class DenoProcess implements DenoType.Process {
   #worker?: Worker;
@@ -41,6 +46,10 @@ export class DenoProcess implements DenoType.Process {
     if (file instanceof URL || (file !== "deno" && file !== "node"))
       throw new Error("Invalid command");
 
+    /**
+     * @notice Chromium need some time(about 20ms) to set up the worker.
+     * Therefore, all `postMessage` will be delayed until the worker is ready.
+     */
     this.#worker = new Worker(CONST.workerURL, { type: "module" });
     this.#worker.onmessage = ({ data }: MessageEvent<Child2Parent>) => {
       switch (data._t) {
@@ -57,17 +66,22 @@ export class DenoProcess implements DenoType.Process {
     const ppid = self.Deno.pid;
     const sab = new Int32Array(this.#sab);
 
+    if (self.PRE_RSVD_PID) {
+      this.pid = self.PRE_RSVD_PID;
+      self.PRE_RSVD_PID = undefined;
+      this.#toChild({ _t: ParentChildTp.pid, pid: this.pid });
+    } else {
+      void askPid(ppid).then((pid) => {
+        this.pid = pid;
+        this.#toChild({ _t: ParentChildTp.pid, pid });
+      });
+    }
+    void askPid(ppid).then((pid) => (self.PRE_RSVD_PID = pid));
+
     // Make the child process can communicate with the Service Worker.
     const { port1, port2 } = new MessageChannel();
     msg2Svc({ _t: WinSvcTp.proc }, [port1]);
     this.#toChild({ _t: ParentChildTp.proc, ppid, cwd, uid, sab }, [port2]);
-
-    // Cannot use `Atomics.wait` on the main thread. Be careful
-    // to modify the shared array buffer.
-    const timerID = setInterval(() => {
-      this.pid = Atomics.exchange(sab, 0, 0);
-      if (this.pid || !this.#worker) clearInterval(timerID);
-    }, 16);
 
     // Temporary
     this.#toChild({
@@ -79,7 +93,7 @@ const hash = createHash("sha256");
 
 hash.on("readable", () => {
   const data = hash.read();
-  if (data) console.log(data.toString("hex"));
+  if (data) console.log(process.pid, data.toString("hex"));
 });
 
 hash.write("some data to hash");
@@ -90,7 +104,7 @@ node.on("close", (code) =>
   console.log(\`child process \${process.pid} exited with code \${code}\`)
 );
 
-setTimeout(() => process.exit(), 0);`,
+setTimeout(() => process.exit(), 4000);`,
     });
   }
 

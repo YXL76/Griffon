@@ -27,6 +27,7 @@ const basicConfig: BuildOptions = {
   outdir: distPath,
   platform: "browser",
   loader: { ".ts": "ts", ".js": "js", ".cjs": "js", ".mjs": "js" },
+  outExtension: { ".js": ".mjs" },
   banner: { js: "'use strict';" },
   plugins: [pnpPlugin()],
 };

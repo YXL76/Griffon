@@ -5,9 +5,11 @@ export const enum ParentChildTp {
   none,
   /** Basic process information. */
   proc,
+  /** The PID */
+  pid,
   /** The code to run. */
   code,
-  /** The process is going to exit.*/
+  /** The process is going to exit. */
   exit,
 }
 
@@ -18,6 +20,7 @@ export type Parent2Child =
       ParentChildTp.proc,
       { ppid: number; cwd: string; uid: number; sab: Int32Array }
     >
+  | Msg<ParentChildTp.pid, { pid: number }>
   | Msg<ParentChildTp.code, { code: string }>;
 
 export type Child2Parent = Msg<ParentChildTp.exit, { code: number }>;

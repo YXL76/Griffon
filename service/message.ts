@@ -84,11 +84,8 @@ function wkrChanHandler(ports: ReadonlyArray<MessagePort>, data: Wkr2SvcChan) {
     data: D
   ): Wkr2SvcMap[D["_t"]]["data"] {
     switch (data._t) {
-      case WkrSvcChanTp.pid: {
-        const pid = pTree.nextPid;
-        pTree.set(pid, data.ppid);
-        return { pid };
-      }
+      case WkrSvcChanTp.none:
+        return {};
     }
   }
 

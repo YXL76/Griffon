@@ -1,4 +1,4 @@
-import { CONST, ParentChildTp, WkrSvcTp } from "@griffon/shared";
+import { CONST, FetchPath, ParentChildTp, WkrSvcTp } from "@griffon/shared";
 import type { Child2Parent, Parent2Child } from "@griffon/shared";
 import type { DenoType } from "@griffon/deno-std";
 import { msg2Svc } from "./message";
@@ -22,7 +22,7 @@ export class DenoProcess implements DenoType.Process {
 
   readonly rid = NaN;
 
-  pid = 0;
+  readonly pid: number;
 
   readonly stdin = null;
 
@@ -41,6 +41,10 @@ export class DenoProcess implements DenoType.Process {
     if (file instanceof URL || (file !== "deno" && file !== "node"))
       throw new Error("Invalid command");
 
+    /**
+     * @notice Chromium need some time(about 20ms) to set up the worker.
+     * Therefore, all `postMessage` will be delayed until the worker is ready.
+     */
     this.#worker = new Worker(CONST.workerURL, { type: "module" });
     this.#worker.onmessage = ({ data }: MessageEvent<Child2Parent>) => {
       switch (data._t) {
@@ -57,16 +61,18 @@ export class DenoProcess implements DenoType.Process {
     const ppid = self.Deno.pid;
     const sab = new Int32Array(this.#sab);
 
+    const request = new XMLHttpRequest();
+    request.open("GET", `${FetchPath.pid}?ppid=${ppid.toString(10)}`, false);
+    request.send();
+    this.pid = parseInt(request.responseText, 10);
+    this.#toChild({ _t: ParentChildTp.pid, pid: this.pid });
+
     // Make the child process can communicate with the Service Worker.
     const { port1, port2 } = new MessageChannel();
     msg2Svc({ _t: WkrSvcTp.proc }, [port1]);
     this.#toChild({ _t: ParentChildTp.proc, ppid, cwd, uid, sab }, [port2]);
 
-    // Different from the main thread.
-    if (Atomics.wait(sab, 0, 0) !== "ok") throw Error("Atomics.wait failed");
-    this.pid = Atomics.exchange(sab, 0, 0);
-
-    if (this.pid < 4) {
+    if (this.pid <= 5) {
       // Temporary
       this.#toChild({
         _t: ParentChildTp.code,
@@ -77,7 +83,7 @@ const hash = createHash("sha256");
 
 hash.on("readable", () => {
   const data = hash.read();
-  if (data) console.log(data.toString("hex"));
+  if (data) console.log(process.pid, data.toString("hex"));
 });
 
 hash.write("some data to hash");
@@ -86,9 +92,7 @@ hash.end();
 const node = spawn("node", { stdio: "ignore" });
 node.on("close", (code) =>
   console.log(\`child process \${process.pid} exited with code \${code}\`)
-);
-
-setTimeout(() => process.exit(), 0);`,
+);`,
       });
     }
   }

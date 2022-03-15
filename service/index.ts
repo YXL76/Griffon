@@ -1,3 +1,4 @@
+import "./fetch";
 import "./message";
 
 declare const self: ServiceWorkerGlobalScope & typeof globalThis;
