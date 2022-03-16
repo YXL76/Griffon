@@ -3,9 +3,14 @@ import type { Child2Parent, Parent2Child } from "@griffon/shared";
 import type { DenoType } from "@griffon/deno-std";
 import { msg2Svc } from "./message";
 
-export async function askPid(ppid: number) {
-  const res = await fetch(`${FetchPath.pid}?ppid=${ppid.toString(10)}`);
+async function askPid() {
+  const res = await fetch(`${FetchPath.pid}?ppid=${self.Deno.pid}`);
   return parseInt(await res.text(), 10);
+}
+
+export async function askPids() {
+  while (self.PRE_RSVD_PIDS.length <= 4)
+    self.PRE_RSVD_PIDS.push(await askPid());
 }
 
 export class DenoProcess implements DenoType.Process {
@@ -66,17 +71,17 @@ export class DenoProcess implements DenoType.Process {
     const ppid = self.Deno.pid;
     const sab = new Int32Array(this.#sab);
 
-    if (self.PRE_RSVD_PID) {
-      this.pid = self.PRE_RSVD_PID;
-      self.PRE_RSVD_PID = undefined;
-      this.#toChild({ _t: ParentChildTp.pid, pid: this.pid });
+    const pid = self.PRE_RSVD_PIDS.shift();
+    if (pid) {
+      this.pid = pid;
+      this.#toChild({ _t: ParentChildTp.pid, pid });
     } else {
-      void askPid(ppid).then((pid) => {
+      void askPid().then((pid) => {
         this.pid = pid;
         this.#toChild({ _t: ParentChildTp.pid, pid });
       });
     }
-    void askPid(ppid).then((pid) => (self.PRE_RSVD_PID = pid));
+    void askPids();
 
     // Make the child process can communicate with the Service Worker.
     const { port1, port2 } = new MessageChannel();

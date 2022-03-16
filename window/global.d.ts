@@ -6,8 +6,8 @@ declare global {
   var Deno: typeof DenoType;
   var SW: ServiceWorker;
   var SWR: ServiceWorkerRegistration;
-  /** Pre-reserved pid. Because the main thread can ask PID synchronously */
-  var PRE_RSVD_PID: number | undefined;
+  /** Pre-reserved pids. Because the main thread can ask PID synchronously */
+  var PRE_RSVD_PIDS: number[];
 
   /** [Node.js globals](../deno-std/deno_std/node/global.ts) */
   var global: globalThis;

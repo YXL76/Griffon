@@ -19,15 +19,14 @@ declare const self: ServiceWorkerGlobalScope & typeof globalThis;
 self.onmessage = ({ data, source, ports }) => {
   if (source instanceof Client && source.type === "window") {
     /* eslint-disable @typescript-eslint/no-unsafe-argument */
-    if ((<{ chan?: true }>data).chan) winChanHandler(ports, data);
-    else winHandler(ports, data);
+    if ((<{ chan?: true }>data).chan) winChanHandler(ports[0], data);
+    else winHandler(ports[0], data);
     /* eslint-enable @typescript-eslint/no-unsafe-argument */
   }
 };
 self.onmessageerror = console.error;
 
-function winHandler(ports: ReadonlyArray<MessagePort>, data: Win2Svc) {
-  const source = ports[0];
+function winHandler(source: MessagePort, data: Win2Svc) {
   switch (data._t) {
     case WinSvcTp.proc: {
       source.onmessage = wkrListener;
@@ -40,33 +39,30 @@ function winHandler(ports: ReadonlyArray<MessagePort>, data: Win2Svc) {
   }
 }
 
-function winChanHandler(ports: ReadonlyArray<MessagePort>, data: Win2SvcChan) {
-  function winChanDataHandler<D extends Win2SvcChan>(
-    ports: ReadonlyArray<MessagePort>,
-    data: D
-  ): Win2SvcMap[D["_t"]]["data"] {
-    switch (data._t) {
-      case WinSvcChanTp.user: {
-        const pid = pTree.nextPid;
-        pTree.set(pid);
-        return { uid: pTree.nextUid, pid };
-      }
+function winChanDataHandler<D extends Win2SvcChan>(
+  data: D
+): Win2SvcMap[D["_t"]]["data"] {
+  switch (data._t) {
+    case WinSvcChanTp.user: {
+      const pid = pTree.nextPid;
+      pTree.set(pid);
+      return { uid: pTree.nextUid, pid };
     }
   }
+}
 
-  const source = ports[0];
-  source.postMessage(winChanDataHandler(ports, data));
+function winChanHandler(source: MessagePort, data: Win2SvcChan) {
+  source.postMessage(winChanDataHandler(data));
 }
 
 function wkrListener({ data, ports }: MessageEvent) {
   /* eslint-disable @typescript-eslint/no-unsafe-argument */
-  if ((<{ chan?: true }>data).chan) wkrChanHandler(ports, data);
-  else wkrHandler(ports, data);
+  if ((<{ chan?: true }>data).chan) wkrChanHandler(ports[0], data);
+  else wkrHandler(ports[0], data);
   /* eslint-enable @typescript-eslint/no-unsafe-argument */
 }
 
-function wkrHandler(ports: ReadonlyArray<MessagePort>, data: Wkr2Svc) {
-  const source = ports[0];
+function wkrHandler(source: MessagePort, data: Wkr2Svc) {
   switch (data._t) {
     case WkrSvcTp.proc:
       source.onmessage = wkrListener;
@@ -78,9 +74,8 @@ function wkrHandler(ports: ReadonlyArray<MessagePort>, data: Wkr2Svc) {
   }
 }
 
-function wkrChanHandler(ports: ReadonlyArray<MessagePort>, data: Wkr2SvcChan) {
+function wkrChanHandler(source: MessagePort, data: Wkr2SvcChan) {
   function wkrChanDataHandler<D extends Wkr2SvcChan>(
-    ports: ReadonlyArray<MessagePort>,
     data: D
   ): Wkr2SvcMap[D["_t"]]["data"] {
     switch (data._t) {
@@ -89,6 +84,5 @@ function wkrChanHandler(ports: ReadonlyArray<MessagePort>, data: Wkr2SvcChan) {
     }
   }
 
-  const source = ports[0];
-  source.postMessage(wkrChanDataHandler(ports, data));
+  source.postMessage(wkrChanDataHandler(data));
 }
