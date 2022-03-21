@@ -46,6 +46,11 @@ function hackDeno() {
   };
 
   self.Deno.run = (opt: Parameters<typeof Deno.run>[0]) => new DenoProcess(opt);
+
+  self.Deno.sleepSync = (millis) => {
+    const sab = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT);
+    Atomics.wait(new Int32Array(sab), 0, 0, millis);
+  };
 }
 
 /**

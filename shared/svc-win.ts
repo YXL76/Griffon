@@ -1,4 +1,4 @@
-import type { ChanWrap, Dict } from ".";
+import type { ChanWrap, Dict, Signal } from ".";
 
 /**
  * One-way communication from Window to Service Worker.
@@ -10,6 +10,8 @@ export const enum WinSvcTp {
   proc,
   /** A Window is closing. */
   exit,
+  /** Like POSIX `kill`. */
+  kill,
 }
 
 /**
@@ -25,7 +27,10 @@ export const enum WinSvcChanTp {
 
 type Msg<T extends WinSvcTp, D = Dict> = { _t: T } & D;
 
-export type Win2Svc = Msg<WinSvcTp.proc> | Msg<WinSvcTp.exit, { pid: number }>;
+export type Win2Svc =
+  | Msg<WinSvcTp.proc>
+  | Msg<WinSvcTp.exit, { pid: number }>
+  | Msg<WinSvcTp.kill, { pid: number; sig: Signal }>;
 
 type ChanMsg<T extends WinSvcChanTp, D = Dict> = { _t: T; chan: true } & D;
 

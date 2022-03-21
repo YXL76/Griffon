@@ -1,13 +1,13 @@
-import { CONST, WinSvcChanTp, WinSvcTp } from "@griffon/shared";
+import { CONST, SIGNALS, WinSvcChanTp, WinSvcTp } from "@griffon/shared";
 import { Channel, msg2Svc } from "./message";
 import { DenoProcess, askPids } from "./process";
+import { addSignalListener, removeSignalListener } from "./signals";
 import { Deno } from "@griffon/deno-std";
 
 export async function boot() {
   self.Deno = Deno;
-  const swc = navigator.serviceWorker;
-  return swc
-    .register(CONST.serviceURL, { type: "module", scope: "/" })
+  self.SWC = navigator.serviceWorker;
+  return self.SWC.register(CONST.serviceURL, { type: "module", scope: "/" })
     .then((reg) => {
       self.SWR = reg;
       self.SW = reg.installing ?? reg.waiting ?? <ServiceWorker>reg.active;
@@ -22,7 +22,7 @@ export async function boot() {
       });
     })
     .then(() => {
-      if (self.SW !== swc.controller)
+      if (self.SW !== self.SWC.controller)
         throw Error("Service worker not activated");
       console.log("Service worker activated");
 
@@ -44,7 +44,28 @@ export async function boot() {
 function hackDeno() {
   self.Deno.exit = () => self.close() as never;
 
+  self.Deno.addSignalListener = addSignalListener;
+
+  self.Deno.removeSignalListener = removeSignalListener;
+
   self.Deno.run = (opt: Parameters<typeof Deno.run>[0]) => new DenoProcess(opt);
+
+  self.Deno.kill = (pid, sig) => {
+    if (!Object.hasOwn(SIGNALS, sig))
+      throw new TypeError(`Unknown signal: ${sig}`);
+
+    if (pid === self.Deno.pid)
+      self.SWC.dispatchEvent(new MessageEvent("message", { data: { sig } }));
+    else msg2Svc({ _t: WinSvcTp.kill, pid, sig });
+  };
+
+  self.Deno.sleepSync = (millis) => {
+    // No recommended way to sleep.
+    const start = performance.now();
+    while (performance.now() - start < millis) {
+      // Do nothing.
+    }
+  };
 }
 
 /**
