@@ -8,6 +8,7 @@ export * from "./wkr-svc";
 export const enum CONST {
   serviceURL = "/service.mjs",
   workerURL = "/worker.mjs",
+  pidUnit = 1000,
 }
 
 export type Dict = Record<never, never>;

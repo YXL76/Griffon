@@ -1,11 +1,6 @@
-import type {
-  Child2Parent,
-  Wkr2Svc,
-  Wkr2SvcChan,
-  Wkr2SvcMap,
-} from "@griffon/shared";
+import type { Child2Parent, Wkr2Win } from "@griffon/shared";
 
-export class Channel {
+/* export class Channel {
   static svc<D extends Wkr2SvcChan>(
     data: Omit<D, "chan">,
     transfer?: Transferable[]
@@ -20,14 +15,14 @@ export class Channel {
       else self.SW.postMessage(data, [channel.port2, ...transfer]);
     });
   }
-}
+} */
 
 export function msg2Parent(msg: Child2Parent, transfer?: Transferable[]) {
   if (!transfer) self.postMessage(msg);
   else self.postMessage(msg, transfer);
 }
 
-export function msg2Svc(msg: Wkr2Svc, transfer?: Transferable[]) {
-  if (!transfer) self.SW.postMessage(msg);
-  else self.SW.postMessage(msg, transfer);
+export function msg2Win(msg: Wkr2Win, transfer?: Transferable[]) {
+  if (!transfer) self.WIN.postMessage(msg);
+  else self.WIN.postMessage(msg, transfer);
 }

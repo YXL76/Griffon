@@ -1,7 +1,7 @@
-import { CONST, FetchPath, ParentChildTp, WkrSvcTp } from "@griffon/shared";
+import { CONST, ParentChildTp, WinWkrTp } from "@griffon/shared";
 import type { Child2Parent, Parent2Child } from "@griffon/shared";
 import type { DenoType } from "@griffon/deno-std";
-import { msg2Svc } from "./message";
+import { msg2Win } from "./message";
 
 export class DenoProcess implements DenoType.Process {
   #worker?: Worker;
@@ -56,23 +56,30 @@ export class DenoProcess implements DenoType.Process {
     };
     this.#worker.onmessageerror = console.error;
 
-    const cwd = opt.cwd ?? self.Deno._cwd_;
-    const uid = opt.uid ?? self.Deno._uid_;
-    const ppid = self.Deno.pid;
-    const sab = new Int32Array(this.#sab);
+    msg2Win({ _t: WinWkrTp.pid });
+    if (Atomics.wait(self.WIN_SAB32, self.WID, 0) !== "ok")
+      throw new Error("Failed to get pid");
+    this.pid = Atomics.exchange(self.WIN_SAB32, self.WID, 0);
+    const wid = this.pid % CONST.pidUnit;
 
-    const request = new XMLHttpRequest();
-    request.open("GET", `${FetchPath.pid}?ppid=${ppid.toString(10)}`, false);
-    request.send();
-    this.pid = parseInt(request.responseText, 10);
-    this.#toChild({ _t: ParentChildTp.pid, pid: this.pid });
-
-    // Make the child process can communicate with the Service Worker.
+    // Make the child process can communicate with the main thread.
     const { port1, port2 } = new MessageChannel();
-    msg2Svc({ _t: WkrSvcTp.proc }, [port1]);
-    this.#toChild({ _t: ParentChildTp.proc, ppid, cwd, uid, sab }, [port2]);
+    msg2Win({ _t: WinWkrTp.proc, wid }, [port1]);
+    this.#toChild(
+      {
+        _t: ParentChildTp.proc,
+        pid: this.pid,
+        ppid: self.Deno.pid,
+        cwd: opt.cwd ?? self.Deno._cwd_,
+        uid: opt.uid ?? self.Deno._uid_,
+        wid,
+        sab: this.#sab,
+        winSab: self.WIN_SAB,
+      },
+      [port2]
+    );
 
-    if (this.pid <= 5) {
+    if (self.WID <= 5) {
       // Temporary
       this.#toChild({
         _t: ParentChildTp.code,
@@ -123,7 +130,7 @@ node.on("close", (code) =>
   close() {
     if (!this.#worker) return;
 
-    msg2Svc({ _t: WkrSvcTp.exit, pid: this.pid });
+    // msg2Svc({ _t: WkrSvcTp.exit, pid: this.pid });
     this.#worker.terminate();
     this.#worker = undefined;
 

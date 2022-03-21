@@ -1,7 +1,4 @@
-import { FetchPath } from "@griffon/shared";
-import { pTree } from "./state";
-
-declare const self: ServiceWorkerGlobalScope & typeof globalThis;
+/* declare const self: ServiceWorkerGlobalScope & typeof globalThis;
 
 const { origin } = self.location;
 
@@ -18,4 +15,6 @@ self.addEventListener("fetch", (event) => {
       }
     }
   }
-});
+}); */
+
+export {};

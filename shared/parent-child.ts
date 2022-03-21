@@ -5,8 +5,6 @@ export const enum ParentChildTp {
   none,
   /** Basic process information. */
   proc,
-  /** The PID */
-  pid,
   /** The code to run. */
   code,
   /** The process is going to exit. */
@@ -18,9 +16,16 @@ type Msg<T extends ParentChildTp, D = Dict> = { _t: T } & D;
 export type Parent2Child =
   | Msg<
       ParentChildTp.proc,
-      { ppid: number; cwd: string; uid: number; sab: Int32Array }
+      {
+        pid: number;
+        ppid: number;
+        cwd: string;
+        uid: number;
+        wid: number;
+        sab: SharedArrayBuffer;
+        winSab: SharedArrayBuffer;
+      }
     >
-  | Msg<ParentChildTp.pid, { pid: number }>
   | Msg<ParentChildTp.code, { code: string }>;
 
 export type Child2Parent = Msg<ParentChildTp.exit, { code: number }>;

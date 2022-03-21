@@ -1,12 +1,16 @@
-import { CONST, SIGNALS, WinSvcChanTp, WinSvcTp } from "@griffon/shared";
+import { CONST, WinSvcChanTp, WinSvcTp } from "@griffon/shared";
 import { Channel, msg2Svc } from "./message";
-import { DenoProcess, askPids } from "./process";
 import { addSignalListener, removeSignalListener } from "./signals";
 import { Deno } from "@griffon/deno-std";
+import { DenoProcess } from "./process";
 
 export async function boot() {
   self.Deno = Deno;
   self.SWC = navigator.serviceWorker;
+  // Pretend the max child process number is 64.
+  self.SAB = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * 64);
+  self.SAB32 = new Int32Array(self.SAB);
+
   return self.SWC.register(CONST.serviceURL, { type: "module", scope: "/" })
     .then((reg) => {
       self.SWR = reg;
@@ -28,17 +32,20 @@ export async function boot() {
 
       return Channel.svc({ _t: WinSvcChanTp.user });
     })
-    .then(({ uid, pid }) => {
-      self.Deno._uid_ = uid;
+    .then(({ pid }) => {
+      Object.defineProperty(self, "NEXT_PID", { get: () => ++pid });
+
+      self.Deno._uid_ = pid / CONST.pidUnit;
       self.Deno.pid = pid;
-      self.Deno._cwd_ = `/home/${uid}`;
+      self.Deno._cwd_ = `/home/${self.Deno._uid_}`;
       hackDeno();
+
       self.addEventListener("unload", () =>
         msg2Svc({ _t: WinSvcTp.exit, pid: self.Deno.pid })
       );
-      return askPids();
-    })
-    .then(hackNode);
+
+      return hackNode();
+    });
 }
 
 function hackDeno() {
@@ -51,12 +58,12 @@ function hackDeno() {
   self.Deno.run = (opt: Parameters<typeof Deno.run>[0]) => new DenoProcess(opt);
 
   self.Deno.kill = (pid, sig) => {
-    if (!Object.hasOwn(SIGNALS, sig))
+    /* if (!Object.hasOwn(SIGNALS, sig))
       throw new TypeError(`Unknown signal: ${sig}`);
 
     if (pid === self.Deno.pid)
       self.SWC.dispatchEvent(new MessageEvent("message", { data: { sig } }));
-    else msg2Svc({ _t: WinSvcTp.kill, pid, sig });
+    else msg2Svc({ _t: WinSvcTp.kill, pid, sig }); */
   };
 
   self.Deno.sleepSync = (millis) => {

@@ -7,8 +7,10 @@ declare global {
   var SW: ServiceWorker;
   var SWC: ServiceWorkerContainer;
   var SWR: ServiceWorkerRegistration;
-  /** Pre-reserved pids. Because the main thread can ask PID synchronously */
-  var PRE_RSVD_PIDS: number[];
+  var NEXT_PID: number;
+  /** Shared with all child processes. */
+  var SAB: SharedArrayBuffer;
+  var SAB32: Int32Array;
 
   /** [Node.js globals](../deno-std/deno_std/node/global.ts) */
   var global: globalThis;

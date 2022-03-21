@@ -1,5 +1,5 @@
 import type { DenoType } from "@griffon/deno-std";
-import type { SIGNALS, Signal } from "@griffon/shared";
+import type { Signal } from "@griffon/shared";
 
 export type SigHandlers = () => void | Array<() => void>;
 
@@ -49,7 +49,7 @@ export const defaultSigHdls: Record<Signal, SigHandlers> = {
   /* eslint-enable @typescript-eslint/naming-convention */
 };
 
-const sigHdls = structuredClone(defaultSigHdls);
+const sigHdls = { ...defaultSigHdls };
 
 export function addSignalListener(
   signal: DenoType.Signal,

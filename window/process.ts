@@ -1,17 +1,7 @@
-import { CONST, FetchPath, ParentChildTp, WinSvcTp } from "@griffon/shared";
+import { CONST, ParentChildTp, WinSvcTp } from "@griffon/shared";
 import type { Child2Parent, Parent2Child } from "@griffon/shared";
+import { msg2Svc, wkrHandler } from "./message";
 import type { DenoType } from "@griffon/deno-std";
-import { msg2Svc } from "./message";
-
-async function askPid() {
-  const res = await fetch(`${FetchPath.pid}?ppid=${self.Deno.pid}`);
-  return parseInt(await res.text(), 10);
-}
-
-export async function askPids() {
-  while (self.PRE_RSVD_PIDS.length <= 4)
-    self.PRE_RSVD_PIDS.push(await askPid());
-}
 
 export class DenoProcess implements DenoType.Process {
   #worker?: Worker;
@@ -32,7 +22,7 @@ export class DenoProcess implements DenoType.Process {
 
   readonly rid = NaN;
 
-  pid = 0;
+  readonly pid = self.NEXT_PID;
 
   readonly stdin = null;
 
@@ -66,27 +56,24 @@ export class DenoProcess implements DenoType.Process {
     };
     this.#worker.onmessageerror = console.error;
 
-    const cwd = opt.cwd ?? self.Deno._cwd_;
-    const uid = opt.uid ?? self.Deno._uid_;
-    const ppid = self.Deno.pid;
-    const sab = new Int32Array(this.#sab);
+    const wid = this.pid % CONST.pidUnit;
 
-    const pid = self.PRE_RSVD_PIDS.shift();
-    if (pid) {
-      this.pid = pid;
-      this.#toChild({ _t: ParentChildTp.pid, pid });
-    } else {
-      void askPid().then((pid) => {
-        this.pid = pid;
-        this.#toChild({ _t: ParentChildTp.pid, pid });
-      });
-    }
-    void askPids();
-
-    // Make the child process can communicate with the Service Worker.
+    // Make the child process can communicate with the main thread.
     const { port1, port2 } = new MessageChannel();
-    msg2Svc({ _t: WinSvcTp.proc }, [port1]);
-    this.#toChild({ _t: ParentChildTp.proc, ppid, cwd, uid, sab }, [port2]);
+    port1.onmessage = wkrHandler.bind(undefined, wid);
+    this.#toChild(
+      {
+        _t: ParentChildTp.proc,
+        pid: this.pid,
+        ppid: self.Deno.pid,
+        cwd: opt.cwd ?? self.Deno._cwd_,
+        uid: opt.uid ?? self.Deno._uid_,
+        wid,
+        sab: this.#sab,
+        winSab: self.SAB,
+      },
+      [port2]
+    );
 
     // Temporary
     this.#toChild({

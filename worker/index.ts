@@ -10,19 +10,20 @@ hackDeno();
 self.onmessage = ({ data, ports }: MessageEvent<Parent2Child>) => {
   switch (data._t) {
     case ParentChildTp.proc: {
-      const { uid, ppid, cwd, sab } = data;
+      const { pid, uid, ppid, cwd, wid, sab, winSab } = data;
 
+      self.Deno.pid = pid;
       self.Deno._uid_ = uid;
       self.Deno.ppid = ppid;
       self.Deno._cwd_ = cwd;
 
+      self.WID = wid;
       self.SAB = sab;
-      self.SW = ports[0];
+      self.WIN_SAB = winSab;
+      self.WIN_SAB32 = new Int32Array(winSab);
+      self.WIN = ports[0];
       break;
     }
-    case ParentChildTp.pid:
-      self.Deno.pid = data.pid;
-      break;
     case ParentChildTp.code:
       hackNode()
         .then((require) => {
