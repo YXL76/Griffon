@@ -1,10 +1,17 @@
 import type { DenoType } from "@griffon/deno-std";
+import { ParentChildTp } from "@griffon/shared";
 import type { Signal } from "@griffon/shared";
+import { msg2Parent } from "./message";
 
 export type SigHandlers = () => void | Array<() => void>;
 
 function noop() {
   // noop
+}
+
+function term(sig: number) {
+  msg2Parent({ _t: ParentChildTp.exit, code: sig, sig });
+  return self.close() as never;
 }
 
 function stop() {
@@ -15,32 +22,32 @@ function stop() {
 export const defaultSigHdls: Record<Signal, SigHandlers> = {
   /* eslint-disable @typescript-eslint/naming-convention */
   // TermSig
-  SIGALRM: () => self.Deno.exit(14),
-  SIGHUP: () => self.Deno.exit(1),
-  SIGINT: () => self.Deno.exit(2),
-  SIGKILL: () => self.Deno.exit(9),
-  SIGPIPE: () => self.Deno.exit(13),
-  SIGPROF: () => self.Deno.exit(24),
-  SIGTERM: () => self.Deno.exit(15),
-  SIGUSR1: () => self.Deno.exit(10),
-  SIGUSR2: () => self.Deno.exit(12),
-  SIGVTALRM: () => self.Deno.exit(26),
+  SIGALRM: () => term(14),
+  SIGHUP: () => term(1),
+  SIGINT: () => term(2),
+  SIGKILL: () => term(9),
+  SIGPIPE: () => term(13),
+  SIGPROF: () => term(24),
+  SIGTERM: () => term(15),
+  SIGUSR1: () => term(10),
+  SIGUSR2: () => term(12),
+  SIGVTALRM: () => term(26),
 
   // IgnSig
   SIGCHLD: noop,
   SIGURG: noop,
 
   // TermSig
-  SIGABRT: () => self.Deno.exit(6),
-  SIGBUS: () => self.Deno.exit(7),
-  SIGFPE: () => self.Deno.exit(8),
-  SIGILL: () => self.Deno.exit(4),
-  SIGQUIT: () => self.Deno.exit(3),
-  SIGSEGV: () => self.Deno.exit(11),
-  SIGSYS: () => self.Deno.exit(31),
-  SIGTRAP: () => self.Deno.exit(5),
-  SIGXCPU: () => self.Deno.exit(24),
-  SIGXFSZ: () => self.Deno.exit(25),
+  SIGABRT: () => term(6),
+  SIGBUS: () => term(7),
+  SIGFPE: () => term(8),
+  SIGILL: () => term(4),
+  SIGQUIT: () => term(3),
+  SIGSEGV: () => term(11),
+  SIGSYS: () => term(31),
+  SIGTRAP: () => term(5),
+  SIGXCPU: () => term(24),
+  SIGXFSZ: () => term(25),
 
   // The main thread cannot be stopped or continued.
   // StopSig

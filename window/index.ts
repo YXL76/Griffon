@@ -15,7 +15,14 @@ import { Deno } from "@griffon/deno-std";
 import { DenoProcess } from "./process";
 import type { Win2Win } from "@griffon/shared";
 
-export async function boot() {
+export interface BootConfig {
+  /**
+   * NOTE: Some properties will be overrided.
+   */
+  env?: { [key: string]: string };
+}
+
+export async function boot({ env = {} }: BootConfig = {}) {
   self.Deno = Deno;
   self.SWC = navigator.serviceWorker;
   // Pretend the max child process number is 64.
@@ -26,6 +33,8 @@ export async function boot() {
   self.addEventListener("unload", () =>
     msg2Svc({ _t: WinSvcTp.exit, pid: self.Deno.pid })
   );
+
+  for (const [key, value] of Object.entries(env)) Deno.env.set(key, value);
 
   return self.SWC.register(CONST.serviceURL, { type: "module", scope: "/" })
     .then((reg) => {
@@ -66,7 +75,7 @@ function hackDeno() {
 
   self.Deno.removeSignalListener = removeSignalListener;
 
-  self.Deno.run = (opt: Parameters<typeof Deno.run>[0]) => new DenoProcess(opt);
+  self.Deno.run = (opt) => new DenoProcess(opt);
 
   self.Deno.kill = (pid, sig) => {
     if (!Object.hasOwn(defaultSigHdls, sig))
@@ -75,7 +84,7 @@ function hackDeno() {
     const data: Win2Win = { _t: WinWinTp.kill, pid, sig };
     if (pid === self.Deno.pid || pid2Uid(pid) === self.Deno._uid_) {
       self.dispatchEvent(new MessageEvent("message", { data }));
-    } else self.postMessage(data);
+    } else self.postMessage(data, self.location.origin);
   };
 
   self.Deno.sleepSync = (millis) => {
@@ -100,21 +109,22 @@ async function hackNode() {
 }
 
 const require = await boot();
+// eslint-disable-next-line @typescript-eslint/no-implied-eval
+new Function(
+  "require",
+  `const { basename, dirname, extname, isAbsolute, join } = require("path");
+const { spawn } = require("child_process");
 
-{
-  const { basename, dirname, extname, isAbsolute, join } = require("path");
-  const { spawn } = require("child_process");
+console.log(basename("/foo/bar/baz/asdf/quux.html"));
+console.log(dirname("/foo/bar/baz/asdf/quux"));
+console.log(extname("index.html"));
+console.log(isAbsolute("/foo/bar"));
+console.log(join("/foo", "bar", "baz/asdf", "quux", ".."));
 
-  console.log(basename("/foo/bar/baz/asdf/quux.html"));
-  console.log(dirname("/foo/bar/baz/asdf/quux"));
-  console.log(extname("index.html"));
-  console.log(isAbsolute("/foo/bar"));
-  console.log(join("/foo", "bar", "baz/asdf", "quux", ".."));
+console.log(process.cwd());
 
-  console.log(process.cwd());
-
-  const node = spawn("node", { stdio: "ignore" });
-  node.on("close", (code) =>
-    console.log(`child process exited with code ${code}`)
-  );
-}
+const node = spawn("node", { stdio: "ignore" });
+node.on("close", (code) =>
+  console.log(\`child process exited with code \${code}\`)
+);`
+)(require);

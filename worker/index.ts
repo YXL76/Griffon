@@ -16,7 +16,7 @@ hackDeno();
 self.onmessage = ({ data, ports }: MessageEvent<Parent2Child>) => {
   switch (data._t) {
     case ParentChildTp.proc: {
-      const { pid, uid, ppid, cwd, wid, sab, winSab } = data;
+      const { pid, uid, ppid, cwd, env, wid, sab, winSab } = data;
 
       self.Deno.pid = pid;
       self.Deno._uid_ = uid;
@@ -29,6 +29,9 @@ self.onmessage = ({ data, ports }: MessageEvent<Parent2Child>) => {
       self.WIN_SAB32 = new Int32Array(winSab);
       self.WIN = ports[0];
       self.WIN.onmessage = winHandler;
+
+      for (const [key, val] of Object.entries(env)) self.Deno.env.set(key, val);
+
       break;
     }
     case ParentChildTp.code:
@@ -51,8 +54,6 @@ self.onmessage = ({ data, ports }: MessageEvent<Parent2Child>) => {
 self.onmessageerror = console.error;
 
 function hackDeno() {
-  self.Deno.env.set("HOME", `/home/${self.Deno._uid_}`);
-
   self.Deno.exit = (code = 0) => {
     msg2Parent({ _t: ParentChildTp.exit, code });
     return self.close() as never;
@@ -62,7 +63,7 @@ function hackDeno() {
 
   self.Deno.removeSignalListener = removeSignalListener;
 
-  self.Deno.run = (opt: Parameters<typeof Deno.run>[0]) => new DenoProcess(opt);
+  self.Deno.run = (opt) => new DenoProcess(opt);
 
   self.Deno.kill = (pid, sig) => {
     if (!Object.hasOwn(defaultSigHdls, sig))

@@ -26,6 +26,37 @@ class Http extends Error {}
 class Busy extends Error {}
 class NotSupported extends Error {}
 
+class ResourceTable {
+  #index = new Map<number, unknown>();
+
+  #nextRid = 0;
+
+  add(resource: unknown) {
+    const rid = this.#nextRid;
+    this.#index.set(rid, resource);
+    this.#nextRid += 1;
+    return rid;
+  }
+
+  has(rid: number) {
+    return this.#index.has(rid);
+  }
+
+  get(rid: number) {
+    return this.#index.get(rid);
+  }
+
+  take(rid: number) {
+    const resource = this.get(rid);
+    if (resource) this.#index.delete(rid);
+    return resource;
+  }
+
+  close(/* rid: number */) {
+    throw new Error("Not implemented");
+  }
+}
+
 enum SeekMode {
   /* eslint-disable @typescript-eslint/naming-convention */ Start = 0,
   Current = 1,
@@ -92,10 +123,13 @@ export const Deno: Omit<
   typeof DenoType,
   DenoDeprecated | DenoClass | DenoFFI
 > & {
+  _resTable_: ResourceTable;
   _cwd_: string;
   _uid_: number;
   _env_: Map<string, string>;
 } = {
+  _resTable_: new ResourceTable(),
+
   errors: /* eslint-disable @typescript-eslint/naming-convention */ {
     NotFound,
     PermissionDenied,
@@ -279,6 +313,7 @@ export const Deno: Omit<
   shutdown: _notImplemented,
 
   // Unstable
+  bench: _notImplemented,
   umask: _notImplemented,
   consoleSize: _notImplemented,
   loadavg: _notImplemented,
@@ -316,19 +351,14 @@ export const Deno: Omit<
   funlockSync: _notImplemented,
   refTimer: _notImplemented,
   unrefTimer: _notImplemented,
+  upgradeHttp: _notImplemented,
 };
 
-Object.defineProperty(Deno, "_cwd_", {
-  value: Deno._cwd_,
-  writable: true,
-});
+Object.defineProperty(Deno, "_resTable_", { value: Deno._resTable_ });
+Object.defineProperty(Deno, "_cwd_", { value: Deno._cwd_, writable: true });
+Object.defineProperty(Deno, "_uid_", { value: Deno._uid_, writable: true });
+Object.defineProperty(Deno, "_env_", { value: Deno._env_, writable: true });
 
-Object.defineProperty(Deno, "_uid_", {
-  value: Deno._uid_,
-  writable: true,
-});
-
-Object.defineProperty(Deno, "_env_", {
-  value: Deno._env_,
-  writable: true,
-});
+Deno._resTable_.add(Deno.stdin);
+Deno._resTable_.add(Deno.stdout);
+Deno._resTable_.add(Deno.stderr);

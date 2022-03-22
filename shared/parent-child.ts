@@ -23,6 +23,7 @@ export type Parent2Child =
         ppid: number;
         cwd: string;
         uid: number;
+        env: Record<string, string>;
         wid: number;
         sab: SharedArrayBuffer;
         winSab: SharedArrayBuffer;
@@ -31,4 +32,7 @@ export type Parent2Child =
   | Msg<ParentChildTp.code, { code: string }>
   | Msg<ParentChildTp.kill, { sig: SignalNoCont }>;
 
-export type Child2Parent = Msg<ParentChildTp.exit, { code: number }>;
+export type Child2Parent = Msg<
+  ParentChildTp.exit,
+  { code: number; sig?: number }
+>;

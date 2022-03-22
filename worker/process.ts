@@ -2,12 +2,22 @@ import { CONST, ParentChildTp, WinWkrTp, pid2Wid } from "@griffon/shared";
 import type { Child2Parent, Parent2Child } from "@griffon/shared";
 import type { DenoType } from "@griffon/deno-std";
 import { defaultSigHdls } from "./signals";
+import { fromFileUrl } from "@griffon/deno-std/deno_std/path/posix";
 import { msg2Win } from "./message";
 
-export class DenoProcess implements DenoType.Process {
+export class DenoProcess<T extends DenoType.RunOptions = DenoType.RunOptions>
+  implements DenoType.Process<T>
+{
   #worker?: Worker;
 
+  /**
+   * Resource ID.
+   */
+  #rid: number;
+
   #wid: number;
+
+  #sig?: number;
 
   #code = 0;
 
@@ -27,22 +37,29 @@ export class DenoProcess implements DenoType.Process {
 
   readonly pid: number;
 
-  readonly stdin = null;
+  readonly stdin = null as DenoType.Process<T>["stdin"];
 
-  readonly stdout = null;
+  readonly stdout = null as DenoType.Process<T>["stdout"];
 
-  readonly stderr = null;
+  readonly stderr = null as DenoType.Process<T>["stderr"];
 
-  constructor(
-    opt: DenoType.RunOptions & {
-      clearEnv?: boolean;
-      gid?: number;
-      uid?: number;
-    }
-  ) {
-    const file = opt.cmd[0];
-    if (file instanceof URL || (file !== "deno" && file !== "node"))
+  constructor({
+    cmd,
+    cwd = self.Deno._cwd_,
+    clearEnv = false,
+    env = {},
+    // gid = undefined,
+    // stdout = "inherit",
+    // stderr = "inherit",
+    // stdin = "inherit",
+    uid = self.Deno._uid_,
+  }: T & { clearEnv?: boolean; gid?: number; uid?: number }) {
+    if (cmd[0] != null) cmd[0] = fromFileUrl(cmd[0]);
+
+    if (cmd[0] !== "deno" && cmd[0] !== "node")
       throw new Error("Invalid command");
+
+    if (!clearEnv) env = { ...self.Deno.env.toObject(), ...env };
 
     /**
      * @notice Chromium need some time(about 20ms) to set up the worker.
@@ -53,6 +70,7 @@ export class DenoProcess implements DenoType.Process {
       switch (data._t) {
         case ParentChildTp.exit:
           this.#code = data.code;
+          this.#sig = data.sig;
           this.close();
           break;
       }
@@ -73,14 +91,17 @@ export class DenoProcess implements DenoType.Process {
         _t: ParentChildTp.proc,
         pid: this.pid,
         ppid: self.Deno.pid,
-        cwd: opt.cwd ?? self.Deno._cwd_,
-        uid: opt.uid ?? self.Deno._uid_,
+        cwd,
+        uid,
+        env,
         wid: this.#wid,
         sab: this.#sab,
         winSab: self.WIN_SAB,
       },
       [port2]
     );
+
+    this.#rid = self.Deno._resTable_.add(this);
 
     if (self.WID <= 5) {
       // Temporary
@@ -108,23 +129,26 @@ node.on("close", (code) =>
   }
 
   status(): Promise<DenoType.ProcessStatus> {
-    if (!this.#worker)
-      return Promise.resolve(
-        this.#code === 0
-          ? { success: true, code: this.#code }
-          : { success: false, code: this.#code }
-      );
+    if (!this.#worker) return Promise.resolve(this.#runStatus());
 
     return new Promise((resolve) => this.#statusQueue.push(resolve));
   }
 
   output(): Promise<Uint8Array> {
+    if (!this.stdout) {
+      throw new TypeError("stdout was not piped");
+    }
+
     if (!this.#worker) return Promise.resolve(this.#output);
 
     return new Promise((resolve) => this.#outputQueue.push(resolve));
   }
 
   stderrOutput(): Promise<Uint8Array> {
+    if (!this.stderr) {
+      throw new TypeError("stderr was not piped");
+    }
+
     if (!this.#worker) return Promise.resolve(this.#stderrOutput);
 
     return new Promise((resolve) => this.#stderrOutputQueue.push(resolve));
@@ -138,10 +162,7 @@ node.on("close", (code) =>
     this.#worker = undefined;
 
     if (this.#statusQueue.length) {
-      const status: DenoType.ProcessStatus =
-        this.#code === 0
-          ? { success: true, code: this.#code }
-          : { success: false, code: this.#code };
+      const status = this.#runStatus();
       this.#statusQueue.forEach((q) => q(status));
       this.#statusQueue.length = 0;
     }
@@ -161,6 +182,13 @@ node.on("close", (code) =>
 
     if (sig === "SIGCONT") Atomics.notify(self.WIN_SAB32, this.#wid);
     else this.#toChild({ _t: ParentChildTp.kill, sig });
+  }
+
+  #runStatus(): DenoType.ProcessStatus {
+    const signal = this.#sig;
+    if (signal) return { success: false, code: 128 + signal, signal };
+    if (this.#code === 0) return { success: true, code: 0 };
+    return { success: false, code: this.#code };
   }
 
   #toChild(msg: Parent2Child, transfer?: Transferable[]) {

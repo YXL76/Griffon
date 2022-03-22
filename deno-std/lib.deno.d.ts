@@ -61,7 +61,7 @@ export namespace Deno {
      * If set to `true`, the global `net` permission will be requested.
      * If set to `false`, the global `net` permission will be revoked.
      *
-     * Defaults to "inherit".
+     * Defaults to `false`.
      */
     env?: "inherit" | boolean | string[];
 
@@ -70,7 +70,7 @@ export namespace Deno {
      * If set to `true`, the global `hrtime` permission will be requested.
      * If set to `false`, the global `hrtime` permission will be revoked.
      *
-     * Defaults to "inherit".
+     * Defaults to `false`.
      */
     hrtime?: "inherit" | boolean;
 
@@ -81,7 +81,7 @@ export namespace Deno {
      * if set to `string[]`, the `net` permission will be requested with the
      * specified host strings with the format `"<host>[:<port>]`.
      *
-     * Defaults to "inherit".
+     * Defaults to `false`.
      *
      * Examples:
      *
@@ -152,7 +152,7 @@ export namespace Deno {
      * If set to `true`, the global `ffi` permission will be requested.
      * If set to `false`, the global `ffi` permission will be revoked.
      *
-     * Defaults to "inherit".
+     * Defaults to `false`.
      */
     ffi?: "inherit" | boolean | Array<string | URL>;
 
@@ -163,7 +163,7 @@ export namespace Deno {
      * If set to `Array<string | URL>`, the `read` permission will be requested with the
      * specified file paths.
      *
-     * Defaults to "inherit".
+     * Defaults to `false`.
      */
     read?: "inherit" | boolean | Array<string | URL>;
 
@@ -172,7 +172,7 @@ export namespace Deno {
      * If set to `true`, the global `run` permission will be requested.
      * If set to `false`, the global `run` permission will be revoked.
      *
-     * Defaults to "inherit".
+     * Defaults to `false`.
      */
     run?: "inherit" | boolean | Array<string | URL>;
 
@@ -183,7 +183,7 @@ export namespace Deno {
      * If set to `Array<string | URL>`, the `write` permission will be requested with the
      * specified file paths.
      *
-     * Defaults to "inherit".
+     * Defaults to `false`.
      */
     write?: "inherit" | boolean | Array<string | URL>;
   }
@@ -396,6 +396,7 @@ export namespace Deno {
     options: Omit<TestDefinition, "fn" | "name">,
     fn: (t: TestContext) => void | Promise<void>,
   ): void;
+
   /** Exit the Deno process with optional exit code. If no exit code is supplied
    * then Deno will exit with return code of 0.
    *
@@ -2388,7 +2389,7 @@ export namespace Deno {
    * Details of the spawned process are returned.
    *
    * Requires `allow-run` permission. */
-  export function run<T extends RunOptions = RunOptions>(opt: T): Process<T>;
+  // export function run<T extends RunOptions = RunOptions>(opt: T): Process<T>;
 
   export interface InspectOptions {
     /** Stylize output with ANSI colors. Defaults to false. */
@@ -3040,11 +3041,21 @@ export namespace Deno {
   ): Listener;
 
   export interface ListenTlsOptions extends ListenOptions {
+    /** Server private key in PEM format */
+    key?: string;
+    /** Cert chain in PEM format */
+    cert?: string;
     /** Path to a file containing a PEM formatted CA certificate. Requires
-     * `--allow-read`. */
-    certFile: string;
-    /** Server public key file. Requires `--allow-read`.*/
-    keyFile: string;
+     * `--allow-read`.
+     *
+     * @deprecated This option is deprecated and will be removed in Deno 2.0.
+     */
+    certFile?: string;
+    /** Server private key file. Requires `--allow-read`.
+     *
+     * @deprecated This option is deprecated and will be removed in Deno 2.0.
+     */
+    keyFile?: string;
 
     transport?: "tcp";
   }
@@ -3080,7 +3091,25 @@ export namespace Deno {
    * ```
    *
    * Requires `allow-net` permission for "tcp". */
-  export function connect(options: ConnectOptions): Promise<Conn>;
+  export function connect(options: ConnectOptions): Promise<TcpConn>;
+
+  export interface TcpConn extends Conn {
+    /**
+     * **UNSTABLE**: new API, see https://github.com/denoland/deno/issues/13617.
+     *
+     * Enable/disable the use of Nagle's algorithm. Defaults to true.
+     */
+    setNoDelay(nodelay?: boolean): void;
+    /**
+     * **UNSTABLE**: new API, see https://github.com/denoland/deno/issues/13617.
+     *
+     * Enable/disable keep-alive functionality.
+     */
+    setKeepAlive(keepalive?: boolean): void;
+  }
+
+  // deno-lint-ignore no-empty-interface
+  export interface UnixConn extends Conn {}
 
   export interface ConnectTlsOptions {
     /** The port to connect to. */
@@ -3162,6 +3191,180 @@ export namespace Deno {
   export function shutdown(rid: number): Promise<void>;
 
   // lib.deno.unstable.d.ts
+
+  export interface BenchDefinition {
+    fn: () => void | Promise<void>;
+    name: string;
+    ignore?: boolean;
+    /** Specify number of iterations benchmark should perform. Defaults to 1000. */
+    n?: number;
+    /** Specify number of warmup iterations benchmark should perform. Defaults
+     * to 1000.
+     *
+     * These iterations are not measured. It allows the code to be optimized
+     * by JIT compiler before measuring its performance. */
+    warmup?: number;
+    /** If at least one bench has `only` set to true, only run benches that have
+     * `only` set to true and fail the bench suite. */
+    only?: boolean;
+    /** Ensure the bench case does not prematurely cause the process to exit,
+     * for example via a call to `Deno.exit`. Defaults to true. */
+    sanitizeExit?: boolean;
+
+    /** Specifies the permissions that should be used to run the bench.
+     * Set this to "inherit" to keep the calling thread's permissions.
+     * Set this to "none" to revoke all permissions.
+     *
+     * Defaults to "inherit".
+     */
+    permissions?: Deno.PermissionOptions;
+  }
+
+  /** Register a bench which will be run when `deno bench` is used on the command
+   * line and the containing module looks like a bench module.
+   * `fn` can be async if required.
+   * ```ts
+   * import {assert, fail, assertEquals} from "https://deno.land/std/testing/asserts.ts";
+   *
+   * Deno.bench({
+   *   name: "example test",
+   *   fn(): void {
+   *     assertEquals("world", "world");
+   *   },
+   * });
+   *
+   * Deno.bench({
+   *   name: "example ignored test",
+   *   ignore: Deno.build.os === "windows",
+   *   fn(): void {
+   *     // This test is ignored only on Windows machines
+   *   },
+   * });
+   *
+   * Deno.bench({
+   *   name: "example async test",
+   *   async fn() {
+   *     const decoder = new TextDecoder("utf-8");
+   *     const data = await Deno.readFile("hello_world.txt");
+   *     assertEquals(decoder.decode(data), "Hello world");
+   *   }
+   * });
+   * ```
+   */
+  export function bench(t: BenchDefinition): void;
+
+  /** Register a bench which will be run when `deno bench` is used on the command
+   * line and the containing module looks like a bench module.
+   * `fn` can be async if required.
+   *
+   * ```ts
+   * import {assert, fail, assertEquals} from "https://deno.land/std/testing/asserts.ts";
+   *
+   * Deno.bench("My test description", (): void => {
+   *   assertEquals("hello", "hello");
+   * });
+   *
+   * Deno.bench("My async test description", async (): Promise<void> => {
+   *   const decoder = new TextDecoder("utf-8");
+   *   const data = await Deno.readFile("hello_world.txt");
+   *   assertEquals(decoder.decode(data), "Hello world");
+   * });
+   * ```
+   */
+  export function bench(
+    name: string,
+    fn: () => void | Promise<void>,
+  ): void;
+
+  /** Register a bench which will be run when `deno bench` is used on the command
+   * line and the containing module looks like a bench module.
+   * `fn` can be async if required. Declared function must have a name.
+   *
+   * ```ts
+   * import {assert, fail, assertEquals} from "https://deno.land/std/testing/asserts.ts";
+   *
+   * Deno.bench(function myTestName(): void {
+   *   assertEquals("hello", "hello");
+   * });
+   *
+   * Deno.bench(async function myOtherTestName(): Promise<void> {
+   *   const decoder = new TextDecoder("utf-8");
+   *   const data = await Deno.readFile("hello_world.txt");
+   *   assertEquals(decoder.decode(data), "Hello world");
+   * });
+   * ```
+   */
+  export function bench(fn: () => void | Promise<void>): void;
+
+  /** Register a bench which will be run when `deno bench` is used on the command
+   * line and the containing module looks like a bench module.
+   * `fn` can be async if required.
+   *
+   * ```ts
+   * import {assert, fail, assertEquals} from "https://deno.land/std/testing/asserts.ts";
+   *
+   * Deno.bench("My test description", { permissions: { read: true } }, (): void => {
+   *   assertEquals("hello", "hello");
+   * });
+   *
+   * Deno.bench("My async test description", { permissions: { read: false } }, async (): Promise<void> => {
+   *   const decoder = new TextDecoder("utf-8");
+   *   const data = await Deno.readFile("hello_world.txt");
+   *   assertEquals(decoder.decode(data), "Hello world");
+   * });
+   * ```
+   */
+  export function bench(
+    name: string,
+    options: Omit<BenchDefinition, "fn" | "name">,
+    fn: () => void | Promise<void>,
+  ): void;
+
+  /** Register a bench which will be run when `deno bench` is used on the command
+   * line and the containing module looks like a bench module.
+   * `fn` can be async if required.
+   *
+   * ```ts
+   * import {assert, fail, assertEquals} from "https://deno.land/std/testing/asserts.ts";
+   *
+   * Deno.bench({ name: "My test description", permissions: { read: true } }, (): void => {
+   *   assertEquals("hello", "hello");
+   * });
+   *
+   * Deno.bench({ name: "My async test description", permissions: { read: false } }, async (): Promise<void> => {
+   *   const decoder = new TextDecoder("utf-8");
+   *   const data = await Deno.readFile("hello_world.txt");
+   *   assertEquals(decoder.decode(data), "Hello world");
+   * });
+   * ```
+   */
+  export function bench(
+    options: Omit<BenchDefinition, "fn">,
+    fn: () => void | Promise<void>,
+  ): void;
+
+  /** Register a bench which will be run when `deno bench` is used on the command
+   * line and the containing module looks like a bench module.
+   * `fn` can be async if required. Declared function must have a name.
+   *
+   * ```ts
+   * import {assert, fail, assertEquals} from "https://deno.land/std/testing/asserts.ts";
+   *
+   * Deno.bench({ permissions: { read: true } }, function myTestName(): void {
+   *   assertEquals("hello", "hello");
+   * });
+   *
+   * Deno.bench({ permissions: { read: false } }, async function myOtherTestName(): Promise<void> {
+   *   const decoder = new TextDecoder("utf-8");
+   *   const data = await Deno.readFile("hello_world.txt");
+   *   assertEquals(decoder.decode(data), "Hello world");
+   * });
+   * ```
+   */
+  export function bench(
+    options: Omit<BenchDefinition, "fn" | "name">,
+    fn: () => void | Promise<void>,
+  ): void;
 
   /**
    * **UNSTABLE**: New API, yet to be vetted.  This API is under consideration to
@@ -4318,4 +4521,18 @@ export namespace Deno {
    * Make the timer of the given id not blocking the event loop from finishing
    */
   export function unrefTimer(id: number): void;
+
+  /** **UNSTABLE**: new API, yet to be vetter.
+   *
+   * Allows to "hijack" a connection that the request is associated with.
+   * Can be used to implement protocols that build on top of HTTP (eg.
+   * WebSockets).
+   *
+   * The returned promise returns underlying connection and first packet
+   * received. The promise shouldn't be awaited before responding to the
+   * `request`, otherwise event loop might deadlock.
+   */
+  export function upgradeHttp(
+    request: Request,
+  ): Promise<[Deno.Conn, Uint8Array]>;
 }
