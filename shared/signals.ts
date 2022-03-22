@@ -33,6 +33,8 @@ export type StopSig = "SIGSTOP" | "SIGTSTP" | "SIGTTIN" | "SIGTTOU";
 
 export type ContSig = "SIGCONT";
 
+export type SignalNoCont = CoreSig | IgnSig | StopSig | TermSig;
+
 export type Signal = ContSig | CoreSig | IgnSig | StopSig | TermSig;
 
 // x86/ARM

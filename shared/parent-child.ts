@@ -1,4 +1,4 @@
-import type { Dict } from ".";
+import type { Dict, SignalNoCont } from ".";
 
 export const enum ParentChildTp {
   /** Placeholder. */
@@ -9,6 +9,8 @@ export const enum ParentChildTp {
   code,
   /** The process is going to exit. */
   exit,
+  /** Like POSIX kill. */
+  kill,
 }
 
 type Msg<T extends ParentChildTp, D = Dict> = { _t: T } & D;
@@ -26,6 +28,7 @@ export type Parent2Child =
         winSab: SharedArrayBuffer;
       }
     >
-  | Msg<ParentChildTp.code, { code: string }>;
+  | Msg<ParentChildTp.code, { code: string }>
+  | Msg<ParentChildTp.kill, { sig: SignalNoCont }>;
 
 export type Child2Parent = Msg<ParentChildTp.exit, { code: number }>;

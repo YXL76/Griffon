@@ -7,7 +7,6 @@ declare global {
   var SW: ServiceWorker;
   var SWC: ServiceWorkerContainer;
   var SWR: ServiceWorkerRegistration;
-  var NEXT_PID: number;
   /** Shared with all child processes. */
   var SAB: SharedArrayBuffer;
   var SAB32: Int32Array;
@@ -26,8 +25,7 @@ declare global {
   ): T;
 
   interface ArrayConstructor {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    isArray<T extends any[]>(arg: T | unknown): arg is T;
+    isArray<T extends unknown[]>(arg: T | unknown): arg is T;
   }
 
   interface Object {

@@ -1,8 +1,19 @@
-import { CONST, WinSvcChanTp, WinSvcTp } from "@griffon/shared";
-import { Channel, msg2Svc } from "./message";
-import { addSignalListener, removeSignalListener } from "./signals";
+import {
+  CONST,
+  WinSvcChanTp,
+  WinSvcTp,
+  WinWinTp,
+  pid2Uid,
+} from "@griffon/shared";
+import { Channel, msg2Svc, winHandler } from "./message";
+import {
+  addSignalListener,
+  defaultSigHdls,
+  removeSignalListener,
+} from "./signals";
 import { Deno } from "@griffon/deno-std";
 import { DenoProcess } from "./process";
+import type { Win2Win } from "@griffon/shared";
 
 export async function boot() {
   self.Deno = Deno;
@@ -10,6 +21,11 @@ export async function boot() {
   // Pretend the max child process number is 64.
   self.SAB = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * 64);
   self.SAB32 = new Int32Array(self.SAB);
+
+  self.addEventListener("message", winHandler);
+  self.addEventListener("unload", () =>
+    msg2Svc({ _t: WinSvcTp.exit, pid: self.Deno.pid })
+  );
 
   return self.SWC.register(CONST.serviceURL, { type: "module", scope: "/" })
     .then((reg) => {
@@ -33,22 +49,17 @@ export async function boot() {
       return Channel.svc({ _t: WinSvcChanTp.user });
     })
     .then(({ pid }) => {
-      Object.defineProperty(self, "NEXT_PID", { get: () => ++pid });
-
-      self.Deno._uid_ = pid / CONST.pidUnit;
+      self.Deno._uid_ = pid2Uid(pid);
       self.Deno.pid = pid;
       self.Deno._cwd_ = `/home/${self.Deno._uid_}`;
       hackDeno();
-
-      self.addEventListener("unload", () =>
-        msg2Svc({ _t: WinSvcTp.exit, pid: self.Deno.pid })
-      );
-
       return hackNode();
     });
 }
 
 function hackDeno() {
+  self.Deno.env.set("HOME", `/home/${self.Deno._uid_}`);
+
   self.Deno.exit = () => self.close() as never;
 
   self.Deno.addSignalListener = addSignalListener;
@@ -58,16 +69,17 @@ function hackDeno() {
   self.Deno.run = (opt: Parameters<typeof Deno.run>[0]) => new DenoProcess(opt);
 
   self.Deno.kill = (pid, sig) => {
-    /* if (!Object.hasOwn(SIGNALS, sig))
+    if (!Object.hasOwn(defaultSigHdls, sig))
       throw new TypeError(`Unknown signal: ${sig}`);
 
-    if (pid === self.Deno.pid)
-      self.SWC.dispatchEvent(new MessageEvent("message", { data: { sig } }));
-    else msg2Svc({ _t: WinSvcTp.kill, pid, sig }); */
+    const data: Win2Win = { _t: WinWinTp.kill, pid, sig };
+    if (pid === self.Deno.pid || pid2Uid(pid) === self.Deno._uid_) {
+      self.dispatchEvent(new MessageEvent("message", { data }));
+    } else self.postMessage(data);
   };
 
   self.Deno.sleepSync = (millis) => {
-    // No recommended way to sleep.
+    console.warn("Try not to use Deno.sleepSync in main thread.");
     const start = performance.now();
     while (performance.now() - start < millis) {
       // Do nothing.

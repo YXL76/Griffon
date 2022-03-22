@@ -20,5 +20,13 @@ declare global {
   var Buffer: unknown;
   var setImmediate: tyunknownpeof;
   var clearImmediate: unknown;
+
+  interface ArrayConstructor {
+    isArray<T extends unknown[]>(arg: T | unknown): arg is T;
+  }
+
+  interface Object {
+    hasOwn<K extends string>(o: Record<K, unknown>, v: string): v is K;
+  }
 }
 /* eslint-enable no-var */

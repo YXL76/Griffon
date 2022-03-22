@@ -1,4 +1,6 @@
-import type { Child2Parent, Wkr2Win } from "@griffon/shared";
+import type { Child2Parent, Win2Wkr, Wkr2Win } from "@griffon/shared";
+import { WinWkrTp } from "@griffon/shared";
+import { dispatchSignalEvent } from "./signals";
 
 /* export class Channel {
   static svc<D extends Wkr2SvcChan>(
@@ -25,4 +27,11 @@ export function msg2Parent(msg: Child2Parent, transfer?: Transferable[]) {
 export function msg2Win(msg: Wkr2Win, transfer?: Transferable[]) {
   if (!transfer) self.WIN.postMessage(msg);
   else self.WIN.postMessage(msg, transfer);
+}
+
+export function winHandler({ data }: MessageEvent<Win2Wkr>) {
+  switch (data._t) {
+    case WinWkrTp.kill:
+      dispatchSignalEvent(data.sig);
+  }
 }

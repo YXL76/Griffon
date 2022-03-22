@@ -1,10 +1,13 @@
-import { CONST, ParentChildTp, WinWkrTp } from "@griffon/shared";
+import { CONST, ParentChildTp, WinWkrTp, pid2Wid } from "@griffon/shared";
 import type { Child2Parent, Parent2Child } from "@griffon/shared";
 import type { DenoType } from "@griffon/deno-std";
+import { defaultSigHdls } from "./signals";
 import { msg2Win } from "./message";
 
 export class DenoProcess implements DenoType.Process {
   #worker?: Worker;
+
+  #wid: number;
 
   #code = 0;
 
@@ -58,13 +61,13 @@ export class DenoProcess implements DenoType.Process {
 
     msg2Win({ _t: WinWkrTp.pid });
     if (Atomics.wait(self.WIN_SAB32, self.WID, 0) !== "ok")
-      throw new Error("Failed to get pid");
+      throw new Error("Failed to get pid.");
     this.pid = Atomics.exchange(self.WIN_SAB32, self.WID, 0);
-    const wid = this.pid % CONST.pidUnit;
+    this.#wid = pid2Wid(this.pid);
 
     // Make the child process can communicate with the main thread.
     const { port1, port2 } = new MessageChannel();
-    msg2Win({ _t: WinWkrTp.proc, wid }, [port1]);
+    msg2Win({ _t: WinWkrTp.proc, wid: this.#wid }, [port1]);
     this.#toChild(
       {
         _t: ParentChildTp.proc,
@@ -72,7 +75,7 @@ export class DenoProcess implements DenoType.Process {
         ppid: self.Deno.pid,
         cwd: opt.cwd ?? self.Deno._cwd_,
         uid: opt.uid ?? self.Deno._uid_,
-        wid,
+        wid: this.#wid,
         sab: this.#sab,
         winSab: self.WIN_SAB,
       },
@@ -152,8 +155,12 @@ node.on("close", (code) =>
     }
   }
 
-  kill(signo: DenoType.Signal) {
-    throw new Error("Not implemented");
+  kill(sig: DenoType.Signal) {
+    if (!Object.hasOwn(defaultSigHdls, sig))
+      throw new TypeError(`Unknown signal: ${sig}`);
+
+    if (sig === "SIGCONT") Atomics.notify(self.WIN_SAB32, this.#wid);
+    else this.#toChild({ _t: ParentChildTp.kill, sig });
   }
 
   #toChild(msg: Parent2Child, transfer?: Transferable[]) {

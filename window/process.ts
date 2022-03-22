@@ -1,10 +1,50 @@
-import { CONST, ParentChildTp, WinSvcTp } from "@griffon/shared";
-import type { Child2Parent, Parent2Child } from "@griffon/shared";
+import { CONST, ParentChildTp, WinSvcTp, pid2Wid } from "@griffon/shared";
+import type { Child2Parent, Parent2Child, Win2Wkr } from "@griffon/shared";
 import { msg2Svc, wkrHandler } from "./message";
 import type { DenoType } from "@griffon/deno-std";
+import { defaultSigHdls } from "./signals";
+
+export interface ProcessTree {
+  children: Record<number, ProcessTree>;
+  parent?: number;
+  port: MessagePort;
+}
+
+class ProcTree {
+  #maxPid?: number;
+
+  #root: Record<number, ProcessTree> = {};
+
+  /**
+   * Key is pid, value is parent tree.
+   */
+  #cache = new Map<number, ProcessTree>();
+
+  nextPid(port: MessagePort, parent?: number) {
+    if (!this.#maxPid) this.#maxPid = self.Deno.pid;
+    const pid = ++this.#maxPid;
+    const thisObj = { children: {}, parent, port };
+    this.#cache.set(pid, thisObj);
+    if (parent) {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const parentObj = this.#cache.get(parent)!;
+      parentObj.children[pid] = thisObj;
+    } else this.#root[pid] = thisObj;
+    return pid;
+  }
+
+  postMessage(pid: number, data: Win2Wkr) {
+    const proc = this.#cache.get(pid);
+    proc?.port.postMessage(data);
+  }
+}
+
+export const procTree = new ProcTree();
 
 export class DenoProcess implements DenoType.Process {
   #worker?: Worker;
+
+  #wid: number;
 
   #code = 0;
 
@@ -22,7 +62,7 @@ export class DenoProcess implements DenoType.Process {
 
   readonly rid = NaN;
 
-  readonly pid = self.NEXT_PID;
+  readonly pid: number;
 
   readonly stdin = null;
 
@@ -56,11 +96,11 @@ export class DenoProcess implements DenoType.Process {
     };
     this.#worker.onmessageerror = console.error;
 
-    const wid = this.pid % CONST.pidUnit;
-
     // Make the child process can communicate with the main thread.
     const { port1, port2 } = new MessageChannel();
-    port1.onmessage = wkrHandler.bind(undefined, wid);
+    this.pid = procTree.nextPid(port1);
+    this.#wid = pid2Wid(this.pid);
+    port1.onmessage = wkrHandler.bind(port1, this.#wid);
     this.#toChild(
       {
         _t: ParentChildTp.proc,
@@ -68,7 +108,7 @@ export class DenoProcess implements DenoType.Process {
         ppid: self.Deno.pid,
         cwd: opt.cwd ?? self.Deno._cwd_,
         uid: opt.uid ?? self.Deno._uid_,
-        wid,
+        wid: this.#wid,
         sab: this.#sab,
         winSab: self.SAB,
       },
@@ -148,8 +188,12 @@ setTimeout(() => process.exit(), 4000);`,
     }
   }
 
-  kill(signo: DenoType.Signal) {
-    throw new Error("Not implemented");
+  kill(sig: DenoType.Signal) {
+    if (!Object.hasOwn(defaultSigHdls, sig))
+      throw new TypeError(`Unknown signal: ${sig}`);
+
+    if (sig === "SIGCONT") Atomics.notify(self.SAB32, this.#wid);
+    else this.#toChild({ _t: ParentChildTp.kill, sig });
   }
 
   #toChild(msg: Parent2Child, transfer?: Transferable[]) {

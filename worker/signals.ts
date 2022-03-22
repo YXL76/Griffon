@@ -7,6 +7,11 @@ function noop() {
   // noop
 }
 
+function stop() {
+  if (Atomics.wait(self.WIN_SAB32, self.WID, 0) !== "ok")
+    throw new Error("Failed to stop.");
+}
+
 export const defaultSigHdls: Record<Signal, SigHandlers> = {
   /* eslint-disable @typescript-eslint/naming-convention */
   // TermSig
@@ -39,13 +44,13 @@ export const defaultSigHdls: Record<Signal, SigHandlers> = {
 
   // The main thread cannot be stopped or continued.
   // StopSig
-  SIGSTOP: noop,
-  SIGTSTP: noop,
-  SIGTTIN: noop,
-  SIGTTOU: noop,
+  SIGSTOP: stop,
+  SIGTSTP: stop,
+  SIGTTIN: stop,
+  SIGTTOU: stop,
 
   // ContSig
-  SIGCONT: noop,
+  SIGCONT: noop, // Action is taken on the main thread.
   /* eslint-enable @typescript-eslint/naming-convention */
 };
 

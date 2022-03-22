@@ -2,9 +2,12 @@ import type {
   Win2Svc,
   Win2SvcChan,
   Win2SvcMap,
+  Win2Win,
   Wkr2Win,
 } from "@griffon/shared";
-import { WinWkrTp } from "@griffon/shared";
+import { WinWinTp, WinWkrTp, pid2Wid } from "@griffon/shared";
+import { dispatchSignalEvent } from "./signals";
+import { procTree } from "./process";
 
 export class Channel {
   static svc<D extends Win2SvcChan>(
@@ -28,13 +31,31 @@ export function msg2Svc(msg: Win2Svc, transfer?: Transferable[]) {
   else self.SW.postMessage(msg, transfer);
 }
 
-export function wkrHandler(id: number, { data, ports }: MessageEvent<Wkr2Win>) {
+export function wkrHandler(
+  this: MessagePort,
+  wid: number,
+  { data, ports }: MessageEvent<Wkr2Win>
+) {
   switch (data._t) {
     case WinWkrTp.proc:
-      ports[0].onmessage = wkrHandler.bind(undefined, data.wid);
+      ports[0].onmessage = wkrHandler.bind(ports[0], data.wid);
       break;
     case WinWkrTp.pid:
-      self.SAB32[id] = self.NEXT_PID;
-      Atomics.notify(self.SAB32, id);
+      self.SAB32[wid] = procTree.nextPid(this);
+      if (Atomics.notify(self.SAB32, wid) === 0)
+        throw new Error("Atomics.notify failed");
+      break;
+    case WinWkrTp.kill:
+      self.Deno.kill(data.pid, data.sig);
+  }
+}
+
+export function winHandler({ data }: MessageEvent<Win2Win>) {
+  switch (data._t) {
+    case WinWinTp.kill:
+      if (data.pid === self.Deno.pid) dispatchSignalEvent(data.sig);
+      else if (data.sig === "SIGCONT")
+        Atomics.notify(self.SAB32, pid2Wid(data.pid));
+      else procTree.postMessage(data.pid, { _t: WinWkrTp.kill, sig: data.sig });
   }
 }
