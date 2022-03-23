@@ -1,4 +1,4 @@
-import type { ChanWrap, Dict } from ".";
+import type { ChanWrap, Dict } from "..";
 
 export const enum WkrSvcTp {
   /** Placeholder. */

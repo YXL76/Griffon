@@ -1,4 +1,4 @@
-import type { Dict, SignalNoCont } from ".";
+import type { Dict, SignalNoCont } from "..";
 
 export const enum ParentChildTp {
   /** Placeholder. */

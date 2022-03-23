@@ -1,4 +1,4 @@
-import type { ChanWrap, Dict } from ".";
+import type { ChanWrap, Dict } from "..";
 
 /**
  * One-way communication from Window to Service Worker.

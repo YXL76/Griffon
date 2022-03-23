@@ -1,37 +1,50 @@
+export * from "./runtime";
+export * from "./types";
+
+import {
+  AddrInUse,
+  AddrNotAvailable,
+  AlreadyExists,
+  BadResource,
+  BrokenPipe,
+  Busy,
+  ConnectionAborted,
+  ConnectionRefused,
+  ConnectionReset,
+  FsFile,
+  Http,
+  Interrupted,
+  InvalidData,
+  NotConnected,
+  NotFound,
+  NotSupported,
+  PermissionDenied,
+  PermissionStatus,
+  Permissions,
+  SeekMode,
+  TimedOut,
+  UnexpectedEof,
+  WriteZero,
+  stderr,
+  stdin,
+  stdout,
+} from "./runtime";
+import type { DenoClass, DenoDeprecated, DenoFFI, Resource } from "./types";
 import type { Deno as DenoType } from "./lib.deno";
 
-export { DenoType };
+export type { DenoType };
 
 function _notImplemented(): never {
   throw new Error("Not implemented");
 }
 
-class NotFound extends Error {}
-class PermissionDenied extends Error {}
-class ConnectionRefused extends Error {}
-class ConnectionReset extends Error {}
-class ConnectionAborted extends Error {}
-class NotConnected extends Error {}
-class AddrInUse extends Error {}
-class AddrNotAvailable extends Error {}
-class BrokenPipe extends Error {}
-class AlreadyExists extends Error {}
-class InvalidData extends Error {}
-class TimedOut extends Error {}
-class Interrupted extends Error {}
-class WriteZero extends Error {}
-class UnexpectedEof extends Error {}
-class BadResource extends Error {}
-class Http extends Error {}
-class Busy extends Error {}
-class NotSupported extends Error {}
-
+/** {@link https://github.com/denoland/deno/blob/1fb5858009f598ce3f917f9f49c466db81f4d9b0/core/resources.rs#L94} */
 class ResourceTable {
-  #index = new Map<number, unknown>();
+  #index = new Map<number, Resource>();
 
   #nextRid = 0;
 
-  add(resource: unknown) {
+  add(resource: Resource) {
     const rid = this.#nextRid;
     this.#index.set(rid, resource);
     this.#nextRid += 1;
@@ -55,68 +68,13 @@ class ResourceTable {
   close(/* rid: number */) {
     throw new Error("Not implemented");
   }
-}
 
-enum SeekMode {
-  /* eslint-disable @typescript-eslint/naming-convention */ Start = 0,
-  Current = 1,
-  End = 2 /* eslint-enable @typescript-eslint/naming-convention */,
-}
-
-class PermissionStatus
-  extends EventTarget
-  implements DenoType.PermissionStatus
-{
-  onchange = null;
-
-  constructor(public readonly state: DenoType.PermissionState = "denied") {
-    super();
+  print(): DenoType.ResourceMap {
+    const ret: DenoType.ResourceMap = {};
+    this.#index.forEach((val, key) => (ret[key] = val.name));
+    return ret;
   }
 }
-
-const permissionStatuses: Record<DenoType.PermissionName, PermissionStatus> = {
-  env: new PermissionStatus("granted"),
-  ffi: new PermissionStatus(),
-  hrtime: new PermissionStatus("granted"),
-  net: new PermissionStatus(),
-  read: new PermissionStatus("granted"),
-  run: new PermissionStatus("granted"),
-  write: new PermissionStatus("granted"),
-};
-
-class Permissions implements DenoType.Permissions {
-  query(desc: DenoType.PermissionDescriptor): Promise<PermissionStatus> {
-    return Promise.resolve(permissionStatuses[desc.name]);
-  }
-
-  revoke(desc: DenoType.PermissionDescriptor): Promise<PermissionStatus> {
-    return Promise.resolve(permissionStatuses[desc.name]);
-  }
-
-  request(desc: DenoType.PermissionDescriptor): Promise<PermissionStatus> {
-    return Promise.resolve(permissionStatuses[desc.name]);
-  }
-}
-
-type DenoDeprecated =
-  | "copy"
-  | "iter"
-  | "iterSync"
-  | "File"
-  | "Buffer"
-  | "readAll"
-  | "readAllSync"
-  | "writeAll"
-  | "writeAllSync"
-  | "customInspect";
-
-type DenoClass = "FsFile" | "Process" | "DiagnosticCategory" | "HttpClient";
-
-type DenoFFI =
-  | "UnsafePointer"
-  | "UnsafePointerView"
-  | "UnsafeFnPointer"
-  | "dlopen";
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 export const Deno: Omit<
@@ -217,9 +175,12 @@ export const Deno: Omit<
   fdatasync: _notImplemented,
   close: _notImplemented,
 
-  stdin: { rid: 0 } as typeof DenoType.stdin,
-  stdout: { rid: 1 } as typeof DenoType.stdout,
-  stderr: { rid: 2 } as typeof DenoType.stderr,
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  FsFile,
+
+  stdin,
+  stdout,
+  stderr,
 
   isatty: _notImplemented,
 
@@ -261,8 +222,7 @@ export const Deno: Omit<
   truncate: _notImplemented,
 
   metrics: _notImplemented,
-  resources: _notImplemented,
-
+  resources: () => Deno._resTable_.print(),
   watchFs: _notImplemented,
 
   addSignalListener: _notImplemented,
@@ -359,6 +319,6 @@ Object.defineProperty(Deno, "_cwd_", { value: Deno._cwd_, writable: true });
 Object.defineProperty(Deno, "_uid_", { value: Deno._uid_, writable: true });
 Object.defineProperty(Deno, "_env_", { value: Deno._env_, writable: true });
 
-Deno._resTable_.add(Deno.stdin);
-Deno._resTable_.add(Deno.stdout);
-Deno._resTable_.add(Deno.stderr);
+Deno._resTable_.add(stdin);
+Deno._resTable_.add(stdout);
+Deno._resTable_.add(stderr);

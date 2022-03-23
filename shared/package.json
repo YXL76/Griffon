@@ -1,4 +1,8 @@
 {
   "name": "@griffon/shared",
-  "private": true
+  "private": true,
+  "dependencies": {
+    "@griffon/deno-std": "workspace:*",
+    "idb": "7.0.1"
+  }
 }

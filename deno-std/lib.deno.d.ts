@@ -496,7 +496,7 @@ export namespace Deno {
   export function cwd(): string;
 
   /**
-   * Synchronously creates `newpath` as a hard link to `oldpath`.
+   * Synchronously creates `newpath` as a    link to `oldpath`.
    *
    * ```ts
    * Deno.linkSync("old/name", "new/name");

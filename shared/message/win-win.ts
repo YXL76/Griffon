@@ -1,4 +1,4 @@
-import type { Dict, Signal } from ".";
+import type { Dict, Signal } from "..";
 
 export const enum WinWinTp {
   /** Placeholder. */
