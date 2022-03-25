@@ -1,3 +1,5 @@
+// Copyright 2018-2022 the Deno authors. All rights reserved. MIT license.
+
 import { RESC_TABLE, notImplemented } from "..";
 import type { DenoNamespace } from "..";
 import type { FsFile } from ".";

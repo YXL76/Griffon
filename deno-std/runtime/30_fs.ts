@@ -1,3 +1,5 @@
+// Copyright 2018-2022 the Deno authors. All rights reserved. MIT license.
+
 import { RESC_TABLE, notImplemented } from "..";
 
 export function fstatSync(rid: number) {

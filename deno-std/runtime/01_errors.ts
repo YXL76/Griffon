@@ -1,3 +1,5 @@
+// Copyright 2018-2022 the Deno authors. All rights reserved. MIT license.
+
 import { errorMap } from "../deno_std/node/internal_binding/uv";
 import { os } from "../deno_std/node/internal_binding/constants";
 
