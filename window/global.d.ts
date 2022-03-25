@@ -1,9 +1,9 @@
-import type { Deno as DenoType } from "@griffon/deno-std";
+import type { DenoType } from "@griffon/deno-std";
 
 /* eslint-disable no-var */
 declare global {
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  var Deno: typeof DenoType;
+  var Deno: DenoType;
   var SW: ServiceWorker;
   var SWC: ServiceWorkerContainer;
   var SWR: ServiceWorkerRegistration;

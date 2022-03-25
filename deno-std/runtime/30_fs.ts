@@ -1,13 +1,35 @@
-import { Deno, FileResource } from "..";
+import { RESC_TABLE, notImplemented } from "..";
 
 export function fstatSync(rid: number) {
-  const res = Deno._resTable_.get(rid);
-  if (!(res instanceof FileResource)) {
-    throw new Error("Cannot stat this type of resource");
-  }
-  return res.info;
+  const res = RESC_TABLE.getOrThrow(rid);
+  if (typeof res.fstatSync !== "function") notImplemented();
+
+  return {
+    atime: null,
+    dev: null,
+    mode: null,
+    uid: null,
+    gid: null,
+    rdev: null,
+    blksize: null,
+    blocks: null,
+    ...res.fstatSync(),
+  };
 }
 
 export async function fstat(rid: number) {
-  return Promise.resolve(fstatSync(rid));
+  const res = RESC_TABLE.getOrThrow(rid);
+  if (typeof res.fstat !== "function") notImplemented();
+
+  return {
+    atime: null,
+    dev: null,
+    mode: null,
+    uid: null,
+    gid: null,
+    rdev: null,
+    blksize: null,
+    blocks: null,
+    ...(await res.fstat()),
+  };
 }

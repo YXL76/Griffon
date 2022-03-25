@@ -30,11 +30,11 @@ import {
   stdout,
 } from "./runtime";
 import type { DenoClass, DenoDeprecated, DenoFFI, Resource } from "./types";
-import type { Deno as DenoType } from "./lib.deno";
+import type { Deno as DenoNamespace } from "./lib.deno";
 
-export type { DenoType };
+export type { DenoNamespace };
 
-function _notImplemented(): never {
+export function notImplemented(): never {
   throw new Error("Not implemented");
 }
 
@@ -44,9 +44,9 @@ class ResourceTable {
 
   #nextRid = 0;
 
-  add(resource: Resource) {
+  add(resc: Resource) {
     const rid = this.#nextRid;
-    this.#index.set(rid, resource);
+    this.#index.set(rid, resc);
     this.#nextRid += 1;
     return rid;
   }
@@ -59,35 +59,45 @@ class ResourceTable {
     return this.#index.get(rid);
   }
 
+  getOrThrow(rid: number) {
+    const resc = this.#index.get(rid);
+    if (!resc) throw new NotFound(`rid: ${rid}`);
+    return resc;
+  }
+
   take(rid: number) {
-    const resource = this.get(rid);
-    if (resource) this.#index.delete(rid);
-    return resource;
+    const resc = this.get(rid);
+    if (resc) this.#index.delete(rid);
+    return resc;
   }
 
-  close(/* rid: number */) {
-    throw new Error("Not implemented");
+  close(rid: number) {
+    const resc = this.take(rid);
+    resc?.close();
   }
 
-  print(): DenoType.ResourceMap {
-    const ret: DenoType.ResourceMap = {};
+  print(): DenoNamespace.ResourceMap {
+    const ret: DenoNamespace.ResourceMap = {};
     this.#index.forEach((val, key) => (ret[key] = val.name));
     return ret;
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/naming-convention
-export const Deno: Omit<
-  typeof DenoType,
-  DenoDeprecated | DenoClass | DenoFFI
-> & {
-  _resTable_: ResourceTable;
-  _cwd_: string;
-  _uid_: number;
-  _env_: Map<string, string>;
-} = {
-  _resTable_: new ResourceTable(),
+export const RESC_TABLE = new ResourceTable();
 
+export const PCB: {
+  cwd: string;
+  uid: number;
+  env: Map<string, string>;
+} = { cwd: "/", uid: NaN, env: new Map() };
+
+export type DenoType = Omit<
+  typeof DenoNamespace,
+  DenoDeprecated | DenoClass | DenoFFI
+>;
+
+// eslint-disable-next-line @typescript-eslint/naming-convention
+export const Deno: DenoType = {
   errors: /* eslint-disable @typescript-eslint/naming-convention */ {
     NotFound,
     PermissionDenied,
@@ -138,42 +148,40 @@ export const Deno: Omit<
 
   noColor: false,
 
-  test: _notImplemented,
-  exit: _notImplemented,
+  test: notImplemented,
+  exit: notImplemented,
 
-  _env_: new Map(),
   env: {
-    get: (key: string) => Deno._env_.get(key),
-    set: (key: string, value: string) => Deno._env_.set(key, value),
-    delete: (key: string) => Deno._env_.delete(key),
-    toObject: () => Object.fromEntries(Deno._env_),
+    get: (key) => PCB.env.get(key),
+    set: (key, value) => PCB.env.set(key, value),
+    delete: (key) => PCB.env.delete(key),
+    toObject: () => Object.fromEntries(PCB.env),
   },
 
   execPath: () => "/usr/bin/deno",
-  chdir: _notImplemented,
-  _cwd_: "/",
-  cwd: () => Deno._cwd_,
-  linkSync: _notImplemented,
-  link: _notImplemented,
+  chdir: notImplemented,
+  cwd: () => PCB.cwd,
+  linkSync: notImplemented,
+  link: notImplemented,
 
   // eslint-disable-next-line @typescript-eslint/naming-convention
   SeekMode,
 
-  openSync: _notImplemented,
-  open: _notImplemented,
-  createSync: _notImplemented,
-  create: _notImplemented,
-  readSync: _notImplemented,
-  read: _notImplemented,
-  writeSync: _notImplemented,
-  write: _notImplemented,
-  seekSync: _notImplemented,
-  seek: _notImplemented,
-  fsyncSync: _notImplemented,
-  fsync: _notImplemented,
-  fdatasyncSync: _notImplemented,
-  fdatasync: _notImplemented,
-  close: _notImplemented,
+  openSync: notImplemented,
+  open: notImplemented,
+  createSync: notImplemented,
+  create: notImplemented,
+  readSync: notImplemented,
+  read: notImplemented,
+  writeSync: notImplemented,
+  write: notImplemented,
+  seekSync: notImplemented,
+  seek: notImplemented,
+  fsyncSync: notImplemented,
+  fsync: notImplemented,
+  fdatasyncSync: notImplemented,
+  fdatasync: notImplemented,
+  close: (rid) => RESC_TABLE.close(rid),
 
   // eslint-disable-next-line @typescript-eslint/naming-convention
   FsFile,
@@ -182,53 +190,53 @@ export const Deno: Omit<
   stdout,
   stderr,
 
-  isatty: _notImplemented,
+  isatty: notImplemented,
 
-  mkdirSync: _notImplemented,
-  mkdir: _notImplemented,
-  makeTempDirSync: _notImplemented,
-  makeTempDir: _notImplemented,
-  makeTempFileSync: _notImplemented,
-  makeTempFile: _notImplemented,
-  chmodSync: _notImplemented,
-  chmod: _notImplemented,
-  chownSync: _notImplemented,
-  chown: _notImplemented,
-  removeSync: _notImplemented,
-  remove: _notImplemented,
-  renameSync: _notImplemented,
-  rename: _notImplemented,
-  readTextFileSync: _notImplemented,
-  readTextFile: _notImplemented,
-  readFileSync: _notImplemented,
-  readFile: _notImplemented,
-  realPathSync: _notImplemented,
-  realPath: _notImplemented,
-  readDirSync: _notImplemented,
-  readDir: _notImplemented,
-  copyFileSync: _notImplemented,
-  copyFile: _notImplemented,
-  readLinkSync: _notImplemented,
-  readLink: _notImplemented,
-  lstat: _notImplemented,
-  lstatSync: _notImplemented,
-  stat: _notImplemented,
-  statSync: _notImplemented,
-  writeFileSync: _notImplemented,
-  writeFile: _notImplemented,
-  writeTextFileSync: _notImplemented,
-  writeTextFile: _notImplemented,
-  truncateSync: _notImplemented,
-  truncate: _notImplemented,
+  mkdirSync: notImplemented,
+  mkdir: notImplemented,
+  makeTempDirSync: notImplemented,
+  makeTempDir: notImplemented,
+  makeTempFileSync: notImplemented,
+  makeTempFile: notImplemented,
+  chmodSync: notImplemented,
+  chmod: notImplemented,
+  chownSync: notImplemented,
+  chown: notImplemented,
+  removeSync: notImplemented,
+  remove: notImplemented,
+  renameSync: notImplemented,
+  rename: notImplemented,
+  readTextFileSync: notImplemented,
+  readTextFile: notImplemented,
+  readFileSync: notImplemented,
+  readFile: notImplemented,
+  realPathSync: notImplemented,
+  realPath: notImplemented,
+  readDirSync: notImplemented,
+  readDir: notImplemented,
+  copyFileSync: notImplemented,
+  copyFile: notImplemented,
+  readLinkSync: notImplemented,
+  readLink: notImplemented,
+  lstat: notImplemented,
+  lstatSync: notImplemented,
+  stat: notImplemented,
+  statSync: notImplemented,
+  writeFileSync: notImplemented,
+  writeFile: notImplemented,
+  writeTextFileSync: notImplemented,
+  writeTextFile: notImplemented,
+  truncateSync: notImplemented,
+  truncate: notImplemented,
 
-  metrics: _notImplemented,
-  resources: () => Deno._resTable_.print(),
-  watchFs: _notImplemented,
+  metrics: notImplemented,
+  resources: () => RESC_TABLE.print(),
+  watchFs: notImplemented,
 
-  addSignalListener: _notImplemented,
-  removeSignalListener: _notImplemented,
-  run: _notImplemented,
-  inspect: _notImplemented,
+  addSignalListener: notImplemented,
+  removeSignalListener: notImplemented,
+  run: notImplemented,
+  inspect: notImplemented,
 
   // eslint-disable-next-line @typescript-eslint/naming-convention
   PermissionStatus,
@@ -254,29 +262,29 @@ export const Deno: Omit<
 
   mainModule: "",
 
-  symlinkSync: _notImplemented,
-  symlink: _notImplemented,
-  ftruncateSync: _notImplemented,
-  ftruncate: _notImplemented,
-  fstatSync: _notImplemented,
-  fstat: _notImplemented,
-  serveHttp: _notImplemented,
-  upgradeWebSocket: _notImplemented,
-  kill: _notImplemented,
-  resolveDns: _notImplemented,
+  symlinkSync: notImplemented,
+  symlink: notImplemented,
+  ftruncateSync: notImplemented,
+  ftruncate: notImplemented,
+  fstatSync: notImplemented,
+  fstat: notImplemented,
+  serveHttp: notImplemented,
+  upgradeWebSocket: notImplemented,
+  kill: notImplemented,
+  resolveDns: notImplemented,
 
-  listen: _notImplemented,
-  listenTls: _notImplemented,
-  connect: _notImplemented,
-  connectTls: _notImplemented,
-  startTls: _notImplemented,
-  shutdown: _notImplemented,
+  listen: notImplemented,
+  listenTls: notImplemented,
+  connect: notImplemented,
+  connectTls: notImplemented,
+  startTls: notImplemented,
+  shutdown: notImplemented,
 
   // Unstable
-  bench: _notImplemented,
-  umask: _notImplemented,
-  consoleSize: _notImplemented,
-  loadavg: _notImplemented,
+  bench: notImplemented,
+  umask: notImplemented,
+  consoleSize: notImplemented,
+  loadavg: notImplemented,
   osRelease: () => "",
   systemMemoryInfo: () => {
     const { rss, heapTotal, heapUsed } = Deno.memoryUsage();
@@ -290,35 +298,29 @@ export const Deno: Omit<
       swapFree: 0,
     };
   },
-  networkInterfaces: _notImplemented,
-  _uid_: NaN,
-  getUid: () => Deno._uid_,
-  formatDiagnostics: _notImplemented,
-  emit: _notImplemented,
-  applySourceMap: _notImplemented,
-  setRaw: _notImplemented,
-  utimeSync: _notImplemented,
-  utime: _notImplemented,
-  hostname: _notImplemented,
-  createHttpClient: _notImplemented,
-  futimeSync: _notImplemented,
-  futime: _notImplemented,
-  sleepSync: _notImplemented,
-  listenDatagram: _notImplemented,
-  flock: _notImplemented,
-  flockSync: _notImplemented,
-  funlock: _notImplemented,
-  funlockSync: _notImplemented,
-  refTimer: _notImplemented,
-  unrefTimer: _notImplemented,
-  upgradeHttp: _notImplemented,
+  networkInterfaces: notImplemented,
+  getUid: () => PCB.uid,
+  formatDiagnostics: notImplemented,
+  emit: notImplemented,
+  applySourceMap: notImplemented,
+  setRaw: notImplemented,
+  utimeSync: notImplemented,
+  utime: notImplemented,
+  hostname: notImplemented,
+  createHttpClient: notImplemented,
+  futimeSync: notImplemented,
+  futime: notImplemented,
+  sleepSync: notImplemented,
+  listenDatagram: notImplemented,
+  flock: notImplemented,
+  flockSync: notImplemented,
+  funlock: notImplemented,
+  funlockSync: notImplemented,
+  refTimer: notImplemented,
+  unrefTimer: notImplemented,
+  upgradeHttp: notImplemented,
 };
 
-Object.defineProperty(Deno, "_resTable_", { value: Deno._resTable_ });
-Object.defineProperty(Deno, "_cwd_", { value: Deno._cwd_, writable: true });
-Object.defineProperty(Deno, "_uid_", { value: Deno._uid_, writable: true });
-Object.defineProperty(Deno, "_env_", { value: Deno._env_, writable: true });
-
-Deno._resTable_.add(stdin);
-Deno._resTable_.add(stdout);
-Deno._resTable_.add(stderr);
+RESC_TABLE.add(stdin);
+RESC_TABLE.add(stdout);
+RESC_TABLE.add(stderr);

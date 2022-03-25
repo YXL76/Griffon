@@ -1,4 +1,4 @@
-import type { DenoType } from ".";
+import type { DenoNamespace, DenoType, SeekMode } from ".";
 
 export type DenoFsMethodsSync =
   | "linkSync"
@@ -43,7 +43,6 @@ export type DenoFsMethodsAsync =
   | "mkdir"
   | "makeTempDir"
   | "makeTempFile"
-  | "chmodSync"
   | "chmod"
   | "chown"
   | "remove"
@@ -62,6 +61,10 @@ export type DenoFsMethodsAsync =
   | "symlink"
   | "ftruncate"
   | "fstat";
+
+type DenoFsMethods = DenoFsMethodsSync | DenoFsMethodsAsync;
+
+export type FileSystem = Partial<Pick<DenoType, DenoFsMethods>>;
 
 export type DenoDeprecated =
   | "copy"
@@ -85,9 +88,9 @@ export type DenoFFI =
 
 export type FileInfo = {
   [K in keyof Omit<
-    DenoType.FileInfo,
+    DenoNamespace.FileInfo,
     "atime" | "dev" | "mode" | "uid" | "gid" | "rdev" | "blksize" | "blocks"
-  >]: NonNullable<DenoType.FileInfo[K]>;
+  >]: NonNullable<DenoNamespace.FileInfo[K]>;
 };
 
 /**
@@ -99,14 +102,25 @@ export type FileInfo = {
 export interface Resource {
   name: string;
   close(): void;
+  readSync?(buffer: Uint8Array): number | null;
+  read?(buffer: Uint8Array): Promise<number | null>;
+  write?(buffer: Uint8Array): Promise<number>;
+  seekSync?(offset: number, whence: SeekMode): number;
+  seek?(offset: number, whence: SeekMode): Promise<number>;
+  fstatSync?(): FileInfo;
+  fstat?(): Promise<FileInfo>;
 }
 
-export abstract class FileResource implements Resource {
-  abstract info: FileInfo;
+/**
+ * {@link https://github.com/denoland/deno/blob/1fb5858009f598ce3f917f9f49c466db81f4d9b0/runtime/ops/io.rs#L229}
+ */
+export interface FileResource extends Resource {
+  name: "fsFile";
+}
 
-  get name() {
-    return "fsFile";
-  }
-
-  abstract close(): void;
+/**
+ * {@link https://github.com/denoland/deno/blob/1fb5858009f598ce3f917f9f49c466db81f4d9b0/runtime/ops/process.rs#L79}
+ */
+export interface ChildResource extends Resource {
+  name: "child";
 }

@@ -1,8 +1,8 @@
 import { CONST, ParentChildTp, pid2Wid } from "@griffon/shared";
 import type { Child2Parent, Parent2Child, Win2Wkr } from "@griffon/shared";
-import type { DenoType } from "@griffon/deno-std";
+import type { ChildResource, DenoNamespace } from "@griffon/deno-std";
+import { PCB, RESC_TABLE, pathFromURL } from "@griffon/deno-std";
 import { defaultSigHdls } from "./signals";
-import { fromFileUrl } from "@griffon/deno-std/deno_std/path/posix";
 import { wkrHandler } from "./message";
 
 export interface ProcessTree {
@@ -42,17 +42,17 @@ class ProcTree {
 
 export const procTree = new ProcTree();
 
-export class DenoProcess<T extends DenoType.RunOptions = DenoType.RunOptions>
-  implements DenoType.Process<T>
+export class Process<
+  T extends DenoNamespace.RunOptions = DenoNamespace.RunOptions
+> implements DenoNamespace.Process<T>, ChildResource
 {
   #worker?: Worker;
 
-  /**
-   * Resource ID.
-   */
-  #rid: number;
+  readonly #rid: number;
 
-  #wid: number;
+  readonly #wid: number;
+
+  readonly #pid: number;
 
   #sig?: number;
 
@@ -62,7 +62,7 @@ export class DenoProcess<T extends DenoType.RunOptions = DenoType.RunOptions>
 
   #stderrOutput = new Uint8Array();
 
-  readonly #statusQueue: ((value: DenoType.ProcessStatus) => void)[] = [];
+  readonly #statusQueue: ((value: DenoNamespace.ProcessStatus) => void)[] = [];
 
   readonly #outputQueue: ((value: Uint8Array) => void)[] = [];
 
@@ -70,28 +70,24 @@ export class DenoProcess<T extends DenoType.RunOptions = DenoType.RunOptions>
 
   readonly #sab = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT);
 
-  readonly rid = NaN;
+  readonly stdin = null as DenoNamespace.Process<T>["stdin"];
 
-  readonly pid: number;
+  readonly stdout = null as DenoNamespace.Process<T>["stdout"];
 
-  readonly stdin = null as DenoType.Process<T>["stdin"];
-
-  readonly stdout = null as DenoType.Process<T>["stdout"];
-
-  readonly stderr = null as DenoType.Process<T>["stderr"];
+  readonly stderr = null as DenoNamespace.Process<T>["stderr"];
 
   constructor({
     cmd,
-    cwd = self.Deno._cwd_,
+    cwd = PCB.cwd,
     clearEnv = false,
     env = {},
     // gid = undefined,
     // stdout = "inherit",
     // stderr = "inherit",
     // stdin = "inherit",
-    uid = self.Deno._uid_,
+    uid = PCB.uid,
   }: T & { clearEnv?: boolean; gid?: number; uid?: number }) {
-    if (cmd[0] != null) cmd[0] = fromFileUrl(cmd[0]);
+    if (cmd[0] != null) cmd[0] = pathFromURL(cmd[0]);
 
     if (cmd[0] !== "deno" && cmd[0] !== "node")
       throw new Error("Invalid command");
@@ -116,13 +112,13 @@ export class DenoProcess<T extends DenoType.RunOptions = DenoType.RunOptions>
 
     // Make the child process can communicate with the main thread.
     const { port1, port2 } = new MessageChannel();
-    this.pid = procTree.nextPid(port1);
-    this.#wid = pid2Wid(this.pid);
+    this.#pid = procTree.nextPid(port1);
+    this.#wid = pid2Wid(this.#pid);
     port1.onmessage = wkrHandler.bind(port1, this.#wid);
     this.#toChild(
       {
         _t: ParentChildTp.proc,
-        pid: this.pid,
+        pid: this.#pid,
         ppid: self.Deno.pid,
         cwd,
         uid,
@@ -134,7 +130,7 @@ export class DenoProcess<T extends DenoType.RunOptions = DenoType.RunOptions>
       [port2]
     );
 
-    this.#rid = self.Deno._resTable_.add(this);
+    this.#rid = RESC_TABLE.add(this);
 
     // Temporary
     this.#toChild({
@@ -161,7 +157,19 @@ setTimeout(() => process.exit(), 4000);`,
     });
   }
 
-  status(): Promise<DenoType.ProcessStatus> {
+  get name() {
+    return "child" as const;
+  }
+
+  get rid() {
+    return this.#rid;
+  }
+
+  get pid() {
+    return this.#pid;
+  }
+
+  status(): Promise<DenoNamespace.ProcessStatus> {
     if (!this.#worker) return Promise.resolve(this.#runStatus());
 
     return new Promise((resolve) => this.#statusQueue.push(resolve));
@@ -209,7 +217,7 @@ setTimeout(() => process.exit(), 4000);`,
     }
   }
 
-  kill(sig: DenoType.Signal) {
+  kill(sig: DenoNamespace.Signal) {
     if (!Object.hasOwn(defaultSigHdls, sig))
       throw new TypeError(`Unknown signal: ${sig}`);
 
@@ -217,7 +225,7 @@ setTimeout(() => process.exit(), 4000);`,
     else this.#toChild({ _t: ParentChildTp.kill, sig });
   }
 
-  #runStatus(): DenoType.ProcessStatus {
+  #runStatus(): DenoNamespace.ProcessStatus {
     const signal = this.#sig;
     if (signal) return { success: false, code: 128 + signal, signal };
     if (this.#code === 0) return { success: true, code: 0 };

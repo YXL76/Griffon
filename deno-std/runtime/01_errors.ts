@@ -11,7 +11,7 @@ export class NotFound extends Error {
   constructor(msg = "", options?: ErrorOptions, no: number = errno.ENOENT) {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const [, desc] = errorMap.get(-no) ?? fallback;
-    super(`${desc} (os error ${no}): ${msg}`, options);
+    super(`${desc} (os error ${no}), ${msg}`, options);
   }
 }
 
@@ -21,7 +21,7 @@ export class PermissionDenied extends Error {
   constructor(msg = "", options?: ErrorOptions, no: number = errno.EACCES) {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const [, desc] = errorMap.get(-no) ?? fallback;
-    super(`${desc} (os error ${no}): ${msg}`, options);
+    super(`${desc} (os error ${no}), ${msg}`, options);
   }
 }
 
@@ -35,7 +35,7 @@ export class ConnectionRefused extends Error {
   ) {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const [, desc] = errorMap.get(-no) ?? fallback;
-    super(`${desc} (os error ${no}): ${msg}`, options);
+    super(`${desc} (os error ${no}), ${msg}`, options);
   }
 }
 
@@ -45,7 +45,7 @@ export class ConnectionReset extends Error {
   constructor(msg = "", options?: ErrorOptions, no: number = errno.ECONNRESET) {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const [, desc] = errorMap.get(-no) ?? fallback;
-    super(`${desc} (os error ${no}): ${msg}`, options);
+    super(`${desc} (os error ${no}), ${msg}`, options);
   }
 }
 
@@ -59,7 +59,7 @@ export class ConnectionAborted extends Error {
   ) {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const [, desc] = errorMap.get(-no) ?? fallback;
-    super(`${desc} (os error ${no}): ${msg}`, options);
+    super(`${desc} (os error ${no}), ${msg}`, options);
   }
 }
 
@@ -69,7 +69,7 @@ export class NotConnected extends Error {
   constructor(msg = "", options?: ErrorOptions, no: number = errno.ENOTCONN) {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const [, desc] = errorMap.get(-no) ?? fallback;
-    super(`${desc} (os error ${no}): ${msg}`, options);
+    super(`${desc} (os error ${no}), ${msg}`, options);
   }
 }
 
@@ -79,7 +79,7 @@ export class AddrInUse extends Error {
   constructor(msg = "", options?: ErrorOptions, no: number = errno.EADDRINUSE) {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const [, desc] = errorMap.get(-no) ?? fallback;
-    super(`${desc} (os error ${no}): ${msg}`, options);
+    super(`${desc} (os error ${no}), ${msg}`, options);
   }
 }
 
@@ -93,7 +93,7 @@ export class AddrNotAvailable extends Error {
   ) {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const [, desc] = errorMap.get(-no) ?? fallback;
-    super(`${desc} (os error ${no}): ${msg}`, options);
+    super(`${desc} (os error ${no}), ${msg}`, options);
   }
 }
 
@@ -103,7 +103,7 @@ export class BrokenPipe extends Error {
   constructor(msg = "", options?: ErrorOptions, no: number = errno.EPIPE) {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const [, desc] = errorMap.get(-no) ?? fallback;
-    super(`${desc} (os error ${no}): ${msg}`, options);
+    super(`${desc} (os error ${no}), ${msg}`, options);
   }
 }
 
@@ -113,7 +113,7 @@ export class AlreadyExists extends Error {
   constructor(msg = "", options?: ErrorOptions, no: number = errno.EEXIST) {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const [, desc] = errorMap.get(-no) ?? fallback;
-    super(`${desc} (os error ${no}): ${msg}`, options);
+    super(`${desc} (os error ${no}), ${msg}`, options);
   }
 }
 
@@ -127,7 +127,7 @@ export class TimedOut extends Error {
   constructor(msg = "", options?: ErrorOptions, no: number = errno.ETIMEDOUT) {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const [, desc] = errorMap.get(-no) ?? fallback;
-    super(`${desc} (os error ${no}): ${msg}`, options);
+    super(`${desc} (os error ${no}), ${msg}`, options);
   }
 }
 
@@ -137,7 +137,7 @@ export class Interrupted extends Error {
   constructor(msg = "", options?: ErrorOptions, no: number = errno.EINTR) {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const [, desc] = errorMap.get(-no) ?? fallback;
-    super(`${desc} (os error ${no}): ${msg}`, options);
+    super(`${desc} (os error ${no}), ${msg}`, options);
   }
 }
 
@@ -163,7 +163,7 @@ export class Busy extends Error {
   constructor(msg = "", options?: ErrorOptions, no: number = errno.EBUSY) {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const [, desc] = errorMap.get(-no) ?? fallback;
-    super(`${desc} (os error ${no}): ${msg}`, options);
+    super(`${desc} (os error ${no}), ${msg}`, options);
   }
 }
 

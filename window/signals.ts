@@ -1,4 +1,4 @@
-import type { DenoType } from "@griffon/deno-std";
+import type { DenoNamespace } from "@griffon/deno-std";
 import type { Signal } from "@griffon/shared";
 
 export type SigHandlers = () => void | Array<() => void>;
@@ -62,7 +62,7 @@ export function dispatchSignalEvent(signal: Signal) {
 }
 
 export function addSignalListener(
-  signal: DenoType.Signal,
+  signal: DenoNamespace.Signal,
   handler: () => void
 ) {
   if (!Object.hasOwn(sigHdls, signal))
@@ -74,7 +74,7 @@ export function addSignalListener(
 }
 
 export function removeSignalListener(
-  signal: DenoType.Signal,
+  signal: DenoNamespace.Signal,
   handler: () => void
 ) {
   if (!Object.hasOwn(sigHdls, signal))

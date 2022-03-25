@@ -1,4 +1,4 @@
-import type { DenoType } from "@griffon/deno-std";
+import type { DenoNamespace } from "@griffon/deno-std";
 import { ParentChildTp } from "@griffon/shared";
 import type { Signal } from "@griffon/shared";
 import { msg2Parent } from "./message";
@@ -74,7 +74,7 @@ export function dispatchSignalEvent(signal: Signal) {
 }
 
 export function addSignalListener(
-  signal: DenoType.Signal,
+  signal: DenoNamespace.Signal,
   handler: () => void
 ) {
   if (!Object.hasOwn(sigHdls, signal))
@@ -86,7 +86,7 @@ export function addSignalListener(
 }
 
 export function removeSignalListener(
-  signal: DenoType.Signal,
+  signal: DenoNamespace.Signal,
   handler: () => void
 ) {
   if (!Object.hasOwn(sigHdls, signal))

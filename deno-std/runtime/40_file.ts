@@ -1,5 +1,6 @@
-import type { DenoType, Resource } from "..";
-import { fstat, fstatSync } from ".";
+import type { DenoNamespace, Resource } from "..";
+import { RESC_TABLE, notImplemented } from "..";
+import { fstat, fstatSync, read, readSync, write } from ".";
 import type { SeekMode } from ".";
 
 export class FsFile {
@@ -18,7 +19,7 @@ export class FsFile {
   }
 
   get readable(): ReadableStream<Uint8Array> {
-    throw new Error("Not implemented.");
+    return notImplemented();
     /* if (this.#readable === undefined) {
       this.#readable = readableStreamForRid(this.rid);
     }
@@ -26,7 +27,7 @@ export class FsFile {
   }
 
   get writable(): WritableStream<Uint8Array> {
-    throw new Error("Not implemented.");
+    return notImplemented();
     /* if (this.#writable === undefined) {
       this.#writable = writableStreamForRid(this.rid);
     }
@@ -34,76 +35,56 @@ export class FsFile {
   }
 
   write(p: Uint8Array): Promise<number> {
-    throw new Error("Not implemented.");
-    // return write(this.rid, p);
+    return write(this.#rid, p);
   }
 
   writeSync(p: Uint8Array): number {
-    throw new Error("Not implemented.");
+    notImplemented();
     // return writeSync(this.rid, p);
   }
 
   truncate(len?: number): Promise<void> {
-    throw new Error("Not implemented.");
+    notImplemented();
     // return ftruncate(this.rid, len);
   }
 
   truncateSync(len?: number) {
-    throw new Error("Not implemented.");
+    notImplemented();
     // return ftruncateSync(this.rid, len);
   }
 
   read(p: Uint8Array): Promise<number | null> {
-    throw new Error("Not implemented.");
-    // return read(this.rid, p);
+    return read(this.#rid, p);
   }
 
   readSync(p: Uint8Array): number | null {
-    throw new Error("Not implemented.");
-    // return readSync(this.rid, p);
+    return readSync(this.#rid, p);
   }
 
   seek(offset: number, whence: SeekMode): Promise<number> {
-    throw new Error("Not implemented.");
-    // return seek(this.rid, offset, whence);
+    const resc = RESC_TABLE.getOrThrow(this.#rid);
+    if (!(typeof resc.seek === "function")) notImplemented();
+
+    return resc.seek(offset, whence);
   }
 
   seekSync(offset: number, whence: SeekMode): number {
-    throw new Error("Not implemented.");
-    // return seekSync(this.rid, offset, whence);
+    const resc = RESC_TABLE.getOrThrow(this.#rid);
+    if (!(typeof resc.seekSync === "function")) notImplemented();
+
+    return resc.seekSync(offset, whence);
   }
 
-  async stat(): Promise<DenoType.FileInfo> {
-    return {
-      atime: null,
-      dev: null,
-      mode: null,
-      uid: null,
-      gid: null,
-      rdev: null,
-      blksize: null,
-      blocks: null,
-      ...(await fstat(this.rid)),
-    };
+  stat() {
+    return fstat(this.#rid);
   }
 
-  statSync(): DenoType.FileInfo {
-    return {
-      atime: null,
-      dev: null,
-      mode: null,
-      uid: null,
-      gid: null,
-      rdev: null,
-      blksize: null,
-      blocks: null,
-      ...fstatSync(this.rid),
-    };
+  statSync() {
+    return fstatSync(this.#rid);
   }
 
   close() {
-    throw new Error("Not implemented.");
-    // core.close(this.rid);
+    RESC_TABLE.close(this.#rid);
   }
 }
 
@@ -119,7 +100,7 @@ class Stdin implements Resource {
   }
 
   get readable(): ReadableStream<Uint8Array> {
-    throw new Error("Not implemented.");
+    return notImplemented();
     /* if (this.#readable === undefined) {
       this.#readable = readableStreamForRid(this.rid);
     }
@@ -127,17 +108,17 @@ class Stdin implements Resource {
   }
 
   read(p: Uint8Array): Promise<number | null> {
-    throw new Error("Not implemented.");
+    notImplemented();
     // return read(this.rid, p);
   }
 
   readSync(p: Uint8Array): number | null {
-    throw new Error("Not implemented.");
+    notImplemented();
     // return readSync(this.rid, p);
   }
 
   close() {
-    throw new Error("Not implemented.");
+    notImplemented();
     // core.close(this.rid);
   }
 }
@@ -154,7 +135,7 @@ class Stdout implements Resource {
   }
 
   get writable(): WritableStream<Uint8Array> {
-    throw new Error("Not implemented.");
+    return notImplemented();
     /* if (this.#writable === undefined) {
       this.#writable = writableStreamForRid(this.rid);
     }
@@ -162,17 +143,17 @@ class Stdout implements Resource {
   }
 
   write(p: Uint8Array): Promise<number> {
-    throw new Error("Not implemented.");
+    notImplemented();
     // return write(this.rid, p);
   }
 
   writeSync(p: Uint8Array): number {
-    throw new Error("Not implemented.");
+    notImplemented();
     // return writeSync(this.rid, p);
   }
 
   close() {
-    throw new Error("Not implemented.");
+    notImplemented();
     // core.close(this.rid);
   }
 }
@@ -189,7 +170,7 @@ class Stderr implements Resource {
   }
 
   get writable(): WritableStream<Uint8Array> {
-    throw new Error("Not implemented.");
+    return notImplemented();
     /* if (this.#writable === undefined) {
       this.#writable = writableStreamForRid(this.rid);
     }
@@ -197,17 +178,17 @@ class Stderr implements Resource {
   }
 
   write(p: Uint8Array): Promise<number> {
-    throw new Error("Not implemented.");
+    notImplemented();
     // return write(this.rid, p);
   }
 
   writeSync(p: Uint8Array): number {
-    throw new Error("Not implemented.");
+    notImplemented();
     // return writeSync(this.rid, p);
   }
 
   close() {
-    throw new Error("Not implemented.");
+    notImplemented();
     // core.close(this.rid);
   }
 }
@@ -216,7 +197,7 @@ export const stdin = new Stdin();
 export const stdout = new Stdout();
 export const stderr = new Stderr();
 
-export function checkOpenOptions(options: DenoType.OpenOptions) {
+export function checkOpenOptions(options: DenoNamespace.OpenOptions) {
   if (!Object.values(options).includes(true)) {
     throw new Error("OpenOptions requires at least one option to be true");
   }

@@ -1,17 +1,20 @@
-import type { DenoType } from "..";
+import type { DenoNamespace } from "..";
 
 export class PermissionStatus
   extends EventTarget
-  implements DenoType.PermissionStatus
+  implements DenoNamespace.PermissionStatus
 {
   onchange = null;
 
-  constructor(public readonly state: DenoType.PermissionState = "denied") {
+  constructor(public readonly state: DenoNamespace.PermissionState = "denied") {
     super();
   }
 }
 
-const permissionStatuses: Record<DenoType.PermissionName, PermissionStatus> = {
+const permissionStatuses: Record<
+  DenoNamespace.PermissionName,
+  PermissionStatus
+> = {
   env: new PermissionStatus("granted"),
   ffi: new PermissionStatus(),
   hrtime: new PermissionStatus("granted"),
@@ -21,16 +24,16 @@ const permissionStatuses: Record<DenoType.PermissionName, PermissionStatus> = {
   write: new PermissionStatus("granted"),
 };
 
-export class Permissions implements DenoType.Permissions {
-  query(desc: DenoType.PermissionDescriptor): Promise<PermissionStatus> {
+export class Permissions implements DenoNamespace.Permissions {
+  query(desc: DenoNamespace.PermissionDescriptor): Promise<PermissionStatus> {
     return Promise.resolve(permissionStatuses[desc.name]);
   }
 
-  revoke(desc: DenoType.PermissionDescriptor): Promise<PermissionStatus> {
+  revoke(desc: DenoNamespace.PermissionDescriptor): Promise<PermissionStatus> {
     return Promise.resolve(permissionStatuses[desc.name]);
   }
 
-  request(desc: DenoType.PermissionDescriptor): Promise<PermissionStatus> {
+  request(desc: DenoNamespace.PermissionDescriptor): Promise<PermissionStatus> {
     return Promise.resolve(permissionStatuses[desc.name]);
   }
 }

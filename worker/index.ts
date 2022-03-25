@@ -1,3 +1,4 @@
+import { Deno, PCB } from "@griffon/deno-std";
 import { ParentChildTp, WinWkrTp } from "@griffon/shared";
 import {
   addSignalListener,
@@ -5,9 +6,8 @@ import {
   removeSignalListener,
 } from "./signals";
 import { msg2Parent, msg2Win, winHandler } from "./message";
-import { Deno } from "@griffon/deno-std";
-import { DenoProcess } from "./process";
 import type { Parent2Child } from "@griffon/shared";
+import { Process } from "./process";
 import { defaultSigHdls } from "./signals";
 
 self.Deno = Deno;
@@ -19,9 +19,9 @@ self.onmessage = ({ data, ports }: MessageEvent<Parent2Child>) => {
       const { pid, uid, ppid, cwd, env, wid, sab, winSab } = data;
 
       self.Deno.pid = pid;
-      self.Deno._uid_ = uid;
+      PCB.uid = uid;
       self.Deno.ppid = ppid;
-      self.Deno._cwd_ = cwd;
+      PCB.cwd = cwd;
 
       self.WID = wid;
       self.SAB = sab;
@@ -63,7 +63,7 @@ function hackDeno() {
 
   self.Deno.removeSignalListener = removeSignalListener;
 
-  self.Deno.run = (opt) => new DenoProcess(opt);
+  self.Deno.run = (opt) => new Process(opt);
 
   self.Deno.kill = (pid, sig) => {
     if (!Object.hasOwn(defaultSigHdls, sig))

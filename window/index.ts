@@ -6,14 +6,15 @@ import {
   pid2Uid,
 } from "@griffon/shared";
 import { Channel, msg2Svc, winHandler } from "./message";
+import { Deno, PCB } from "@griffon/deno-std";
 import {
   addSignalListener,
   defaultSigHdls,
   removeSignalListener,
 } from "./signals";
-import { Deno } from "@griffon/deno-std";
-import { DenoProcess } from "./process";
+import { Process } from "./process";
 import type { Win2Win } from "@griffon/shared";
+import { hackDenoFS } from "./fs";
 
 export interface BootConfig {
   /**
@@ -58,16 +59,16 @@ export async function boot({ env = {} }: BootConfig = {}) {
       return Channel.svc({ _t: WinSvcChanTp.user });
     })
     .then(({ pid }) => {
-      self.Deno._uid_ = pid2Uid(pid);
+      PCB.uid = pid2Uid(pid);
+      PCB.cwd = `/home/${PCB.uid}`;
       self.Deno.pid = pid;
-      self.Deno._cwd_ = `/home/${self.Deno._uid_}`;
       hackDeno();
       return hackNode();
     });
 }
 
 function hackDeno() {
-  self.Deno.env.set("HOME", `/home/${self.Deno._uid_}`);
+  self.Deno.env.set("HOME", `/home/${PCB.uid}`);
 
   self.Deno.exit = () => self.close() as never;
 
@@ -75,14 +76,14 @@ function hackDeno() {
 
   self.Deno.removeSignalListener = removeSignalListener;
 
-  self.Deno.run = (opt) => new DenoProcess(opt);
+  self.Deno.run = (opt) => new Process(opt);
 
   self.Deno.kill = (pid, sig) => {
     if (!Object.hasOwn(defaultSigHdls, sig))
       throw new TypeError(`Unknown signal: ${sig}`);
 
     const data: Win2Win = { _t: WinWinTp.kill, pid, sig };
-    if (pid === self.Deno.pid || pid2Uid(pid) === self.Deno._uid_) {
+    if (pid === self.Deno.pid || pid2Uid(pid) === PCB.uid) {
       self.dispatchEvent(new MessageEvent("message", { data }));
     } else self.postMessage(data, self.location.origin);
   };
@@ -94,6 +95,8 @@ function hackDeno() {
       // Do nothing.
     }
   };
+
+  hackDenoFS();
 }
 
 /**
@@ -112,19 +115,9 @@ const require = await boot();
 // eslint-disable-next-line @typescript-eslint/no-implied-eval
 new Function(
   "require",
-  `const { basename, dirname, extname, isAbsolute, join } = require("path");
-const { spawn } = require("child_process");
-
-console.log(basename("/foo/bar/baz/asdf/quux.html"));
-console.log(dirname("/foo/bar/baz/asdf/quux"));
-console.log(extname("index.html"));
-console.log(isAbsolute("/foo/bar"));
-console.log(join("/foo", "bar", "baz/asdf", "quux", ".."));
-
-console.log(process.cwd());
-
-const node = spawn("node", { stdio: "ignore" });
-node.on("close", (code) =>
-  console.log(\`child process exited with code \${code}\`)
-);`
+  `
+(async () => {
+  await Deno.mkdir("/home/test/music/asd/",{recursive:true});
+})();
+`
 )(require);
