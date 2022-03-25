@@ -1,4 +1,6 @@
 import { RESC_TABLE, notImplemented } from "..";
+import type { DenoNamespace } from "..";
+import type { FsFile } from ".";
 
 export enum SeekMode {
   /* eslint-disable @typescript-eslint/naming-convention */
@@ -32,4 +34,91 @@ export function readSync(rid: number, p: Uint8Array) {
 
   const nread = resc.readSync(p);
   return nread === 0 ? null : nread;
+}
+
+const READ_PER_ITER = 16 * 1024; // 16kb, see https://github.com/denoland/deno/issues/10157
+
+export function readAll(r: FsFile) {
+  return readAllInner(r);
+}
+
+export async function readAllInner(
+  r: FsFile,
+  options?: DenoNamespace.ReadFileOptions
+) {
+  const buffers: Uint8Array[] = [];
+  const signal = options?.signal ?? null;
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+    signal?.throwIfAborted?.();
+    const buf = new Uint8Array(READ_PER_ITER);
+    const read = await r.read(buf);
+    if (typeof read == "number") {
+      buffers.push(new Uint8Array(buf.buffer, 0, read));
+    } else {
+      break;
+    }
+  }
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+  signal?.throwIfAborted?.();
+
+  return concatBuffers(buffers);
+}
+
+export function concatBuffers(buffers: Uint8Array[]) {
+  let totalLen = 0;
+  for (const buf of buffers) {
+    totalLen += buf.byteLength;
+  }
+
+  const contents = new Uint8Array(totalLen);
+
+  let n = 0;
+  for (const buf of buffers) {
+    contents.set(buf, n);
+    n += buf.byteLength;
+  }
+
+  return contents;
+}
+
+export async function readAllInnerSized(
+  r: FsFile,
+  size: number,
+  options?: DenoNamespace.ReadFileOptions
+) {
+  const buf = new Uint8Array(size + 1); // 1B to detect extended files
+  let cursor = 0;
+  const signal = options?.signal ?? null;
+  while (cursor < size) {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+    signal?.throwIfAborted?.();
+    const sliceEnd = Math.min(size + 1, cursor + READ_PER_ITER);
+    const slice = buf.subarray(cursor, sliceEnd);
+    const read = await r.read(slice);
+    if (typeof read == "number") {
+      cursor += read;
+    } else {
+      break;
+    }
+  }
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+  signal?.throwIfAborted?.();
+
+  // Handle truncated or extended files during read
+  if (cursor > size) {
+    // Read remaining and concat
+    return concatBuffers([buf, await readAllInner(r, options)]);
+  } else {
+    return buf.subarray(0, cursor);
+  }
 }
