@@ -91,12 +91,26 @@ class IDBFile implements FileResource {
 
   readonly #db: DB;
 
+  /**
+   * The original ino if is a symlink.
+   */
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  readonly #origIno: number;
+
   readonly #ino: number;
 
   readonly #perms: IDBFilePerms;
 
-  constructor(db: DB, ino: number, info: SFileInfo, perms: IDBFilePerms) {
+  constructor(
+    db: DB,
+    origIno: number,
+    ino: number,
+    info: SFileInfo,
+    perms: IDBFilePerms
+  ) {
     this.#db = db;
+    this.#origIno = origIno;
     this.#ino = ino;
     this.#perms = perms;
 
@@ -149,7 +163,7 @@ class IDBFile implements FileResource {
 
     if (this.#perms.write) {
       if (this.#offset === 0) {
-        this.#data = new Uint8Array(buffer);
+        this.#data = new Uint8Array(buffer).buffer;
       } else {
         const thisData = new Uint8Array(await this.#tryGetData());
 
@@ -215,17 +229,12 @@ class IDBFile implements FileResource {
   }
 
   statSync() {
-    if (!this.#info || this.#info.isSymlink) notImplemented();
+    if (!this.#info) notImplemented();
     return { ...this.#info, ino: this.#ino };
   }
 
   async stat() {
-    const { ino, info } = await trvSymlink(
-      this.#db,
-      this.#ino,
-      await this.#tryGetInfo()
-    );
-    return { ...info, ino };
+    return { ...(await this.#tryGetInfo()), ino: this.#ino };
   }
 
   #getProxyInfo(info: SFileInfo) {
@@ -341,6 +350,8 @@ export class IDBFileSystem implements FileSystem {
 
     let ino: number | undefined;
     let info: SFileInfo | undefined;
+    let realIno: number | undefined;
+    let realInfo: SFileInfo | undefined;
     {
       ino = await this.#db.get("tree", absPath);
       if (!ino) {
@@ -364,9 +375,9 @@ export class IDBFileSystem implements FileSystem {
             throw new Error(`Is a directory (os error 21), open '${pathStr}'`);
         } else if (info.isFile || info.isSymlink) {
           if (options.truncate) {
-            const { ino: realIno, info: realInfo } = info.isSymlink
+            ({ ino: realIno, info: realInfo } = info.isSymlink
               ? await trvSymlink(this.#db, ino, info)
-              : { ino, info };
+              : { ino, info });
 
             realInfo.size = 0;
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -374,7 +385,7 @@ export class IDBFileSystem implements FileSystem {
             realInfo.mtime = new Date();
             await Promise.all([
               this.#db.put("table", realInfo, realIno),
-              this.#db.add("file", new ArrayBuffer(0), realIno),
+              this.#db.put("file", new ArrayBuffer(0), realIno),
             ]);
           }
         } else {
@@ -383,7 +394,7 @@ export class IDBFileSystem implements FileSystem {
       }
     }
 
-    const node = new IDBFile(this.#db, ino, info, options);
+    const node = new IDBFile(this.#db, ino, realIno ?? ino, info, options);
     const rid = RESC_TABLE.add(node);
     return new FsFile(rid);
   }
@@ -563,8 +574,7 @@ export class IDBFileSystem implements FileSystem {
           : [del, this.#db.put("table", info, ino)]
       );
     } else if (info.isDirectory) {
-      const range = IDBKeyRange.lowerBound(`${absPath}/`, true);
-
+      const range = IDBKeyRange.lowerBound(absPath, true);
       let cur = await this.#db.transaction("tree").store.openCursor(range);
 
       if (options?.recursive) {
@@ -634,7 +644,7 @@ export class IDBFileSystem implements FileSystem {
       if (!oldIno)
         throw new NotFound(`rename '${oldpathStr}' -> '${absNewPath}'`);
 
-      const newIno = await tx.store.get(absOldPath);
+      const newIno = await tx.store.get(absNewPath);
       if (newIno) await this.remove(absNewPath);
     }
 
@@ -686,13 +696,15 @@ export class IDBFileSystem implements FileSystem {
     const absPath = resolve(pathStr);
 
     const db = this.#db;
+    const prefixLen = absPath === "/" ? 1 : absPath.length + 1;
     return {
       async *[Symbol.asyncIterator]() {
-        const range = IDBKeyRange.lowerBound(`${absPath}/`, true);
+        const range = IDBKeyRange.lowerBound(absPath, true);
         let cur = await db.transaction("tree").store.openCursor(range);
 
         while (cur && cur.key.startsWith(absPath)) {
-          const name = cur.key.slice(absPath.length + 1);
+          const absName = cur.key;
+          const name = absName.slice(prefixLen);
 
           if (name.includes("/")) cur = await cur.continue();
           else {
@@ -704,7 +716,7 @@ export class IDBFileSystem implements FileSystem {
 
             yield { name, isDirectory, isFile, isSymlink };
 
-            const range = IDBKeyRange.lowerBound(name, true);
+            const range = IDBKeyRange.lowerBound(absName, true);
             cur = await db.transaction("tree").store.openCursor(range);
           }
         }
@@ -716,7 +728,7 @@ export class IDBFileSystem implements FileSystem {
     const fromPathStr = pathFromURL(fromPath);
     const absFromPath = resolve(fromPathStr);
     const toPathStr = pathFromURL(toPath);
-    const absToPath = resolve(toPathStr);
+    const absToPath = pathFromURL(toPathStr);
 
     const fromIno = await this.#db.get("tree", absFromPath);
     if (!fromIno) throw new NotFound(`copy '${fromPathStr}' -> '${toPathStr}'`);
@@ -906,7 +918,7 @@ export class IDBFileSystem implements FileSystem {
     if (len < data.byteLength) {
       await Promise.all([
         this.#db.put("table", { ...info, size: len, mtime: new Date() }),
-        this.#db.put("file", data.slice(0, len)),
+        this.#db.put("file", data.slice(0, len), ino),
       ]);
     }
   }
@@ -938,10 +950,7 @@ export class IDBFileSystem implements FileSystem {
       const tx = this.#db.transaction("table");
 
       const oldInfo = await tx.store.get(oldIno);
-      /**
-       * Currently, we only support symlinks to symlinks.
-       */
-      if (!oldInfo || oldInfo.isSymlink)
+      if (!oldInfo)
         throw new NotFound(`symlink '${oldpathStr}' -> '${newpathStr}'`);
     }
 
