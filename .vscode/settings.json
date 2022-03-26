@@ -1,11 +1,8 @@
 {
-  "search.exclude": {
-    "**/.yarn": true,
-    "**/.pnp.*": true,
-    "deno-std/deno_std": true
+  "[typescript]": {
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint"
   },
-  "typescript.tsdk": ".yarn/sdks/typescript/lib",
-  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "eslint.nodePath": ".yarn/sdks",
   "files.associations": {
     "*.cjson": "jsonc",
     "*.m": "matlab",
@@ -13,10 +10,16 @@
     "*.s": "platformio-debug.asm",
     "*.wxs": "javascript",
     "*.wxss": "css",
+    "errno-base.h": "c",
     "errno.h": "c",
-    "features.h": "c",
-    "errno-base.h": "c"
+    "features.h": "c"
   },
-  "eslint.nodePath": ".yarn/sdks",
-  "prettier.prettierPath": ".yarn/sdks/prettier/index.js"
+  "prettier.prettierPath": ".yarn/sdks/prettier/index.js",
+  "search.exclude": {
+    "**/.pnp.*": true,
+    "**/.yarn": true,
+    "deno-std/deno_std": true
+  },
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "typescript.tsdk": ".yarn/sdks/typescript/lib"
 }
