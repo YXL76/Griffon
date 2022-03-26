@@ -55,17 +55,14 @@ interface FSSchema extends DBSchema {
 type DB = IDBPDatabase<FSSchema>;
 
 async function trvSymlink(db: DB, ino: number, info: SFileInfo) {
-  const table = db.transaction("table");
-  const symlink = db.transaction("symlink");
-
   // TODO: Need to check cycles.
   // eslint-disable-next-line no-constant-condition
   while (ino && info.isSymlink) {
-    ino = (await symlink.store.get(ino)) as number;
+    ino = (await db.get("symlink", ino)) as number;
     if (!ino) throw new NotFound(`stat`);
 
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    info = (await table.store.get(ino))!;
+    info = (await db.get("table", ino))!;
   }
 
   return { ino, info };
@@ -345,24 +342,22 @@ export class IDBFileSystem implements FileSystem {
     let ino: number | undefined;
     let info: SFileInfo | undefined;
     {
-      const tree = this.#db.transaction("tree", "readwrite");
-      const table = this.#db.transaction("table", "readwrite");
-      const file = this.#db.transaction("file", "readwrite");
-
-      ino = await tree.store.get(absPath);
+      ino = await this.#db.get("tree", absPath);
       if (!ino) {
         if (!options.create && !options.createNew)
           throw new NotFound(`open '${pathStr}'`);
 
         info = newFileInfo();
-        ino = await table.store.add(info);
-        void tree.store.add(ino, absPath);
-        void file.store.add(new ArrayBuffer(0), ino);
+        ino = await this.#db.add("table", info);
+        await Promise.all([
+          this.#db.add("tree", ino, absPath),
+          this.#db.add("file", new ArrayBuffer(0), ino),
+        ]);
       } else {
         if (options.createNew) throw new AlreadyExists(`open '${pathStr}'`);
 
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        info = (await table.store.get(ino))!;
+        info = (await this.#db.get("table", ino))!;
 
         if (info.isDirectory) {
           if (options.append || options.write || options.truncate)
@@ -377,16 +372,15 @@ export class IDBFileSystem implements FileSystem {
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore, the I-node is modified.
             realInfo.mtime = new Date();
-            void table.store.put(realInfo, realIno);
-            void file.store.add(new ArrayBuffer(0), realIno);
+            await Promise.all([
+              this.#db.put("table", realInfo, realIno),
+              this.#db.add("file", new ArrayBuffer(0), realIno),
+            ]);
           }
         } else {
           notImplemented();
         }
       }
-
-      // Need it?
-      await Promise.all([tree.done, table.done, file.done]);
     }
 
     const node = new IDBFile(this.#db, ino, info, options);
@@ -476,8 +470,6 @@ export class IDBFileSystem implements FileSystem {
           dirIno = await tx.store.get(dir);
         } while (!dirIno);
         dirs.pop();
-
-        await tx.done;
       }
       // Create directories.
       let dirInos: number[];
@@ -511,7 +503,6 @@ export class IDBFileSystem implements FileSystem {
         [dirIno, curKey] = await Promise.all([
           tx.store.get(dir),
           tx.store.getKey(cur),
-          tx.done,
         ]);
 
         if (!dirIno) throw new NotFound(`mkdir '${pathStr}'`);
@@ -525,8 +516,8 @@ export class IDBFileSystem implements FileSystem {
         throw new Error(`Not a directory (os error 20), mkdir '${pathStr}'`);
 
       const ino = await tx.store.add(newDirInfo());
-
-      await Promise.all([this.#db.add("tree", ino, cur), tx.done]);
+      await tx.done;
+      await this.#db.add("tree", ino, cur);
     }
   }
 
@@ -550,67 +541,84 @@ export class IDBFileSystem implements FileSystem {
     const pathStr = pathFromURL(path);
     const absPath = resolve(pathStr);
 
-    const tree = this.#db.transaction("tree", "readwrite");
-
-    const ino = await tree.store.get(absPath);
+    const ino = await this.#db.get("tree", absPath);
     if (!ino) throw new NotFound(`remove '${pathStr}'`);
 
-    const table = this.#db.transaction("table", "readwrite");
-    const file = this.#db.transaction("file", "readwrite");
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const info = (await this.#db.get("table", ino))!;
 
-    const unlink = (path: string, ino: number, info: SFileInfo) => {
+    if (info.isFile || info.isSymlink) {
+      /** Unlink */
+
       // Shall we update the mtime?
       info.nlink -= 1;
-      const del = tree.store.delete(path);
-      return Promise.all(
+      const del = this.#db.delete("tree", absPath);
+      await Promise.all(
         info.nlink <= 0
           ? /**
              * The difference between `file` and `symlink` is that `symlink`
              * do not delete the content. Because there is no file.
              */
-            [del, table.store.delete(ino), file.store.delete(ino)]
-          : [del, table.store.put(info, ino)]
+            [del, this.#db.delete("table", ino), this.#db.delete("file", ino)]
+          : [del, this.#db.put("table", info, ino)]
       );
-    };
-
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const info = (await table.store.get(ino))!;
-
-    if (info.isFile || info.isSymlink) {
-      await unlink(absPath, ino, info);
     } else if (info.isDirectory) {
       const range = IDBKeyRange.lowerBound(`${absPath}/`, true);
-      let cur = await tree.store.openCursor(range);
+
+      let cur = await this.#db.transaction("tree").store.openCursor(range);
 
       if (options?.recursive) {
-        const tasks = [];
+        let infos: SFileInfo[];
+        const paths: string[] = [absPath];
+        const inos: number[] = [ino];
 
         while (cur && cur.key.startsWith(absPath)) {
-          const path = cur.key;
-          const ino = cur.value;
           // Risks. Maybe the parent is deleted before the child.
-          tasks.push(
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            table.store.get(cur.value).then((info) => unlink(path, ino, info!))
-          );
-
+          paths.push(cur.key);
+          inos.push(cur.value);
           cur = await cur.continue();
         }
-
-        await Promise.all(tasks);
+        {
+          const tx = this.#db.transaction("table");
+          infos = (await Promise.all(
+            inos.map((ino) => tx.store.get(ino))
+          )) as SFileInfo[];
+        }
+        {
+          const tx = this.#db.transaction("tree", "readwrite");
+          await Promise.all(paths.map((path) => tx.store.delete(path)));
+          await tx.done;
+        }
+        {
+          const tx = this.#db.transaction("table", "readwrite");
+          await Promise.all(
+            infos.map((info, idx) => {
+              info.nlink -= 1;
+              return info.nlink > 0
+                ? tx.store.put(info, inos[idx])
+                : tx.store.delete(inos[idx]);
+            })
+          );
+          await tx.done;
+        }
+        {
+          const tx = this.#db.transaction("file", "readwrite");
+          await Promise.all(
+            infos.map((info, idx) =>
+              info.nlink <= 0 ? tx.store.delete(inos[idx]) : Promise.resolve()
+            )
+          );
+          await tx.done;
+        }
       } else {
         if (cur?.key.startsWith(absPath))
           throw new Error(
             `Directory not empty (os error 39), remove '${pathStr}'`
           );
       }
-
-      await unlink(absPath, ino, info);
     } else {
       notImplemented();
     }
-
-    await Promise.all([tree.done, table.done, file.done]);
   }
 
   async rename(oldpath: string | URL, newpath: string | URL) {
@@ -619,14 +627,18 @@ export class IDBFileSystem implements FileSystem {
     const newpathStr = pathFromURL(newpath);
     const absNewPath = resolve(newpathStr);
 
+    let oldIno: number | undefined;
+    {
+      const tx = this.#db.transaction("tree");
+      oldIno = await tx.store.get(absOldPath);
+      if (!oldIno)
+        throw new NotFound(`rename '${oldpathStr}' -> '${absNewPath}'`);
+
+      const newIno = await tx.store.get(absOldPath);
+      if (newIno) await this.remove(absNewPath);
+    }
+
     const tx = this.#db.transaction("tree", "readwrite");
-    const oldIno = await tx.store.get(absOldPath);
-    if (!oldIno)
-      throw new NotFound(`rename '${oldpathStr}' -> '${absNewPath}'`);
-
-    const newIno = await tx.store.get(absOldPath);
-    if (newIno) await this.remove(absNewPath);
-
     await Promise.all([
       tx.store.delete(absOldPath),
       tx.store.add(oldIno, absNewPath),
@@ -673,29 +685,29 @@ export class IDBFileSystem implements FileSystem {
     const pathStr = pathFromURL(path);
     const absPath = resolve(pathStr);
 
-    const tree = this.#db.transaction("tree");
-    const table = this.#db.transaction("table");
+    const db = this.#db;
     return {
       async *[Symbol.asyncIterator]() {
         const range = IDBKeyRange.lowerBound(`${absPath}/`, true);
-        let cur = await tree.store.openCursor(range);
+        let cur = await db.transaction("tree").store.openCursor(range);
 
         while (cur && cur.key.startsWith(absPath)) {
           const name = cur.key.slice(absPath.length + 1);
 
-          if (!name.includes("/")) {
+          if (name.includes("/")) cur = await cur.continue();
+          else {
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            const { isDirectory, isFile, isSymlink } = (await table.store.get(
+            const { isDirectory, isFile, isSymlink } = (await db.get(
+              "table",
               cur.value
             ))!;
 
             yield { name, isDirectory, isFile, isSymlink };
+
+            const range = IDBKeyRange.lowerBound(name, true);
+            cur = await db.transaction("tree").store.openCursor(range);
           }
-
-          cur = await cur.continue();
         }
-
-        await Promise.all([tree.done, table.done]);
       },
     };
   }
@@ -706,55 +718,50 @@ export class IDBFileSystem implements FileSystem {
     const toPathStr = pathFromURL(toPath);
     const absToPath = resolve(toPathStr);
 
-    const tree = this.#db.transaction("tree", "readwrite");
-    const table = this.#db.transaction("table", "readwrite");
-    const file = this.#db.transaction("file", "readwrite");
-
-    const fromIno = await tree.store.get(absFromPath);
+    const fromIno = await this.#db.get("tree", absFromPath);
     if (!fromIno) throw new NotFound(`copy '${fromPathStr}' -> '${toPathStr}'`);
 
     {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      const fromInfo = (await table.store.get(fromIno))!;
+      const fromInfo = (await this.#db.get("table", fromIno))!;
       if (!fromInfo.isFile && !fromInfo.isSymlink)
         throw new NotFound(`copy '${fromPathStr}' -> '${toPathStr}'`);
     }
 
     const [fromData, toIno] = await Promise.all([
-      file.store.get(fromIno),
-      tree.store.get(absToPath),
+      this.#db.get("file", fromIno),
+      this.#db.get("tree", absToPath),
     ]);
     if (!fromData)
       throw new NotFound(`copy '${fromPathStr}' -> '${toPathStr}'`);
 
     if (!toIno) {
-      const ino = await table.store.add({
+      const ino = await this.#db.add("table", {
         ...newFileInfo(),
         size: fromData.byteLength,
       });
 
       await Promise.all([
-        tree.store.add(ino, absToPath),
-        file.store.add(fromData, ino),
+        this.#db.add("tree", ino, absToPath),
+        this.#db.add("file", fromData, ino),
       ]);
     } else {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      const toInfo = (await table.store.get(toIno))!;
+      const toInfo = (await this.#db.get("table", toIno))!;
       if (!toInfo.isFile && !toInfo.isSymlink)
         throw new Error(
           `Is a directory (os error 21), copy '${fromPathStr}' -> '${toPathStr}'`
         );
 
       await Promise.all([
-        table.store.put(
+        this.#db.put(
+          "table",
           { ...toInfo, size: fromData.byteLength, mtime: new Date() },
           toIno
         ),
-        file.store.put(fromData, toIno),
+        this.#db.put("file", fromData, toIno),
       ]);
     }
-
-    await Promise.all([tree.done, table.done, file.done]);
   }
 
   async readLink(path: string | URL) {
@@ -889,24 +896,19 @@ export class IDBFileSystem implements FileSystem {
     const ino = await this.#db.get("tree", absPath);
     if (!ino) throw new NotFound(`truncate '${name}'`);
 
-    const table = this.#db.transaction("table", "readwrite");
-    const file = this.#db.transaction("file", "readwrite");
-
     const [info, data] = await Promise.all([
-      table.store.get(ino),
-      file.store.get(ino),
+      this.#db.get("table", ino),
+      this.#db.get("file", ino),
     ]);
 
     if (!info || !data) throw new NotFound(`truncate '${name}'`);
 
     if (len < data.byteLength) {
       await Promise.all([
-        table.store.put({ ...info, size: len, mtime: new Date() }),
-        file.store.put(data.slice(0, len)),
+        this.#db.put("table", { ...info, size: len, mtime: new Date() }),
+        this.#db.put("file", data.slice(0, len)),
       ]);
     }
-
-    await Promise.all([table.done, file.done]);
   }
 
   async symlink(
@@ -919,31 +921,32 @@ export class IDBFileSystem implements FileSystem {
     const newpathStr = pathFromURL(newpath);
     const absNewPath = resolve(newpathStr);
 
-    const tree = this.#db.transaction("tree", "readwrite");
-    const table = this.#db.transaction("table");
-    const oldIno = await tree.store.get(absOldPath);
-    if (!oldIno)
-      throw new NotFound(`symlink '${oldpathStr}' -> '${newpathStr}'`);
+    let oldIno: number | undefined;
+    {
+      const tx = this.#db.transaction("tree");
+
+      oldIno = await tx.store.get(absOldPath);
+      if (!oldIno)
+        throw new NotFound(`symlink '${oldpathStr}' -> '${newpathStr}'`);
+
+      const newIno = await tx.store.get(absNewPath);
+      if (newIno)
+        throw new AlreadyExists(`symlink '${oldpathStr}' -> '${newpathStr}'`);
+    }
 
     {
-      const oldInfo = await table.store.get(oldIno);
+      const tx = this.#db.transaction("table");
+
+      const oldInfo = await tx.store.get(oldIno);
       /**
        * Currently, we only support symlinks to symlinks.
        */
       if (!oldInfo || oldInfo.isSymlink)
         throw new NotFound(`symlink '${oldpathStr}' -> '${newpathStr}'`);
-
-      const newIno = await tree.store.get(absNewPath);
-      if (newIno)
-        throw new AlreadyExists(`symlink '${oldpathStr}' -> '${newpathStr}'`);
     }
 
     const newIno = await this.#db.add("table", newSymlinkInfo());
-    await Promise.all([
-      tree.store.add(newIno, absNewPath),
-      tree.done,
-      table.done,
-    ]);
+    await this.#db.add("tree", newIno, absNewPath);
   }
 
   ftruncate(rid: number, len?: number) {
