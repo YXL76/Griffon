@@ -25,3 +25,16 @@ export function newDirInfo() {
     nlink: 1,
   };
 }
+
+export function newSymlinkInfo() {
+  const birthtime = new Date();
+  return {
+    isFile: false,
+    isDirectory: false,
+    isSymlink: true,
+    size: 0,
+    mtime: birthtime,
+    birthtime,
+    nlink: 1,
+  };
+}

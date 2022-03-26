@@ -2,7 +2,16 @@
 
 import type { DenoNamespace, Resource } from "..";
 import { RESC_TABLE, notImplemented } from "..";
-import { fstat, fstatSync, read, readSync, write } from ".";
+import {
+  fstat,
+  fstatSync,
+  ftruncate,
+  ftruncateSync,
+  read,
+  readSync,
+  write,
+  writeSync,
+} from ".";
 import type { SeekMode } from ".";
 
 export class FsFile {
@@ -36,41 +45,38 @@ export class FsFile {
     return this.#writable; */
   }
 
-  write(p: Uint8Array): Promise<number> {
+  write(p: Uint8Array) {
     return write(this.#rid, p);
   }
 
-  writeSync(p: Uint8Array): number {
-    notImplemented();
-    // return writeSync(this.rid, p);
+  writeSync(p: Uint8Array) {
+    return writeSync(this.#rid, p);
   }
 
-  truncate(len?: number): Promise<void> {
-    notImplemented();
-    // return ftruncate(this.rid, len);
+  truncate(len?: number) {
+    return ftruncate(this.#rid, len);
   }
 
   truncateSync(len?: number) {
-    notImplemented();
-    // return ftruncateSync(this.rid, len);
+    return ftruncateSync(this.#rid, len);
   }
 
-  read(p: Uint8Array): Promise<number | null> {
+  read(p: Uint8Array) {
     return read(this.#rid, p);
   }
 
-  readSync(p: Uint8Array): number | null {
+  readSync(p: Uint8Array) {
     return readSync(this.#rid, p);
   }
 
-  seek(offset: number, whence: SeekMode): Promise<number> {
+  seek(offset: number, whence: SeekMode) {
     const resc = RESC_TABLE.getOrThrow(this.#rid);
     if (!(typeof resc.seek === "function")) notImplemented();
 
     return resc.seek(offset, whence);
   }
 
-  seekSync(offset: number, whence: SeekMode): number {
+  seekSync(offset: number, whence: SeekMode) {
     const resc = RESC_TABLE.getOrThrow(this.#rid);
     if (!(typeof resc.seekSync === "function")) notImplemented();
 

@@ -4,7 +4,7 @@ import { RESC_TABLE, notImplemented } from "..";
 
 export function fstatSync(rid: number) {
   const res = RESC_TABLE.getOrThrow(rid);
-  if (typeof res.fstatSync !== "function") notImplemented();
+  if (typeof res.statSync !== "function") notImplemented();
 
   return {
     atime: null,
@@ -15,13 +15,13 @@ export function fstatSync(rid: number) {
     rdev: null,
     blksize: null,
     blocks: null,
-    ...res.fstatSync(),
+    ...res.statSync(),
   };
 }
 
 export async function fstat(rid: number) {
   const res = RESC_TABLE.getOrThrow(rid);
-  if (typeof res.fstat !== "function") notImplemented();
+  if (typeof res.stat !== "function") notImplemented();
 
   return {
     atime: null,
@@ -32,6 +32,26 @@ export async function fstat(rid: number) {
     rdev: null,
     blksize: null,
     blocks: null,
-    ...(await res.fstat()),
+    ...(await res.stat()),
   };
+}
+
+export function coerceLen(len?: number | null) {
+  if (len == null || len < 0) {
+    return 0;
+  }
+
+  return len;
+}
+
+export function ftruncateSync(rid: number, len?: number) {
+  const res = RESC_TABLE.getOrThrow(rid);
+  if (typeof res.truncateSync !== "function") notImplemented();
+  return res.truncateSync(coerceLen(len));
+}
+
+export function ftruncate(rid: number, len?: number) {
+  const res = RESC_TABLE.getOrThrow(rid);
+  if (typeof res.truncate !== "function") notImplemented();
+  return res.truncate(coerceLen(len));
 }

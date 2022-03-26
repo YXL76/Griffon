@@ -18,6 +18,13 @@ export async function write(rid: number, p: Uint8Array) {
   return resc.write(p);
 }
 
+export function writeSync(rid: number, p: Uint8Array) {
+  const resc = RESC_TABLE.getOrThrow(rid);
+  if (!(typeof resc.writeSync === "function")) notImplemented();
+
+  return resc.writeSync(p);
+}
+
 export async function read(rid: number, p: Uint8Array) {
   if (p.length === 0) return 0;
 

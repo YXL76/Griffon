@@ -5,6 +5,7 @@ import {
   RESC_TABLE,
   SeekMode,
   checkOpenOptions,
+  coerceLen,
   concatBuffers,
   notImplemented,
   pathFromURL,
@@ -19,7 +20,7 @@ import type {
   FileSystem,
 } from "@griffon/deno-std";
 import { dirname, resolve } from "@griffon/deno-std/deno_std/path/posix";
-import { newDirInfo, newFileInfo } from ".";
+import { newDirInfo, newFileInfo, newSymlinkInfo } from ".";
 import { openDB } from "idb";
 
 interface SFileInfo extends Omit<FileInfo, "ino"> {
@@ -117,7 +118,7 @@ class IDBFile implements FileResource {
     clearTimeout(this.#infoId);
   }
 
-  readSync(buffer: Uint8Array): number {
+  readSync(buffer: Uint8Array) {
     if (!this.#perms.read) throw new Error("Bad file descriptor (os error 9)");
 
     if (!this.#data) notImplemented();
@@ -137,7 +138,7 @@ class IDBFile implements FileResource {
     return ret;
   }
 
-  async read(buffer: Uint8Array): Promise<number> {
+  async read(buffer: Uint8Array) {
     if (!this.#perms.read) throw new Error("Bad file descriptor (os error 9)");
 
     await this.#tryGetData();
@@ -145,7 +146,7 @@ class IDBFile implements FileResource {
     return this.readSync(buffer);
   }
 
-  async write(buffer: Uint8Array): Promise<number> {
+  async write(buffer: Uint8Array) {
     if (!this.#perms.write && !this.#perms.append)
       throw new Error("Bad file descriptor (os error 9)");
 
@@ -169,11 +170,25 @@ class IDBFile implements FileResource {
     const thieInfo = await this.#tryGetInfo();
     thieInfo.size = this.#data.length;
     this.#offset = this.#data.length;
-    await this.#db.put("file", this.#data, this.#ino);
+    await this.#db.put("file", this.#data.buffer, this.#ino);
     return buffer.length;
   }
 
-  seekSync(offset: number, whence: SeekMode): number {
+  async truncate(len: number) {
+    if (!this.#perms.write) throw new Error("Bad file descriptor (os error 9)");
+
+    const [thisData, thieInfo] = await Promise.all([
+      this.#tryGetData(),
+      this.#tryGetInfo(),
+    ]);
+    if (thisData.length <= len) return;
+
+    this.#data = thisData.slice(0, len);
+    thieInfo.size = this.#data.length;
+    await this.#db.put("file", this.#data.buffer, this.#ino);
+  }
+
+  seekSync(offset: number, whence: SeekMode) {
     let ret: number;
 
     if (whence === SeekMode.Start) ret = offset;
@@ -187,7 +202,7 @@ class IDBFile implements FileResource {
     return ret;
   }
 
-  async seek(offset: number, whence: SeekMode): Promise<number> {
+  async seek(offset: number, whence: SeekMode) {
     let ret: number;
 
     if (whence === SeekMode.Start) ret = offset;
@@ -202,12 +217,12 @@ class IDBFile implements FileResource {
     return ret;
   }
 
-  fstatSync() {
+  statSync() {
     if (!this.#info || this.#info.isSymlink) notImplemented();
     return { ...this.#info, ino: this.#ino };
   }
 
-  async fstat() {
+  async stat() {
     const { ino, info } = await trvSymlink(
       this.#db,
       this.#ino,
@@ -353,17 +368,21 @@ export class IDBFileSystem implements FileSystem {
         if (info.isDirectory) {
           if (options.append || options.write || options.truncate)
             throw new Error(`Is a directory (os error 21), open '${pathStr}'`);
-        } else if (info.isFile) {
+        } else if (info.isFile || info.isSymlink) {
           if (options.truncate) {
-            info.size = 0;
+            const { ino: realIno, info: realInfo } = info.isSymlink
+              ? await trvSymlink(this.#db, ino, info)
+              : { ino, info };
+
+            realInfo.size = 0;
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore, the I-node is modified.
-            info.mtime = new Date();
-            void table.store.put(info, ino);
-            void file.store.add(new ArrayBuffer(0), ino);
+            realInfo.mtime = new Date();
+            void table.store.put(realInfo, realIno);
+            void file.store.add(new ArrayBuffer(0), realIno);
           }
-        } else if (info.isSymlink) {
-          // TODO
+        } else {
+          notImplemented();
         }
       }
 
@@ -449,7 +468,7 @@ export class IDBFileSystem implements FileSystem {
         const tx = this.#db.transaction("tree", "readonly");
 
         const curKey = await tx.store.getKey(cur);
-        if (curKey) throw new AlreadyExists(`mkdir '${pathStr}'`);
+        if (curKey === cur) throw new AlreadyExists(`mkdir '${pathStr}'`);
 
         let dir = cur;
         do {
@@ -497,7 +516,7 @@ export class IDBFileSystem implements FileSystem {
         ]);
 
         if (!dirIno) throw new NotFound(`mkdir '${pathStr}'`);
-        if (curKey) throw new AlreadyExists(`mkdir '${pathStr}'`);
+        if (curKey === cur) throw new AlreadyExists(`mkdir '${pathStr}'`);
       }
 
       const tx = this.#db.transaction("table", "readwrite");
@@ -561,13 +580,35 @@ export class IDBFileSystem implements FileSystem {
     if (info.isFile || info.isSymlink) {
       await unlink(absPath, ino, info);
     } else if (info.isDirectory) {
+      const range = IDBKeyRange.lowerBound(`${absPath}/`, true);
+      let cur = await tree.store.openCursor(range);
+
       if (options?.recursive) {
-        // TODO
+        const tasks = [];
+
+        while (cur && cur.key.startsWith(absPath)) {
+          const path = cur.key;
+          const ino = cur.value;
+          // Risks. Maybe the parent is deleted before the child.
+          tasks.push(
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            table.store.get(cur.value).then((info) => unlink(path, ino, info!))
+          );
+
+          cur = await cur.continue();
+        }
+
+        await Promise.all(tasks);
       } else {
-        // TODO
+        if (cur?.key.startsWith(absPath))
+          throw new Error(
+            `Directory not empty (os error 39), remove '${pathStr}'`
+          );
       }
+
+      await unlink(absPath, ino, info);
     } else {
-      // TODO
+      notImplemented();
     }
 
     await Promise.all([tree.done, table.done, file.done]);
@@ -638,25 +679,83 @@ export class IDBFileSystem implements FileSystem {
     return {
       async *[Symbol.asyncIterator]() {
         const range = IDBKeyRange.lowerBound(`${absPath}/`, true);
-        const cur = await tree.store.openCursor(range);
-        if (!cur) return;
+        let cur = await tree.store.openCursor(range);
 
-        do {
-          if (!cur.key.startsWith(absPath)) {
-            await Promise.all([tree.done, table.done]);
-            return;
-          }
-
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          const { isDirectory, isFile, isSymlink } = (await table.store.get(
-            cur.value
-          ))!;
+        while (cur && cur.key.startsWith(absPath)) {
           const name = cur.key.slice(absPath.length + 1);
 
-          yield { name, isDirectory, isFile, isSymlink };
-        } while (await cur.advance(1));
+          if (!name.includes("/")) {
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            const { isDirectory, isFile, isSymlink } = (await table.store.get(
+              cur.value
+            ))!;
+
+            yield { name, isDirectory, isFile, isSymlink };
+          }
+
+          cur = await cur.continue();
+        }
+
+        await Promise.all([tree.done, table.done]);
       },
     };
+  }
+
+  async copyFile(fromPath: string | URL, toPath: string | URL) {
+    const fromPathStr = pathFromURL(fromPath);
+    const absFromPath = resolve(fromPathStr);
+    const toPathStr = pathFromURL(toPath);
+    const absToPath = resolve(toPathStr);
+
+    const tree = this.#db.transaction("tree", "readwrite");
+    const table = this.#db.transaction("table", "readwrite");
+    const file = this.#db.transaction("file", "readwrite");
+
+    const fromIno = await tree.store.get(absFromPath);
+    if (!fromIno) throw new NotFound(`copy '${fromPathStr}' -> '${toPathStr}'`);
+
+    {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const fromInfo = (await table.store.get(fromIno))!;
+      if (!fromInfo.isFile && !fromInfo.isSymlink)
+        throw new NotFound(`copy '${fromPathStr}' -> '${toPathStr}'`);
+    }
+
+    const [fromData, toIno] = await Promise.all([
+      file.store.get(fromIno),
+      tree.store.get(absToPath),
+    ]);
+    if (!fromData)
+      throw new NotFound(`copy '${fromPathStr}' -> '${toPathStr}'`);
+
+    if (!toIno) {
+      const ino = await table.store.add({
+        ...newFileInfo(),
+        size: fromData.byteLength,
+      });
+
+      await Promise.all([
+        tree.store.add(ino, absToPath),
+        file.store.add(fromData, ino),
+      ]);
+    } else {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const toInfo = (await table.store.get(toIno))!;
+      if (!toInfo.isFile && !toInfo.isSymlink)
+        throw new Error(
+          `Is a directory (os error 21), copy '${fromPathStr}' -> '${toPathStr}'`
+        );
+
+      await Promise.all([
+        table.store.put(
+          { ...toInfo, size: fromData.byteLength, mtime: new Date() },
+          toIno
+        ),
+        file.store.put(fromData, toIno),
+      ]);
+    }
+
+    await Promise.all([tree.done, table.done, file.done]);
   }
 
   async readLink(path: string | URL) {
@@ -784,7 +883,8 @@ export class IDBFileSystem implements FileSystem {
     return this.writeFile(path, encoder.encode(data), options);
   }
 
-  async truncate(name: string, len = 0) {
+  async truncate(name: string, len?: number) {
+    len = coerceLen(len);
     const absPath = resolve(name);
 
     const ino = await this.#db.get("tree", absPath);
@@ -793,19 +893,93 @@ export class IDBFileSystem implements FileSystem {
     const table = this.#db.transaction("table", "readwrite");
     const file = this.#db.transaction("file", "readwrite");
 
-    const [info, data] = (await Promise.all([
+    const [info, data] = await Promise.all([
       table.store.get(ino),
       file.store.get(ino),
-    ])) as [SFileInfo, Uint8Array];
+    ]);
 
-    if (len < data.length) {
+    if (!info || !data) throw new NotFound(`truncate '${name}'`);
+
+    if (len < data.byteLength) {
       await Promise.all([
         table.store.put({ ...info, size: len, mtime: new Date() }),
-        file.store.put(data.subarray(0, len)),
+        file.store.put(data.slice(0, len)),
       ]);
     }
 
     await Promise.all([table.done, file.done]);
+  }
+
+  async symlink(
+    oldpath: string | URL,
+    newpath: string | URL
+    // options?: DenoNamespace.SymlinkOptions
+  ) {
+    const oldpathStr = pathFromURL(oldpath);
+    const absOldPath = resolve(oldpathStr);
+    const newpathStr = pathFromURL(newpath);
+    const absNewPath = resolve(newpathStr);
+
+    const tree = this.#db.transaction("tree", "readwrite");
+    const table = this.#db.transaction("table", "readwrite");
+    const oldIno = await tree.store.get(absOldPath);
+    if (!oldIno)
+      throw new NotFound(`symlink '${oldpathStr}' -> '${newpathStr}'`);
+
+    {
+      const oldInfo = await table.store.get(oldIno);
+      /**
+       * Currently, we only support symlinks to symlinks.
+       */
+      if (!oldInfo || oldInfo.isSymlink)
+        throw new NotFound(`symlink '${oldpathStr}' -> '${newpathStr}'`);
+
+      const newIno = await tree.store.get(absNewPath);
+      if (newIno)
+        throw new AlreadyExists(`symlink '${oldpathStr}' -> '${newpathStr}'`);
+    }
+
+    const newIno = await this.#db.add("table", newSymlinkInfo());
+    await Promise.all([
+      tree.store.add(newIno, absNewPath),
+      tree.done,
+      table.done,
+    ]);
+  }
+
+  ftruncate(rid: number, len?: number) {
+    const resc = this.#getResc(rid);
+    return resc.truncate(coerceLen(len));
+  }
+
+  fstatSync(rid: number) {
+    const resc = this.#getResc(rid);
+    return {
+      atime: null,
+      dev: null,
+      mode: null,
+      uid: null,
+      gid: null,
+      rdev: null,
+      blksize: null,
+      blocks: null,
+      ...resc.statSync(),
+    };
+  }
+
+  async fstat(rid: number) {
+    const resc = this.#getResc(rid);
+    return {
+      atime: null,
+      dev: null,
+      mode: null,
+      uid: null,
+      gid: null,
+      rdev: null,
+      blksize: null,
+      blocks: null,
+      ...(await resc.stat()),
+    };
   }
 
   #getResc(rid: number): IDBFile {

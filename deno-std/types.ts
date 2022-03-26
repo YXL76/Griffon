@@ -106,11 +106,14 @@ export interface Resource {
   close(): void;
   readSync?(buffer: Uint8Array): number | null;
   read?(buffer: Uint8Array): Promise<number | null>;
+  writeSync?(p: Uint8Array): number;
   write?(buffer: Uint8Array): Promise<number>;
+  truncateSync?(len: number): void;
+  truncate?(len: number): Promise<void>;
   seekSync?(offset: number, whence: SeekMode): number;
   seek?(offset: number, whence: SeekMode): Promise<number>;
-  fstatSync?(): FileInfo;
-  fstat?(): Promise<FileInfo>;
+  statSync?(): FileInfo;
+  stat?(): Promise<FileInfo>;
 }
 
 /**
