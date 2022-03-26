@@ -1,0 +1,1 @@
+import "@griffon/service";

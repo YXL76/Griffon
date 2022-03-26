@@ -1,5 +1,7 @@
 {
   "name": "@griffon/shared",
+  "author": "YXL <chenxin.lan.76@gmail.com>",
+  "license": "(MIT OR Apache-2.0)",
   "private": true,
   "dependencies": {
     "@griffon/deno-std": "workspace:*",

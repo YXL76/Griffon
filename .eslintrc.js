@@ -13,6 +13,7 @@ const config = {
   parser: "@typescript-eslint/parser",
   overrides: [
     ["deno-std", "deno-std/deno_std/**/*.*"],
+    ["examples"],
     ["service"],
     ["shared"],
     ["window"],

@@ -110,14 +110,3 @@ async function hackNode() {
   const require = createRequire("/");
   return require;
 }
-
-const require = await boot();
-// eslint-disable-next-line @typescript-eslint/no-implied-eval
-new Function(
-  "require",
-  `
-(async () => {
-  await Deno.mkdir("/home/test/music/asd/",{recursive:true});
-})();
-`
-)(require);

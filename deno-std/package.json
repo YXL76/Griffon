@@ -1,4 +1,6 @@
 {
   "name": "@griffon/deno-std",
+  "author": "YXL <chenxin.lan.76@gmail.com>",
+  "license": "(MIT OR Apache-2.0)",
   "private": true
 }

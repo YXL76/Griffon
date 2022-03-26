@@ -9,9 +9,9 @@ const prod = process.env["NODE_ENV"] === "production";
 // TODO
 const rootPath = resolve(process.cwd(), "..");
 const distPath = resolve(rootPath, "dist");
-const servicePath = resolve(rootPath, "service");
-const windowPath = resolve(rootPath, "window");
 const workerPath = resolve(rootPath, "worker");
+
+const examplePath = resolve(rootPath, "examples", process.argv[2] || "shell");
 
 const basicConfig: BuildOptions = {
   sourcemap: !prod,
@@ -39,12 +39,15 @@ const basicConfig: BuildOptions = {
     build({
       ...basicConfig,
       entryPoints: {
-        service: resolve(servicePath, "index.ts"),
-        window: resolve(windowPath, "index.ts"),
+        service: resolve(examplePath, "service.ts"),
+        window: resolve(examplePath, "window.ts"),
         worker: resolve(workerPath, "index.ts"),
       },
     }),
   ]);
 
-  await copyFile(resolve("index.html"), resolve(distPath, "index.html"));
+  await copyFile(
+    resolve(examplePath, "index.html"),
+    resolve(distPath, "index.html")
+  );
 })().catch(console.error);

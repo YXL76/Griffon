@@ -84,7 +84,7 @@ const EXPIRY_TIME = 128;
 class IDBFile implements FileResource {
   #offset = 0;
 
-  #data?: Uint8Array;
+  #data?: ArrayBuffer;
 
   #info?: SFileInfo;
 
@@ -123,7 +123,7 @@ class IDBFile implements FileResource {
 
     if (!this.#data) notImplemented();
 
-    const data = this.#data.subarray(this.#offset);
+    const data = new Uint8Array(this.#data).subarray(this.#offset);
     if (data.length === 0) return 0;
 
     let ret: number;
@@ -154,23 +154,23 @@ class IDBFile implements FileResource {
       if (this.#offset === 0) {
         this.#data = new Uint8Array(buffer);
       } else {
-        const thisData = await this.#tryGetData();
+        const thisData = new Uint8Array(await this.#tryGetData());
 
         this.#data = concatBuffers([
           thisData.subarray(0, this.#offset),
           buffer,
-        ]);
+        ]).buffer;
       }
     } /* append */ else {
-      const thisData = await this.#tryGetData();
+      const thisData = new Uint8Array(await this.#tryGetData());
 
-      this.#data = concatBuffers([thisData, buffer]);
+      this.#data = concatBuffers([thisData, buffer]).buffer;
     }
 
     const thieInfo = await this.#tryGetInfo();
-    thieInfo.size = this.#data.length;
-    this.#offset = this.#data.length;
-    await this.#db.put("file", this.#data.buffer, this.#ino);
+    thieInfo.size = this.#data.byteLength;
+    this.#offset = this.#data.byteLength;
+    await this.#db.put("file", this.#data, this.#ino);
     return buffer.length;
   }
 
@@ -181,11 +181,11 @@ class IDBFile implements FileResource {
       this.#tryGetData(),
       this.#tryGetInfo(),
     ]);
-    if (thisData.length <= len) return;
+    if (thisData.byteLength <= len) return;
 
     this.#data = thisData.slice(0, len);
-    thieInfo.size = this.#data.length;
-    await this.#db.put("file", this.#data.buffer, this.#ino);
+    thieInfo.size = this.#data.byteLength;
+    await this.#db.put("file", this.#data, this.#ino);
   }
 
   seekSync(offset: number, whence: SeekMode) {
@@ -261,9 +261,8 @@ class IDBFile implements FileResource {
   async #tryGetData() {
     if (this.#data) return this.#data;
 
-    const data = await this.#db.get("file", this.#ino);
-    if (!data) throw new NotFound(`ino: ${this.#ino}`);
-    this.#data = new Uint8Array(data);
+    this.#data = await this.#db.get("file", this.#ino);
+    if (!this.#data) throw new NotFound(`ino: ${this.#ino}`);
 
     clearTimeout(this.#dataId);
     this.#dataId = setTimeout(() => (this.#data = undefined), EXPIRY_TIME);
@@ -288,7 +287,7 @@ class IDBFile implements FileResource {
 export class IDBFileSystem implements FileSystem {
   #db!: DB;
 
-  constructor(version: number) {
+  constructor(version = 1) {
     void openDB<FSSchema>("fs", version, {
       upgrade(db) {
         const tree = db.createObjectStore("tree");
@@ -465,7 +464,7 @@ export class IDBFileSystem implements FileSystem {
       const dirs = [cur];
       // Get the most top directory.
       {
-        const tx = this.#db.transaction("tree", "readonly");
+        const tx = this.#db.transaction("tree");
 
         const curKey = await tx.store.getKey(cur);
         if (curKey === cur) throw new AlreadyExists(`mkdir '${pathStr}'`);
@@ -507,7 +506,7 @@ export class IDBFileSystem implements FileSystem {
       const dir = dirname(cur);
       let dirIno: number | undefined;
       {
-        const tx = this.#db.transaction("tree", "readonly");
+        const tx = this.#db.transaction("tree");
         let curKey: string | undefined;
         [dirIno, curKey] = await Promise.all([
           tx.store.get(dir),
@@ -674,8 +673,8 @@ export class IDBFileSystem implements FileSystem {
     const pathStr = pathFromURL(path);
     const absPath = resolve(pathStr);
 
-    const tree = this.#db.transaction("tree", "readonly");
-    const table = this.#db.transaction("table", "readonly");
+    const tree = this.#db.transaction("tree");
+    const table = this.#db.transaction("table");
     return {
       async *[Symbol.asyncIterator]() {
         const range = IDBKeyRange.lowerBound(`${absPath}/`, true);
@@ -921,7 +920,7 @@ export class IDBFileSystem implements FileSystem {
     const absNewPath = resolve(newpathStr);
 
     const tree = this.#db.transaction("tree", "readwrite");
-    const table = this.#db.transaction("table", "readwrite");
+    const table = this.#db.transaction("table");
     const oldIno = await tree.store.get(absOldPath);
     if (!oldIno)
       throw new NotFound(`symlink '${oldpathStr}' -> '${newpathStr}'`);

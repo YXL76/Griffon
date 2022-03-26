@@ -28,7 +28,7 @@ declare global {
     isArray<T extends unknown[]>(arg: T | unknown): arg is T;
   }
 
-  interface Object {
+  interface ObjectConstructor {
     hasOwn<K extends string>(o: Record<K, unknown>, v: string): v is K;
   }
 }

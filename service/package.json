@@ -1,5 +1,7 @@
 {
   "name": "@griffon/service",
+  "author": "YXL <chenxin.lan.76@gmail.com>",
+  "license": "(MIT OR Apache-2.0)",
   "private": true,
   "dependencies": {
     "@griffon/shared": "workspace:*"

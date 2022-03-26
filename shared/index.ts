@@ -7,7 +7,6 @@ export const enum CONST {
   serviceURL = "/service.mjs",
   workerURL = "/worker.mjs",
   pidUnit = 1000,
-  idbVersion = 1,
 }
 
 export function pid2Uid(pid: number) {

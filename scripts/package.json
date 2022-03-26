@@ -1,5 +1,8 @@
 {
   "name": "@griffon/scripts",
+  "author": "YXL <chenxin.lan.76@gmail.com>",
+  "license": "(MIT OR Apache-2.0)",
+  "private": true,
   "scripts": {
     "build": "yarn esrun build.ts"
   },
@@ -8,6 +11,5 @@
     "@types/node": "16.11.26",
     "@yarnpkg/esbuild-plugin-pnp": "2.0.1",
     "esbuild": "*"
-  },
-  "private": true
+  }
 }
