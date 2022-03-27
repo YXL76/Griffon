@@ -114,6 +114,7 @@ __metadata:
   dependencies:
     "@griffon/deno-std": "workspace:*"
     "@griffon/shared": "workspace:*"
+    "@types/wicg-file-system-access": 2020.9.5
   languageName: unknown
   linkType: soft
 
@@ -314,6 +315,13 @@ __metadata:
   version: 1.0.0
   resolution: "@types/treeify@npm:1.0.0"
   checksum: 1b2397030d13beee7f82b878ca80feeddb0d550a6b00d8be30082a370c0ac5985ecf7b9378cf93ea278ff00c3e900b416ae8d9379f2c7e8caecdece1dfc77380
+  languageName: node
+  linkType: hard
+
+"@types/wicg-file-system-access@npm:2020.9.5":
+  version: 2020.9.5
+  resolution: "@types/wicg-file-system-access@npm:2020.9.5"
+  checksum: 56243705df43fd3b18049adcf5cb639dfbec5a033a33991f4050d0f6e09ebc94a70f426fde1926b7b0fb493d75ea7064eba95e06852eccd8d9cff4b1fde47e35
   languageName: node
   linkType: hard
 

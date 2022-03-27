@@ -66,7 +66,20 @@ type DenoFsMethodsWithoutTmp =
   | DenoFsMethodsSyncWithoutTmp
   | DenoFsMethodsAsyncWithoutTmp;
 
+type DenoFsMethods =
+  | DenoTmpFSMethodsSync
+  | DenoTmpFSMethodsASync
+  | DenoFsMethodsSyncWithoutTmp
+  | DenoFsMethodsAsyncWithoutTmp;
+
 export type FileSystem = Partial<Pick<DenoType, DenoFsMethodsWithoutTmp>>;
+
+export interface StorageDevice {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  newDevice(...args: any[]): Promise<FileSystem>;
+}
+
+export type RootFileSystem = Pick<DenoType, DenoFsMethods>;
 
 export type DenoDeprecated =
   | "copy"
@@ -88,12 +101,15 @@ export type DenoFFI =
   | "UnsafeFnPointer"
   | "dlopen";
 
-export type FileInfo = {
-  [K in keyof Omit<
-    DenoNamespace.FileInfo,
-    "atime" | "dev" | "mode" | "uid" | "gid" | "rdev" | "blksize" | "blocks"
-  >]: NonNullable<DenoNamespace.FileInfo[K]>;
-};
+export type FileInfo = Omit<
+  DenoNamespace.FileInfo,
+  "atime" | "dev" | "mode" | "uid" | "gid" | "rdev" | "blksize" | "blocks"
+>;
+
+export type FilePerms = Pick<
+  DenoNamespace.OpenOptions,
+  "read" | "write" | "append"
+>;
 
 /**
  * Resources (AKA rid) are Deno's version of file descriptors.They are integer values

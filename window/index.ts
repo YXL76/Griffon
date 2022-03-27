@@ -64,7 +64,8 @@ export async function boot({ env = {} }: BootConfig = {}) {
       self.Deno.pid = pid;
       hackDeno();
       return hackNode();
-    });
+    })
+    .then((require) => ({ require, hackDenoFS }));
 }
 
 function hackDeno() {
@@ -96,7 +97,7 @@ function hackDeno() {
     }
   };
 
-  hackDenoFS();
+  // hackDenoFS();
 }
 
 /**

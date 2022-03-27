@@ -1,6 +1,6 @@
 // @ts-check
 
-/**@type {import('./five-server').LiveServerParams}*/
+/**@type {import('./scripts/five-server').LiveServerParams}*/
 const config = {
   browser: "google-chrome-unstable",
   cors: false,
@@ -10,10 +10,12 @@ const config = {
     (_req, res, next) => {
       res.header("Cross-Origin-Opener-Policy", "same-origin");
       res.header("Cross-Origin-Embedder-Policy", "require-corp");
+      res.header("Service-Worker-Allowed", "/");
       next();
     },
   ],
   injectBody: false,
+  root: "dist",
 };
 
 module.exports = config;

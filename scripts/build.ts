@@ -46,14 +46,8 @@ const basicConfig: BuildOptions = {
     }),
   ]);
 
-  await Promise.all([
-    copyFile(
-      resolve(examplePath, "index.html"),
-      resolve(distPath, "index.html")
-    ),
-    copyFile(
-      "fiveserver.config.cjs",
-      resolve(distPath, "fiveserver.config.cjs")
-    ),
-  ]);
+  await copyFile(
+    resolve(examplePath, "index.html"),
+    resolve(distPath, "index.html")
+  );
 })().catch(console.error);

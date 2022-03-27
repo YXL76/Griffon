@@ -16,6 +16,7 @@ import type { DBSchema, IDBPDatabase } from "idb";
 import type {
   DenoNamespace,
   FileInfo,
+  FilePerms,
   FileResource,
   FileSystem,
 } from "@griffon/deno-std";
@@ -68,11 +69,6 @@ async function trvSymlink(db: DB, ino: number, info: SFileInfo) {
   return { ino, info };
 }
 
-type IDBFilePerms = Pick<
-  DenoNamespace.OpenOptions,
-  "read" | "write" | "append"
->;
-
 const EXPIRY_TIME = 128;
 
 /**
@@ -100,14 +96,14 @@ class IDBFile implements FileResource {
 
   readonly #ino: number;
 
-  readonly #perms: IDBFilePerms;
+  readonly #perms: FilePerms;
 
   constructor(
     db: DB,
     origIno: number,
     ino: number,
     info: SFileInfo,
-    perms: IDBFilePerms
+    perms: FilePerms
   ) {
     this.#db = db;
     this.#origIno = origIno;
@@ -152,7 +148,7 @@ class IDBFile implements FileResource {
   async read(buffer: Uint8Array) {
     if (!this.#perms.read) throw new Error("Bad file descriptor (os error 9)");
 
-    await this.#tryGetData();
+    await Promise.all([this.#tryGetData(), this.#tryGetInfo()]);
 
     return this.readSync(buffer);
   }
@@ -177,6 +173,9 @@ class IDBFile implements FileResource {
 
       this.#data = concatBuffers([thisData, buffer]).buffer;
     }
+
+    clearTimeout(this.#dataId);
+    this.#dataId = setTimeout(() => (this.#data = undefined), EXPIRY_TIME);
 
     const thieInfo = await this.#tryGetInfo();
     thieInfo.size = this.#data.byteLength;
@@ -291,10 +290,14 @@ class IDBFile implements FileResource {
 }
 
 export class IDBFileSystem implements FileSystem {
-  #db!: DB;
+  readonly #db!: DB;
 
-  constructor(version = 1) {
-    void openDB<FSSchema>("fs", version, {
+  private constructor(db: DB) {
+    this.#db = db;
+  }
+
+  static async newDevice(name = "fs", version = 1) {
+    const db = await openDB<FSSchema>(name, version, {
       upgrade(db) {
         const tree = db.createObjectStore("tree");
         const table = db.createObjectStore("table", { autoIncrement: true });
@@ -309,7 +312,9 @@ export class IDBFileSystem implements FileSystem {
       terminated() {
         console.error("Database was terminated");
       },
-    }).then((db) => (this.#db = db));
+    });
+
+    return new IDBFileSystem(db);
   }
 
   async link(oldpath: string, newpath: string) {
@@ -343,7 +348,7 @@ export class IDBFileSystem implements FileSystem {
   async open(
     path: string | URL,
     options: DenoNamespace.OpenOptions = { read: true }
-  ): Promise<FsFile> {
+  ) {
     checkOpenOptions(options);
     const pathStr = pathFromURL(path);
     const absPath = resolve(pathStr);
@@ -352,45 +357,44 @@ export class IDBFileSystem implements FileSystem {
     let info: SFileInfo | undefined;
     let realIno: number | undefined;
     let realInfo: SFileInfo | undefined;
-    {
-      ino = await this.#db.get("tree", absPath);
-      if (!ino) {
-        if (!options.create && !options.createNew)
-          throw new NotFound(`open '${pathStr}'`);
 
-        info = newFileInfo();
-        ino = await this.#db.add("table", info);
-        await Promise.all([
-          this.#db.add("tree", ino, absPath),
-          this.#db.add("file", new ArrayBuffer(0), ino),
-        ]);
-      } else {
-        if (options.createNew) throw new AlreadyExists(`open '${pathStr}'`);
+    ino = await this.#db.get("tree", absPath);
+    if (!ino) {
+      if (!options.create && !options.createNew)
+        throw new NotFound(`open '${pathStr}'`);
 
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        info = (await this.#db.get("table", ino))!;
+      info = newFileInfo();
+      ino = await this.#db.add("table", info);
+      await Promise.all([
+        this.#db.add("tree", ino, absPath),
+        this.#db.add("file", new ArrayBuffer(0), ino),
+      ]);
+    } else {
+      if (options.createNew) throw new AlreadyExists(`open '${pathStr}'`);
 
-        if (info.isDirectory) {
-          if (options.append || options.write || options.truncate)
-            throw new Error(`Is a directory (os error 21), open '${pathStr}'`);
-        } else if (info.isFile || info.isSymlink) {
-          if (options.truncate) {
-            ({ ino: realIno, info: realInfo } = info.isSymlink
-              ? await trvSymlink(this.#db, ino, info)
-              : { ino, info });
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      info = (await this.#db.get("table", ino))!;
 
-            realInfo.size = 0;
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore, the I-node is modified.
-            realInfo.mtime = new Date();
-            await Promise.all([
-              this.#db.put("table", realInfo, realIno),
-              this.#db.put("file", new ArrayBuffer(0), realIno),
-            ]);
-          }
-        } else {
-          notImplemented();
+      if (info.isDirectory) {
+        if (options.append || options.write || options.truncate)
+          throw new Error(`Is a directory (os error 21), open '${pathStr}'`);
+      } else if (info.isFile || info.isSymlink) {
+        if (options.truncate) {
+          ({ ino: realIno, info: realInfo } = info.isSymlink
+            ? await trvSymlink(this.#db, ino, info)
+            : { ino, info });
+
+          realInfo.size = 0;
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore, the I-node is modified.
+          realInfo.mtime = new Date();
+          await Promise.all([
+            this.#db.put("table", realInfo, realIno),
+            this.#db.put("file", new ArrayBuffer(0), realIno),
+          ]);
         }
+      } else {
+        notImplemented();
       }
     }
 
@@ -699,8 +703,11 @@ export class IDBFileSystem implements FileSystem {
     const prefixLen = absPath === "/" ? 1 : absPath.length + 1;
     return {
       async *[Symbol.asyncIterator]() {
-        const range = IDBKeyRange.lowerBound(absPath, true);
+        const range = IDBKeyRange.lowerBound(absPath);
         let cur = await db.transaction("tree").store.openCursor(range);
+
+        if (!cur) throw new NotFound(`readDir '${pathStr}'`);
+        cur = await cur.continue();
 
         while (cur && cur.key.startsWith(absPath)) {
           const absName = cur.key;
@@ -728,7 +735,7 @@ export class IDBFileSystem implements FileSystem {
     const fromPathStr = pathFromURL(fromPath);
     const absFromPath = resolve(fromPathStr);
     const toPathStr = pathFromURL(toPath);
-    const absToPath = pathFromURL(toPathStr);
+    const absToPath = resolve(toPathStr);
 
     const fromIno = await this.#db.get("tree", absFromPath);
     if (!fromIno) throw new NotFound(`copy '${fromPathStr}' -> '${toPathStr}'`);
@@ -908,12 +915,13 @@ export class IDBFileSystem implements FileSystem {
     const ino = await this.#db.get("tree", absPath);
     if (!ino) throw new NotFound(`truncate '${name}'`);
 
-    const [info, data] = await Promise.all([
-      this.#db.get("table", ino),
-      this.#db.get("file", ino),
-    ]);
+    const info = await this.#db.get("table", ino);
+    if (!info) throw new NotFound(`truncate '${name}'`);
+    if (info.isDirectory)
+      throw new TypeError(`Is a directory (os error 21), truncate '${name}'`);
 
-    if (!info || !data) throw new NotFound(`truncate '${name}'`);
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const data = (await this.#db.get("file", ino))!;
 
     if (len < data.byteLength) {
       await Promise.all([
