@@ -1,0 +1,66 @@
+import { UnionFileSystem } from "@griffon/shared";
+
+export async function hackDenoFS() {
+  const rootFS = await UnionFileSystem.create();
+
+  self.Deno.linkSync = rootFS.linkSync.bind(rootFS);
+  self.Deno.link = rootFS.link.bind(rootFS);
+  self.Deno.openSync = rootFS.openSync.bind(rootFS);
+  self.Deno.open = rootFS.open.bind(rootFS);
+  self.Deno.createSync = rootFS.createSync.bind(rootFS);
+  self.Deno.create = rootFS.create.bind(rootFS);
+  self.Deno.readSync = rootFS.readSync.bind(rootFS);
+  self.Deno.read = rootFS.read.bind(rootFS);
+  self.Deno.writeSync = rootFS.writeSync.bind(rootFS);
+  self.Deno.write = rootFS.write.bind(rootFS);
+  self.Deno.seekSync = rootFS.seekSync.bind(rootFS);
+  self.Deno.seek = rootFS.seek.bind(rootFS);
+  self.Deno.fsyncSync = rootFS.fsyncSync.bind(rootFS);
+  self.Deno.fsync = rootFS.fsync.bind(rootFS);
+  self.Deno.fdatasyncSync = rootFS.fdatasyncSync.bind(rootFS);
+  self.Deno.fdatasync = rootFS.fdatasync.bind(rootFS);
+  self.Deno.mkdirSync = rootFS.mkdirSync.bind(rootFS);
+  self.Deno.mkdir = rootFS.mkdir.bind(rootFS);
+  self.Deno.makeTempDirSync = rootFS.makeTempDirSync.bind(rootFS);
+  self.Deno.makeTempDir = rootFS.makeTempDir.bind(rootFS);
+  self.Deno.makeTempFileSync = rootFS.makeTempFileSync.bind(rootFS);
+  self.Deno.makeTempFile = rootFS.makeTempFile.bind(rootFS);
+  self.Deno.chmodSync = rootFS.chmodSync.bind(rootFS);
+  self.Deno.chmod = rootFS.chmod.bind(rootFS);
+  self.Deno.chownSync = rootFS.chownSync.bind(rootFS);
+  self.Deno.chown = rootFS.chown.bind(rootFS);
+  self.Deno.removeSync = rootFS.removeSync.bind(rootFS);
+  self.Deno.remove = rootFS.remove.bind(rootFS);
+  self.Deno.renameSync = rootFS.renameSync.bind(rootFS);
+  self.Deno.rename = rootFS.rename.bind(rootFS);
+  self.Deno.readTextFileSync = rootFS.readTextFileSync.bind(rootFS);
+  self.Deno.readTextFile = rootFS.readTextFile.bind(rootFS);
+  self.Deno.readFileSync = rootFS.readFileSync.bind(rootFS);
+  self.Deno.readFile = rootFS.readFile.bind(rootFS);
+  self.Deno.realPathSync = rootFS.realPathSync.bind(rootFS);
+  self.Deno.realPath = rootFS.realPath.bind(rootFS);
+  self.Deno.readDirSync = rootFS.readDirSync.bind(rootFS);
+  self.Deno.readDir = rootFS.readDir.bind(rootFS);
+  self.Deno.copyFileSync = rootFS.copyFileSync.bind(rootFS);
+  self.Deno.copyFile = rootFS.copyFile.bind(rootFS);
+  self.Deno.readLinkSync = rootFS.readLinkSync.bind(rootFS);
+  self.Deno.readLink = rootFS.readLink.bind(rootFS);
+  self.Deno.lstatSync = rootFS.lstatSync.bind(rootFS);
+  self.Deno.lstat = rootFS.lstat.bind(rootFS);
+  self.Deno.statSync = rootFS.statSync.bind(rootFS);
+  self.Deno.stat = rootFS.stat.bind(rootFS);
+  self.Deno.writeFileSync = rootFS.writeFileSync.bind(rootFS);
+  self.Deno.writeFile = rootFS.writeFile.bind(rootFS);
+  self.Deno.writeTextFileSync = rootFS.writeTextFileSync.bind(rootFS);
+  self.Deno.writeTextFile = rootFS.writeTextFile.bind(rootFS);
+  self.Deno.truncateSync = rootFS.truncateSync.bind(rootFS);
+  self.Deno.truncate = rootFS.truncate.bind(rootFS);
+  self.Deno.symlinkSync = rootFS.symlinkSync.bind(rootFS);
+  self.Deno.symlink = rootFS.symlink.bind(rootFS);
+  self.Deno.ftruncateSync = rootFS.ftruncateSync.bind(rootFS);
+  self.Deno.ftruncate = rootFS.ftruncate.bind(rootFS);
+  self.Deno.fstatSync = rootFS.fstatSync.bind(rootFS);
+  self.Deno.fstat = rootFS.fstat.bind(rootFS);
+
+  return rootFS;
+}

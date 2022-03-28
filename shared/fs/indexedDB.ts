@@ -17,6 +17,7 @@ import type {
   FilePerms,
   FileResource,
   FileSystem,
+  StorageDevice,
 } from "@griffon/deno-std";
 import { newDirInfo, newFileInfo, newSymlinkInfo } from ".";
 import { dirname } from "@griffon/deno-std/deno_std/path/posix";
@@ -287,19 +288,20 @@ class IndexedDBFile implements FileResource {
   }
 }
 
-const openedDB = new Map<string, DB>();
+class IndexedDBStorageDevice implements StorageDevice {
+  #openedDB = new Map<string, DB>();
 
-export class IndexedDBFileSystem implements FileSystem {
-  readonly #db!: DB;
+  #name = "idb" as const;
 
-  private constructor(db: DB) {
-    this.#db = db;
+  get name() {
+    return this.#name;
   }
 
-  static async newDevice(name = "fs", version = 1) {
+  async newDevice(name = "fs", version = 1) {
     const key = `${name}-${version}`;
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    if (openedDB.has(key)) return new IndexedDBFileSystem(openedDB.get(key)!);
+    if (this.#openedDB.has(key))
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      return new IndexedDBFileSystem(this.#openedDB.get(key)!);
 
     const db = await openDB<FSSchema>(name, version, {
       upgrade(db) {
@@ -318,9 +320,21 @@ export class IndexedDBFileSystem implements FileSystem {
       },
     });
 
-    openedDB.set(key, db);
+    this.#openedDB.set(key, db);
 
     return new IndexedDBFileSystem(db);
+  }
+}
+
+export type { IndexedDBStorageDevice };
+
+export const indexedDBStorageDevice = new IndexedDBStorageDevice();
+
+class IndexedDBFileSystem implements FileSystem {
+  readonly #db!: DB;
+
+  constructor(db: DB) {
+    this.#db = db;
   }
 
   async link(oldpath: string, newpath: string) {
@@ -648,9 +662,10 @@ export class IndexedDBFileSystem implements FileSystem {
     const absPath = pathStr;
 
     const db = this.#db;
-    const prefixLen = absPath === "/" ? 1 : absPath.length + 1;
     return {
       async *[Symbol.asyncIterator]() {
+        const prefixLen = absPath === "/" ? 1 : absPath.length + 1;
+
         const range = IDBKeyRange.lowerBound(absPath);
         let cur = await db.transaction("tree").store.openCursor(range);
 

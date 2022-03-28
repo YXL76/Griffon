@@ -16,6 +16,11 @@ import { Process } from "./process";
 import type { Win2Win } from "@griffon/shared";
 import { hackDenoFS } from "./fs";
 
+export type {
+  IndexedDBStorageDevice,
+  FileAccessStorageDevice,
+} from "@griffon/shared";
+
 export interface BootConfig {
   /**
    * NOTE: Some properties will be overrided.
@@ -24,8 +29,12 @@ export interface BootConfig {
 }
 
 export async function boot({ env = {} }: BootConfig = {}) {
+  const register = navigator.serviceWorker.register(CONST.serviceURL, {
+    type: "module",
+    scope: "/",
+  });
+
   self.Deno = Deno;
-  self.SWC = navigator.serviceWorker;
   // Pretend the max child process number is 64.
   self.SAB = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * 64);
   self.SAB32 = new Int32Array(self.SAB);
@@ -37,35 +46,31 @@ export async function boot({ env = {} }: BootConfig = {}) {
 
   for (const [key, value] of Object.entries(env)) Deno.env.set(key, value);
 
-  return self.SWC.register(CONST.serviceURL, { type: "module", scope: "/" })
-    .then((reg) => {
-      self.SWR = reg;
-      self.SW = reg.installing ?? reg.waiting ?? <ServiceWorker>reg.active;
-      if (self.SW.state === "activated") return;
+  self.SWR = await register;
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  self.SW = self.SWR.installing ?? self.SWR.waiting ?? self.SWR.active!;
+  if (self.SW.state !== "activated") {
+    await new Promise((resolve) => {
+      const listener = () => {
+        if (self.SW.state === "activated")
+          resolve(self.SW.removeEventListener("statechange", listener));
+      };
+      self.SW.addEventListener("statechange", listener);
+    });
+  }
 
-      return new Promise((resolve) => {
-        const listener = () => {
-          if (self.SW.state === "activated")
-            resolve(self.SW.removeEventListener("statechange", listener));
-        };
-        self.SW.addEventListener("statechange", listener);
-      });
-    })
-    .then(() => {
-      if (self.SW !== self.SWC.controller)
-        throw Error("Service worker not activated");
-      console.log("Service worker activated");
+  if (self.SW !== navigator.serviceWorker.controller)
+    throw Error("Service worker not activated");
+  console.log("Service worker activated");
 
-      return Channel.svc({ _t: WinSvcChanTp.user });
-    })
-    .then(({ pid }) => {
-      PCB.uid = pid2Uid(pid);
-      PCB.cwd = `/home/${PCB.uid}`;
-      self.Deno.pid = pid;
-      hackDeno();
-      return hackNode();
-    })
-    .then((require) => ({ require, hackDenoFS }));
+  const { pid } = await Channel.svc({ _t: WinSvcChanTp.user });
+  PCB.uid = pid2Uid(pid);
+  self.Deno.pid = pid;
+
+  const rootFS = await hackDeno();
+  const require = await hackNode();
+
+  return { require, rootFS };
 }
 
 function hackDeno() {
@@ -97,7 +102,7 @@ function hackDeno() {
     }
   };
 
-  // hackDenoFS();
+  return hackDenoFS();
 }
 
 /**

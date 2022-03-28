@@ -14,6 +14,7 @@ import type {
   FilePerms,
   FileResource,
   FileSystem,
+  StorageDevice,
 } from "@griffon/deno-std";
 
 type FSHandle = FileSystemDirectoryHandle | FileSystemFileHandle;
@@ -171,17 +172,17 @@ class FileAccessFile implements FileResource {
   }
 }
 
-export class FileAccessFileSystem implements FileSystem {
-  readonly #root!: FileSystemDirectoryHandle;
+class FileAccessStorageDevice implements StorageDevice {
+  #name = "fa" as const;
 
-  constructor(root: FileSystemDirectoryHandle) {
-    this.#root = root;
+  get name() {
+    return this.#name;
   }
 
   /**
    * Available only in window scope.
    */
-  static async newDevice(ex?: FileSystemDirectoryHandle) {
+  async newDevice(ex?: FileSystemDirectoryHandle) {
     if (ex instanceof FileSystemDirectoryHandle)
       return new FileAccessFileSystem(ex);
 
@@ -192,6 +193,18 @@ export class FileAccessFileSystem implements FileSystem {
       }
     }
     return new FileAccessFileSystem(root);
+  }
+}
+
+export type { FileAccessStorageDevice };
+
+export const fileAccessStorageDevice = new FileAccessStorageDevice();
+
+export class FileAccessFileSystem implements FileSystem {
+  readonly #root!: FileSystemDirectoryHandle;
+
+  constructor(root: FileSystemDirectoryHandle) {
+    this.#root = root;
   }
 
   async open(

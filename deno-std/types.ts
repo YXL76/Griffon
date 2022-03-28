@@ -79,6 +79,7 @@ type DenoFsMethods =
 export type FileSystem = Partial<Pick<DenoType, DenoFsMethodsWithoutTmp>>;
 
 export interface StorageDevice {
+  readonly name: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   newDevice(...args: any[]): Promise<FileSystem>;
 }

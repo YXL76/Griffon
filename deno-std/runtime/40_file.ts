@@ -1,7 +1,12 @@
 // Copyright 2018-2022 the Deno authors. All rights reserved. MIT license.
 
 import type { DenoNamespace, Resource } from "..";
-import { RESC_TABLE, notImplemented } from "..";
+import {
+  RESC_TABLE,
+  notImplemented,
+  readableStreamForRid,
+  writableStreamForRid,
+} from "..";
 import {
   fstat,
   fstatSync,
@@ -29,20 +34,18 @@ export class FsFile {
     return this.#rid;
   }
 
-  get readable(): ReadableStream<Uint8Array> {
-    return notImplemented();
-    /* if (this.#readable === undefined) {
+  get readable() {
+    if (this.#readable === undefined) {
       this.#readable = readableStreamForRid(this.rid);
     }
-    return this.#readable; */
+    return this.#readable;
   }
 
-  get writable(): WritableStream<Uint8Array> {
-    return notImplemented();
-    /* if (this.#writable === undefined) {
+  get writable() {
+    if (this.#writable === undefined) {
       this.#writable = writableStreamForRid(this.rid);
     }
-    return this.#writable; */
+    return this.#writable;
   }
 
   write(p: Uint8Array) {
@@ -107,27 +110,23 @@ class Stdin implements Resource {
     return "stdin";
   }
 
-  get readable(): ReadableStream<Uint8Array> {
-    return notImplemented();
-    /* if (this.#readable === undefined) {
+  get readable() {
+    if (this.#readable === undefined) {
       this.#readable = readableStreamForRid(this.rid);
     }
-    return this.#readable; */
+    return this.#readable;
   }
 
-  read(p: Uint8Array): Promise<number | null> {
-    notImplemented();
-    // return read(this.rid, p);
+  read(p: Uint8Array) {
+    return read(this.rid, p);
   }
 
-  readSync(p: Uint8Array): number | null {
-    notImplemented();
-    // return readSync(this.rid, p);
+  readSync(p: Uint8Array) {
+    return readSync(this.rid, p);
   }
 
   close() {
-    notImplemented();
-    // core.close(this.rid);
+    RESC_TABLE.close(this.rid);
   }
 }
 
@@ -142,27 +141,23 @@ class Stdout implements Resource {
     return "stdout";
   }
 
-  get writable(): WritableStream<Uint8Array> {
-    return notImplemented();
-    /* if (this.#writable === undefined) {
+  get writable() {
+    if (this.#writable === undefined) {
       this.#writable = writableStreamForRid(this.rid);
     }
-    return this.#writable; */
+    return this.#writable;
   }
 
-  write(p: Uint8Array): Promise<number> {
-    notImplemented();
-    // return write(this.rid, p);
+  write(p: Uint8Array) {
+    return write(this.rid, p);
   }
 
-  writeSync(p: Uint8Array): number {
-    notImplemented();
-    // return writeSync(this.rid, p);
+  writeSync(p: Uint8Array) {
+    return writeSync(this.rid, p);
   }
 
   close() {
-    notImplemented();
-    // core.close(this.rid);
+    RESC_TABLE.close(this.rid);
   }
 }
 
@@ -177,27 +172,23 @@ class Stderr implements Resource {
     return "stderr";
   }
 
-  get writable(): WritableStream<Uint8Array> {
-    return notImplemented();
-    /* if (this.#writable === undefined) {
+  get writable() {
+    if (this.#writable === undefined) {
       this.#writable = writableStreamForRid(this.rid);
     }
-    return this.#writable; */
+    return this.#writable;
   }
 
-  write(p: Uint8Array): Promise<number> {
-    notImplemented();
-    // return write(this.rid, p);
+  write(p: Uint8Array) {
+    return write(this.rid, p);
   }
 
-  writeSync(p: Uint8Array): number {
-    notImplemented();
-    // return writeSync(this.rid, p);
+  writeSync(p: Uint8Array) {
+    return writeSync(this.rid, p);
   }
 
   close() {
-    notImplemented();
-    // core.close(this.rid);
+    RESC_TABLE.close(this.rid);
   }
 }
 

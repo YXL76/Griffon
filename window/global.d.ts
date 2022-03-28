@@ -5,7 +5,6 @@ declare global {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   var Deno: DenoType;
   var SW: ServiceWorker;
-  var SWC: ServiceWorkerContainer;
   var SWR: ServiceWorkerRegistration;
   /** Shared with all child processes. */
   var SAB: SharedArrayBuffer;

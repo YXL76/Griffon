@@ -1,17 +1,28 @@
+import type {
+  FileAccessStorageDevice,
+  IndexedDBStorageDevice,
+} from "@griffon/window";
 import { boot } from "@griffon/window";
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-const { require, hackDenoFS } = await boot();
+const { require, rootFS } = await boot();
 
 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-const fsBtn = document.getElementById("fs-btn")! as HTMLButtonElement;
+const faBtn = document.getElementById("fa-btn")! as HTMLButtonElement;
+// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+const idbBtn = document.getElementById("idb-btn")! as HTMLButtonElement;
 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 const runBtn = document.getElementById("run-btn")! as HTMLButtonElement;
 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 const input = document.getElementById("code-input")! as HTMLTextAreaElement;
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-fsBtn.addEventListener("click", hackDenoFS);
+faBtn.addEventListener("click", () => {
+  rootFS.newStorageDev<FileAccessStorageDevice>("fa").catch(console.error);
+});
+
+idbBtn.addEventListener("click", () => {
+  rootFS.newStorageDev<IndexedDBStorageDevice>("idb").catch(console.error);
+});
 
 let lock = false;
 runBtn.addEventListener("click", () => {

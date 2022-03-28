@@ -17,11 +17,21 @@ import type {
   Resource,
   RootFileSystem,
   SeekMode,
+  StorageDevice,
 } from "@griffon/deno-std";
-import { FileAccessFileSystem } from ".";
+import {
+  FileAccessFileSystem,
+  fileAccessStorageDevice,
+  indexedDBStorageDevice,
+} from ".";
 import { resolve } from "@griffon/deno-std/deno_std/path/posix";
 
 class DeviceFileSystem implements FileSystem {
+  #storageDevs: Record<string, { dev: StorageDevice; cnt: number }> = {
+    [fileAccessStorageDevice.name]: { dev: fileAccessStorageDevice, cnt: 0 },
+    [indexedDBStorageDevice.name]: { dev: indexedDBStorageDevice, cnt: 0 },
+  };
+
   #tree = new Map<string, FileSystem>();
 
   has(path: string) {
@@ -41,6 +51,17 @@ class DeviceFileSystem implements FileSystem {
     this.#tree.delete(path);
   }
 
+  async newStorageDev<D extends StorageDevice>(
+    name: D["name"],
+    ...args: Parameters<D["newDevice"]>
+  ) {
+    const dev = this.#storageDevs[name];
+    if (!dev) throw new NotFound(name);
+    const newDev = await dev.dev.newDevice(...args);
+    dev.cnt += 1;
+    this.#tree.set(`/${name}${dev.cnt}`, newDev);
+  }
+
   readDirSync(path: string | URL) {
     const pathStr = pathFromURL(path);
     const absPath = resolve(pathStr);
@@ -51,7 +72,7 @@ class DeviceFileSystem implements FileSystem {
         for (const path of tree.keys()) {
           if (!path.startsWith(absPath)) continue;
           const name = path.slice(absPath.length + 1);
-          if (name.includes("/")) continue;
+          if (!name || name.includes("/")) continue;
           yield { name, isFile: false, isDirectory: false, isSymlink: false };
         }
       },
@@ -69,7 +90,7 @@ class DeviceFileSystem implements FileSystem {
         for (const path of tree.keys()) {
           if (!path.startsWith(absPath)) continue;
           const name = path.slice(absPath.length + 1);
-          if (name.includes("/")) continue;
+          if (!name || name.includes("/")) continue;
           yield { name, isFile: false, isDirectory: false, isSymlink: false };
         }
       },
@@ -105,11 +126,18 @@ export class UnionFileSystem
     return (this._instance = new UnionFileSystem(root));
   }
 
+  newStorageDev<D extends StorageDevice>(
+    name: D["name"],
+    ...args: Parameters<D["newDevice"]>
+  ) {
+    return this.#mounts["/dev"].newStorageDev(name, ...args);
+  }
+
   mount(device: string | URL, point: string | URL) {
     const pointStr = pathFromURL(point);
     const absPoint = resolve(pointStr);
 
-    if (Object.keys(this.#mounts).find((v) => v.startsWith(absPoint)))
+    if (Object.keys(this.#mounts).find((v) => absPoint.startsWith(v)))
       throw new AlreadyExists(`mount '${pointStr}'`);
 
     const deviceStr = pathFromURL(device);
@@ -410,23 +438,21 @@ export class UnionFileSystem
     const absPath = resolve(pathFromURL(path));
     const { fs, rp } = this.#accessMount(absPath, "readDirSync");
 
-    const mounts = Object.entries(this.#mounts);
+    const mounts = Object.keys(this.#mounts);
 
     return {
       *[Symbol.iterator]() {
         if (fs) {
           for (const entry of fs.readDirSync(rp)) yield entry;
-        }
+        } else console.warn(`readDirSync not implemented`);
 
-        for (const [path, fs] of mounts) {
-          if (
-            typeof fs.readDirSync !== "function" ||
-            !path.startsWith(absPath) ||
-            path.slice(absPath.length + 1).includes("/")
-          )
-            continue;
+        const prefixLen = absPath === "/" ? 1 : absPath.length + 1;
+        for (const devpath of mounts) {
+          if (!devpath.startsWith(absPath)) continue;
 
-          for (const entry of fs.readDirSync("/")) yield entry;
+          const name = devpath.slice(prefixLen);
+          if (!name || name.includes("/")) continue;
+          yield { name, isFile: false, isDirectory: true, isSymlink: false };
         }
       },
     };
@@ -437,21 +463,19 @@ export class UnionFileSystem
     const { fs, rp } = this.#accessMount(path, "readDir");
 
     const iter = fs ? fs.readDir(rp) : super.readDir(rp);
-    const mounts = Object.entries(this.#mounts);
+    const mounts = Object.keys(this.#mounts);
 
     return {
       async *[Symbol.asyncIterator]() {
         for await (const entry of iter) yield entry;
 
-        for (const [path, fs] of mounts) {
-          if (
-            typeof fs.readDir !== "function" ||
-            !path.startsWith(absPath) ||
-            path.slice(absPath.length + 1).includes("/")
-          )
-            continue;
+        const prefixLen = absPath === "/" ? 1 : absPath.length + 1;
+        for (const devpath of mounts) {
+          if (!devpath.startsWith(absPath)) continue;
 
-          for await (const entry of fs.readDir("/")) yield entry;
+          const name = devpath.slice(prefixLen);
+          if (!name || name.includes("/")) continue;
+          yield { name, isFile: false, isDirectory: true, isSymlink: false };
         }
       },
     };
@@ -721,7 +745,7 @@ export class UnionFileSystem
   #accessMount<K extends keyof FileSystem>(path: string | URL, method: K) {
     const rp = resolve(pathFromURL(path));
 
-    const point = Object.keys(this.#mounts).find((v) => v.startsWith(rp));
+    const point = Object.keys(this.#mounts).find((v) => rp.startsWith(v));
     if (point) {
       const fs = this.#mounts[point];
 
