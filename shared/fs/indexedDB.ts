@@ -18,8 +18,8 @@ import type {
   FileResource,
   FileSystem,
 } from "@griffon/deno-std";
-import { dirname, resolve } from "@griffon/deno-std/deno_std/path/posix";
 import { newDirInfo, newFileInfo, newSymlinkInfo } from ".";
+import { dirname } from "@griffon/deno-std/deno_std/path/posix";
 import { openDB } from "idb";
 
 interface SFileInfo extends Omit<FileInfo, "ino"> {
@@ -324,8 +324,10 @@ export class IndexedDBFileSystem implements FileSystem {
   }
 
   async link(oldpath: string, newpath: string) {
-    const oldp = resolve(oldpath);
-    const newp = resolve(newpath);
+    // const oldp = resolve(oldpath);
+    const oldp = oldpath;
+    // const newp = resolve(newpath);
+    const newp = newpath;
 
     let ino: number | undefined;
     {
@@ -357,7 +359,8 @@ export class IndexedDBFileSystem implements FileSystem {
   ) {
     checkOpenOptions(options);
     const pathStr = pathFromURL(path);
-    const absPath = resolve(pathStr);
+    // const absPath = resolve(pathStr);
+    const absPath = pathStr;
 
     let ino: number | undefined;
     let info: SFileInfo | undefined;
@@ -426,7 +429,8 @@ export class IndexedDBFileSystem implements FileSystem {
 
   async mkdir(path: string | URL, options?: DenoNamespace.MkdirOptions) {
     const pathStr = pathFromURL(path);
-    const cur = resolve(pathStr);
+    // const cur = resolve(pathStr);
+    const cur = pathStr;
 
     if (options?.recursive) {
       let dirIno: number | undefined;
@@ -514,7 +518,8 @@ export class IndexedDBFileSystem implements FileSystem {
 
   async remove(path: string | URL, options?: DenoNamespace.RemoveOptions) {
     const pathStr = pathFromURL(path);
-    const absPath = resolve(pathStr);
+    // const absPath = resolve(pathStr);
+    const absPath = pathStr;
 
     const ino = await this.#db.get("tree", absPath);
     if (!ino) throw new NotFound(`remove '${pathStr}'`);
@@ -597,9 +602,11 @@ export class IndexedDBFileSystem implements FileSystem {
 
   async rename(oldpath: string | URL, newpath: string | URL) {
     const oldpathStr = pathFromURL(oldpath);
-    const absOldPath = resolve(oldpathStr);
+    // const absOldPath = resolve(oldpathStr);
+    const absOldPath = oldpathStr;
     const newpathStr = pathFromURL(newpath);
-    const absNewPath = resolve(newpathStr);
+    // const absNewPath = resolve(newpathStr);
+    const absNewPath = newpathStr;
 
     let oldIno: number | undefined;
     {
@@ -622,7 +629,8 @@ export class IndexedDBFileSystem implements FileSystem {
 
   async realPath(path: string | URL) {
     const pathStr = pathFromURL(path);
-    const absPath = resolve(pathStr);
+    // const absPath = resolve(pathStr);
+    const absPath = pathStr;
 
     const ino = await this.#db.get("tree", absPath);
     if (!ino) throw new NotFound(`realpath '${pathStr}'`);
@@ -636,7 +644,8 @@ export class IndexedDBFileSystem implements FileSystem {
 
   readDir(path: string | URL) {
     const pathStr = pathFromURL(path);
-    const absPath = resolve(pathStr);
+    // const absPath = resolve(pathStr);
+    const absPath = pathStr;
 
     const db = this.#db;
     const prefixLen = absPath === "/" ? 1 : absPath.length + 1;
@@ -672,9 +681,11 @@ export class IndexedDBFileSystem implements FileSystem {
 
   async copyFile(fromPath: string | URL, toPath: string | URL) {
     const fromPathStr = pathFromURL(fromPath);
-    const absFromPath = resolve(fromPathStr);
+    // const absFromPath = resolve(fromPathStr);
+    const absFromPath = fromPathStr;
     const toPathStr = pathFromURL(toPath);
-    const absToPath = resolve(toPathStr);
+    // const absToPath = resolve(toPathStr);
+    const absToPath = toPathStr;
 
     const fromIno = await this.#db.get("tree", absFromPath);
     if (!fromIno) throw new NotFound(`copy '${fromPathStr}' -> '${toPathStr}'`);
@@ -724,7 +735,8 @@ export class IndexedDBFileSystem implements FileSystem {
 
   async readLink(path: string | URL) {
     const pathStr = pathFromURL(path);
-    const absPath = resolve(pathStr);
+    // const absPath = resolve(pathStr);
+    const absPath = pathStr;
 
     const ino = await this.#db.get("tree", absPath);
     if (!ino) throw new NotFound(`readlink '${pathStr}'`);
@@ -744,7 +756,8 @@ export class IndexedDBFileSystem implements FileSystem {
 
   async lstat(path: string | URL) {
     const pathStr = pathFromURL(path);
-    const absPath = resolve(pathStr);
+    // const absPath = resolve(pathStr);
+    const absPath = pathStr;
 
     const ino = await this.#db.get("tree", absPath);
     if (!ino) throw new NotFound(`lstat '${pathStr}'`);
@@ -769,7 +782,8 @@ export class IndexedDBFileSystem implements FileSystem {
 
   async stat(path: string | URL) {
     const pathStr = pathFromURL(path);
-    const absPath = resolve(pathStr);
+    // const absPath = resolve(pathStr);
+    const absPath = pathStr;
 
     let ino = await this.#db.get("tree", absPath);
     if (!ino) throw new NotFound(`lstat '${pathStr}'`);
@@ -796,7 +810,8 @@ export class IndexedDBFileSystem implements FileSystem {
 
   async truncate(name: string, len?: number) {
     len = coerceLen(len);
-    const absPath = resolve(name);
+    // const absPath = resolve(name);
+    const absPath = name;
 
     const ino = await this.#db.get("tree", absPath);
     if (!ino) throw new NotFound(`truncate '${name}'`);
@@ -823,9 +838,11 @@ export class IndexedDBFileSystem implements FileSystem {
     // options?: DenoNamespace.SymlinkOptions
   ) {
     const oldpathStr = pathFromURL(oldpath);
-    const absOldPath = resolve(oldpathStr);
+    // const absOldPath = resolve(oldpathStr);
+    const absOldPath = oldpathStr;
     const newpathStr = pathFromURL(newpath);
-    const absNewPath = resolve(newpathStr);
+    // const absNewPath = resolve(newpathStr);
+    const absNewPath = newpathStr;
 
     let oldIno: number | undefined;
     {
