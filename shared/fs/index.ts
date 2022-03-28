@@ -1,4 +1,5 @@
-export * from "./idb";
+export * from "./fileAccess";
+export * from "./indexedDB";
 
 export function newFileInfo() {
   const birthtime = new Date();

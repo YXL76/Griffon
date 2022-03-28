@@ -2,7 +2,6 @@
 
 import { RESC_TABLE, notImplemented } from "..";
 import type { DenoNamespace } from "..";
-import type { FsFile } from ".";
 
 export enum SeekMode {
   /* eslint-disable @typescript-eslint/naming-convention */
@@ -47,12 +46,12 @@ export function readSync(rid: number, p: Uint8Array) {
 
 const READ_PER_ITER = 16 * 1024; // 16kb, see https://github.com/denoland/deno/issues/10157
 
-export function readAll(r: FsFile) {
+export function readAll(r: DenoNamespace.FsFile) {
   return readAllInner(r);
 }
 
 export async function readAllInner(
-  r: FsFile,
+  r: DenoNamespace.FsFile,
   options?: DenoNamespace.ReadFileOptions
 ) {
   const buffers: Uint8Array[] = [];
@@ -79,6 +78,23 @@ export async function readAllInner(
   return concatBuffers(buffers);
 }
 
+export function readAllSync(r: DenoNamespace.FsFile) {
+  const buffers: Uint8Array[] = [];
+
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const buf = new Uint8Array(READ_PER_ITER);
+    const read = r.readSync(buf);
+    if (typeof read == "number") {
+      buffers.push(buf.subarray(0, read));
+    } else {
+      break;
+    }
+  }
+
+  return concatBuffers(buffers);
+}
+
 export function concatBuffers(buffers: Uint8Array[]) {
   let totalLen = 0;
   for (const buf of buffers) {
@@ -96,8 +112,33 @@ export function concatBuffers(buffers: Uint8Array[]) {
   return contents;
 }
 
+export function readAllSyncSized(r: DenoNamespace.FsFile, size: number) {
+  const buf = new Uint8Array(size + 1); // 1B to detect extended files
+  let cursor = 0;
+
+  while (cursor < size) {
+    const sliceEnd = Math.min(size + 1, cursor + READ_PER_ITER);
+    const slice = buf.subarray(cursor, sliceEnd);
+    const read = r.readSync(slice);
+    if (typeof read == "number") {
+      cursor += read;
+    } else {
+      break;
+    }
+  }
+
+  // Handle truncated or extended files during read
+  if (cursor > size) {
+    // Read remaining and concat
+    return concatBuffers([buf, readAllSync(r)]);
+  } else {
+    // cursor == size
+    return buf.subarray(0, cursor);
+  }
+}
+
 export async function readAllInnerSized(
-  r: FsFile,
+  r: DenoNamespace.FsFile,
   size: number,
   options?: DenoNamespace.ReadFileOptions
 ) {

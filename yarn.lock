@@ -104,6 +104,7 @@ __metadata:
   resolution: "@griffon/shared@workspace:shared"
   dependencies:
     "@griffon/deno-std": "workspace:*"
+    "@types/wicg-file-system-access": 2020.9.5
     idb: 7.0.1
   languageName: unknown
   linkType: soft
@@ -114,7 +115,6 @@ __metadata:
   dependencies:
     "@griffon/deno-std": "workspace:*"
     "@griffon/shared": "workspace:*"
-    "@types/wicg-file-system-access": 2020.9.5
   languageName: unknown
   linkType: soft
 

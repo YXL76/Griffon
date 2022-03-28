@@ -1,76 +1,80 @@
 import type { DenoNamespace, DenoType, SeekMode } from ".";
 
-export type DenoFsMethodsSyncWithoutTmp =
+export type DenoFsMethodsSyncWithoutTmpnfile =
   | "linkSync"
   | "openSync"
   | "createSync"
-  | "readSync"
-  | "writeSync"
-  | "seekSync"
-  | "fsyncSync"
-  | "fdatasyncSync"
   | "mkdirSync"
   | "chmodSync"
   | "chownSync"
   | "removeSync"
   | "renameSync"
-  | "readTextFileSync"
-  | "readFileSync"
   | "realPathSync"
   | "readDirSync"
   | "copyFileSync"
   | "readLinkSync"
   | "lstatSync"
   | "statSync"
-  | "writeFileSync"
-  | "writeTextFileSync"
   | "truncateSync"
-  | "symlinkSync"
-  | "ftruncateSync"
-  | "fstatSync";
+  | "symlinkSync";
 
-export type DenoFsMethodsAsyncWithoutTmp =
+export type DenoFsMethodsAsyncWithoutTmpnfile =
   | "link"
   | "open"
   | "create"
-  | "read"
-  | "write"
-  | "seek"
-  | "fsync"
-  | "fdatasync"
   | "mkdir"
   | "chmod"
   | "chown"
   | "remove"
   | "rename"
-  | "readTextFile"
-  | "readFile"
   | "realPath"
   | "readDir"
   | "copyFile"
   | "readLink"
   | "lstat"
   | "stat"
+  | "truncate"
+  | "symlink";
+
+type DenoTmpFSMethodsSync = "makeTempDirSync" | "makeTempFileSync";
+type DenoFileFSMethodsSync =
+  | "readSync"
+  | "writeSync"
+  | "seekSync"
+  | "fsyncSync"
+  | "fdatasyncSync"
+  | "readTextFileSync"
+  | "readFileSync"
+  | "writeFileSync"
+  | "writeTextFileSync"
+  | "ftruncateSync"
+  | "fstatSync";
+
+type DenoTmpFSMethodsAsync = "makeTempDir" | "makeTempFile";
+type DenoFileFSMethodsAsync =
+  | "read"
+  | "write"
+  | "seek"
+  | "fsync"
+  | "fdatasync"
+  | "readTextFile"
+  | "readFile"
   | "writeFile"
   | "writeTextFile"
-  | "truncate"
-  | "symlink"
   | "ftruncate"
   | "fstat";
 
-type DenoTmpFSMethodsSync = "makeTempDirSync" | "makeTempFileSync";
-
-type DenoTmpFSMethodsASync = "makeTempDir" | "makeTempFile";
-
 type DenoFsMethodsWithoutTmp =
-  | DenoFsMethodsSyncWithoutTmp
-  | DenoFsMethodsAsyncWithoutTmp;
+  | DenoFsMethodsSyncWithoutTmpnfile
+  | DenoFsMethodsAsyncWithoutTmpnfile;
 
 type DenoFsMethods =
   | DenoTmpFSMethodsSync
-  | DenoTmpFSMethodsASync
-  | DenoFsMethodsSyncWithoutTmp
-  | DenoFsMethodsAsyncWithoutTmp;
+  | DenoTmpFSMethodsAsync
+  | DenoFileFSMethodsSync
+  | DenoFileFSMethodsAsync
+  | DenoFsMethodsSyncWithoutTmpnfile
+  | DenoFsMethodsAsyncWithoutTmpnfile;
 
 export type FileSystem = Partial<Pick<DenoType, DenoFsMethodsWithoutTmp>>;
 
@@ -124,6 +128,10 @@ export interface Resource {
   read?(buffer: Uint8Array): Promise<number | null>;
   writeSync?(p: Uint8Array): number;
   write?(buffer: Uint8Array): Promise<number>;
+  syncSync?(): void;
+  sync?(): Promise<void>;
+  datasyncSync?(): void;
+  datasync?(): Promise<void>;
   truncateSync?(len: number): void;
   truncate?(len: number): Promise<void>;
   seekSync?(offset: number, whence: SeekMode): number;

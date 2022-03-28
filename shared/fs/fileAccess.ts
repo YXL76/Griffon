@@ -8,8 +8,6 @@ import {
   coerceLen,
   notImplemented,
   pathFromURL,
-  readAll,
-  readAllInnerSized,
 } from "@griffon/deno-std";
 import type {
   DenoNamespace,
@@ -176,11 +174,17 @@ class FileAccessFile implements FileResource {
 export class FileAccessFileSystem implements FileSystem {
   readonly #root!: FileSystemDirectoryHandle;
 
-  private constructor(root: FileSystemDirectoryHandle) {
+  constructor(root: FileSystemDirectoryHandle) {
     this.#root = root;
   }
 
-  static async newDevice() {
+  /**
+   * Available only in window scope.
+   */
+  static async newDevice(ex?: FileSystemDirectoryHandle) {
+    if (ex instanceof FileSystemDirectoryHandle)
+      return new FileAccessFileSystem(ex);
+
     const root = await showDirectoryPicker();
     if ((await root.queryPermission({ mode: "readwrite" })) !== "granted") {
       if ((await root.requestPermission({ mode: "readwrite" })) !== "granted") {
@@ -193,7 +197,7 @@ export class FileAccessFileSystem implements FileSystem {
   async open(
     path: string | URL,
     options: DenoNamespace.OpenOptions = { read: true }
-  ) {
+  ): Promise<DenoNamespace.FsFile> {
     checkOpenOptions(options);
     const pathStr = pathFromURL(path);
     // const absPath = resolve(pathStr);
@@ -233,49 +237,6 @@ export class FileAccessFileSystem implements FileSystem {
     });
   }
 
-  async read(rid: number, buffer: Uint8Array): Promise<number | null> {
-    if (buffer.length === 0) return 0;
-
-    const resc = this.#getResc(rid);
-
-    const nread = await resc.read(buffer);
-    return nread === 0 ? null : nread;
-  }
-
-  async write(rid: number, data: Uint8Array): Promise<number> {
-    const resc = this.#getResc(rid);
-
-    return await resc.write(data);
-  }
-
-  seekSync(rid: number, offset: number, whence: SeekMode): number {
-    const resc = this.#getResc(rid);
-
-    return resc.seekSync(offset, whence);
-  }
-
-  async seek(rid: number, offset: number, whence: SeekMode): Promise<number> {
-    const resc = this.#getResc(rid);
-
-    return await resc.seek(offset, whence);
-  }
-
-  fsyncSync(/* rid: number */): void {
-    // noop
-  }
-
-  async fsync(/* rid: number */): Promise<void> {
-    // noop
-  }
-
-  fdatasyncSync(/* rid: number */): void {
-    // noop
-  }
-
-  async fdatasync(/* rid: number */): Promise<void> {
-    // noop
-  }
-
   async mkdir(path: string | URL, options?: DenoNamespace.MkdirOptions) {
     const pathStr = pathFromURL(path);
     // const absPath = resolve(pathStr);
@@ -297,19 +258,23 @@ export class FileAccessFileSystem implements FileSystem {
     await dir.getDirectoryHandle(name, { create: true });
   }
 
-  chmodSync(/* path: string | URL, mode: number */) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  chmodSync(_path: string | URL, _mode: number) {
     // noop
   }
 
-  async chmod(/* path: string | URL, mode: number */) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async chmod(_path: string | URL, _mode: number) {
     // noop
   }
 
-  chownSync(/* path: string | URL, uid: number | null, gid: number | null */) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  chownSync(_path: string | URL, _uid: number | null, _gid: number | null) {
     // noop
   }
 
-  async chown(/* path: string | URL, uid: number | null, gid: number | null */) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async chown(_path: string | URL, _uid: number | null, _gid: number | null) {
     // noop
   }
 
@@ -380,27 +345,6 @@ export class FileAccessFileSystem implements FileSystem {
     // await oldBase.move(absNewPath);
   }
 
-  async readTextFile(
-    path: string | URL,
-    options?: DenoNamespace.ReadFileOptions
-  ) {
-    return new TextDecoder().decode(await this.readFile(path, options));
-  }
-
-  async readFile(path: string | URL, options?: DenoNamespace.ReadFileOptions) {
-    const file = await this.open(path);
-    try {
-      const { size } = await file.stat();
-      if (size === 0) {
-        return await readAll(file);
-      } else {
-        return await readAllInnerSized(file, size, options);
-      }
-    } finally {
-      file.close();
-    }
-  }
-
   readDir(path: string | URL): AsyncIterable<DenoNamespace.DirEntry> {
     const pathStr = pathFromURL(path);
     // const absPath = resolve(pathStr);
@@ -461,7 +405,7 @@ export class FileAccessFileSystem implements FileSystem {
     await readable.pipeTo(writable);
   }
 
-  async lstat(path: string | URL) {
+  async lstat(path: string | URL): Promise<DenoNamespace.FileInfo> {
     const pathStr = pathFromURL(path);
     // const absPath = resolve(pathStr);
     const absPath = pathStr;
@@ -498,7 +442,7 @@ export class FileAccessFileSystem implements FileSystem {
     };
   }
 
-  async stat(path: string | URL) {
+  async stat(path: string | URL): Promise<DenoNamespace.FileInfo> {
     const pathStr = pathFromURL(path);
     // const absPath = resolve(pathStr);
     const absPath = pathStr;
@@ -535,60 +479,6 @@ export class FileAccessFileSystem implements FileSystem {
     };
   }
 
-  async writeFile(
-    path: string | URL,
-    data: Uint8Array,
-    options: DenoNamespace.WriteFileOptions = {}
-  ) {
-    const pathStr = pathFromURL(path);
-    // const absPath = resolve(pathStr);
-    const absPath = pathStr;
-
-    if (options.create !== undefined) {
-      const create = !!options.create;
-      if (!create) {
-        // verify that file exists
-        await this.stat(absPath);
-      }
-    }
-
-    const openOptions = options.append
-      ? { write: true, create: true, append: true }
-      : { write: true, create: true, truncate: true };
-    const file = await this.open(absPath, openOptions);
-
-    /* if (
-      options.mode !== undefined &&
-      options.mode !== null &&
-      build.os !== "windows"
-    ) {
-      await chmod(path, options.mode);
-    } */
-
-    const signal = options?.signal ?? null;
-    let nwritten = 0;
-    try {
-      while (nwritten < data.length) {
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-        signal?.throwIfAborted?.();
-        nwritten += await file.write(data.subarray(nwritten));
-      }
-    } finally {
-      file.close();
-    }
-  }
-
-  async writeTextFile(
-    path: string | URL,
-    data: string,
-    options: DenoNamespace.WriteFileOptions = {}
-  ) {
-    const encoder = new TextEncoder();
-    return this.writeFile(path, encoder.encode(data), options);
-  }
-
   async truncate(name: string, len?: number) {
     len = coerceLen(len);
     // const absPath = resolve(name);
@@ -602,41 +492,6 @@ export class FileAccessFileSystem implements FileSystem {
     const writable = await base.createWritable();
     await writable.truncate(len);
     await writable.close();
-  }
-
-  ftruncate(rid: number, len?: number) {
-    const resc = this.#getResc(rid);
-    return resc.truncate(coerceLen(len));
-  }
-
-  fstatSync(rid: number) {
-    const resc = this.#getResc(rid);
-    return {
-      atime: null,
-      dev: null,
-      mode: null,
-      uid: null,
-      gid: null,
-      rdev: null,
-      blksize: null,
-      blocks: null,
-      ...resc.statSync(),
-    };
-  }
-
-  async fstat(rid: number) {
-    const resc = this.#getResc(rid);
-    return {
-      atime: null,
-      dev: null,
-      mode: null,
-      uid: null,
-      gid: null,
-      rdev: null,
-      blksize: null,
-      blocks: null,
-      ...(await resc.stat()),
-    };
   }
 
   async #getHandle(path: string, func: string) {
@@ -678,11 +533,5 @@ export class FileAccessFileSystem implements FileSystem {
     if (!base) base = await dir.getDirectoryHandle(name).catch(() => undefined);
     if (!base) throw new NotFound(`${func} '${path}'`);
     return { dir, base, name };
-  }
-
-  #getResc(rid: number): FileAccessFile {
-    const resc = RESC_TABLE.get(rid);
-    if (!(resc instanceof FileAccessFile)) throw new NotFound(`rid: ${rid}`);
-    return resc;
   }
 }

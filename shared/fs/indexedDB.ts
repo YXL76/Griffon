@@ -9,8 +9,6 @@ import {
   concatBuffers,
   notImplemented,
   pathFromURL,
-  readAll,
-  readAllInnerSized,
 } from "@griffon/deno-std";
 import type { DBSchema, IDBPDatabase } from "idb";
 import type {
@@ -74,7 +72,7 @@ const EXPIRY_TIME = 128;
 /**
  * {@link https://github.com/denoland/deno/blob/1fb5858009f598ce3f917f9f49c466db81f4d9b0/runtime/ops/io.rs#L229}
  */
-class IDBFile implements FileResource {
+class IndexedDBFile implements FileResource {
   #offset = 0;
 
   #data?: ArrayBuffer;
@@ -289,7 +287,9 @@ class IDBFile implements FileResource {
   }
 }
 
-export class IDBFileSystem implements FileSystem {
+const openedDB = new Map<string, DB>();
+
+export class IndexedDBFileSystem implements FileSystem {
   readonly #db!: DB;
 
   private constructor(db: DB) {
@@ -297,6 +297,10 @@ export class IDBFileSystem implements FileSystem {
   }
 
   static async newDevice(name = "fs", version = 1) {
+    const key = `${name}-${version}`;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    if (openedDB.has(key)) return new IndexedDBFileSystem(openedDB.get(key)!);
+
     const db = await openDB<FSSchema>(name, version, {
       upgrade(db) {
         const tree = db.createObjectStore("tree");
@@ -314,7 +318,9 @@ export class IDBFileSystem implements FileSystem {
       },
     });
 
-    return new IDBFileSystem(db);
+    openedDB.set(key, db);
+
+    return new IndexedDBFileSystem(db);
   }
 
   async link(oldpath: string, newpath: string) {
@@ -398,7 +404,13 @@ export class IDBFileSystem implements FileSystem {
       }
     }
 
-    const node = new IDBFile(this.#db, ino, realIno ?? ino, info, options);
+    const node = new IndexedDBFile(
+      this.#db,
+      ino,
+      realIno ?? ino,
+      info,
+      options
+    );
     const rid = RESC_TABLE.add(node);
     return new FsFile(rid);
   }
@@ -410,58 +422,6 @@ export class IDBFileSystem implements FileSystem {
       truncate: true,
       create: true,
     });
-  }
-
-  readSync(rid: number, buffer: Uint8Array): number | null {
-    if (buffer.length === 0) return 0;
-
-    const resc = this.#getResc(rid);
-
-    const nread = resc.readSync(buffer);
-    return nread === 0 ? null : nread;
-  }
-
-  async read(rid: number, buffer: Uint8Array): Promise<number | null> {
-    if (buffer.length === 0) return 0;
-
-    const resc = this.#getResc(rid);
-
-    const nread = await resc.read(buffer);
-    return nread === 0 ? null : nread;
-  }
-
-  async write(rid: number, data: Uint8Array): Promise<number> {
-    const resc = this.#getResc(rid);
-
-    return await resc.write(data);
-  }
-
-  seekSync(rid: number, offset: number, whence: SeekMode): number {
-    const resc = this.#getResc(rid);
-
-    return resc.seekSync(offset, whence);
-  }
-
-  async seek(rid: number, offset: number, whence: SeekMode): Promise<number> {
-    const resc = this.#getResc(rid);
-
-    return await resc.seek(offset, whence);
-  }
-
-  fsyncSync(/* rid: number */): void {
-    // noop
-  }
-
-  async fsync(/* rid: number */): Promise<void> {
-    // noop
-  }
-
-  fdatasyncSync(/* rid: number */): void {
-    // noop
-  }
-
-  async fdatasync(/* rid: number */): Promise<void> {
-    // noop
   }
 
   async mkdir(path: string | URL, options?: DenoNamespace.MkdirOptions) {
@@ -660,27 +620,6 @@ export class IDBFileSystem implements FileSystem {
     ]);
   }
 
-  async readTextFile(
-    path: string | URL,
-    options?: DenoNamespace.ReadFileOptions
-  ) {
-    return new TextDecoder().decode(await this.readFile(path, options));
-  }
-
-  async readFile(path: string | URL, options?: DenoNamespace.ReadFileOptions) {
-    const file = await this.open(path);
-    try {
-      const { size } = await file.stat();
-      if (size === 0) {
-        return await readAll(file);
-      } else {
-        return await readAllInnerSized(file, size, options);
-      }
-    } finally {
-      file.close();
-    }
-  }
-
   async realPath(path: string | URL) {
     const pathStr = pathFromURL(path);
     const absPath = resolve(pathStr);
@@ -695,7 +634,7 @@ export class IDBFileSystem implements FileSystem {
     return absPath;
   }
 
-  readDir(path: string | URL): AsyncIterable<DenoNamespace.DirEntry> {
+  readDir(path: string | URL) {
     const pathStr = pathFromURL(path);
     const absPath = resolve(pathStr);
 
@@ -855,59 +794,6 @@ export class IDBFileSystem implements FileSystem {
     };
   }
 
-  async writeFile(
-    path: string | URL,
-    data: Uint8Array,
-    options: DenoNamespace.WriteFileOptions = {}
-  ) {
-    const pathStr = pathFromURL(path);
-    const absPath = resolve(pathStr);
-
-    if (options.create !== undefined) {
-      const create = !!options.create;
-      if (!create) {
-        // verify that file exists
-        await this.stat(absPath);
-      }
-    }
-
-    const openOptions = options.append
-      ? { write: true, create: true, append: true }
-      : { write: true, create: true, truncate: true };
-    const file = await this.open(absPath, openOptions);
-
-    /* if (
-      options.mode !== undefined &&
-      options.mode !== null &&
-      build.os !== "windows"
-    ) {
-      await chmod(path, options.mode);
-    } */
-
-    const signal = options?.signal ?? null;
-    let nwritten = 0;
-    try {
-      while (nwritten < data.length) {
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-        signal?.throwIfAborted?.();
-        nwritten += await file.write(data.subarray(nwritten));
-      }
-    } finally {
-      file.close();
-    }
-  }
-
-  async writeTextFile(
-    path: string | URL,
-    data: string,
-    options: DenoNamespace.WriteFileOptions = {}
-  ) {
-    const encoder = new TextEncoder();
-    return this.writeFile(path, encoder.encode(data), options);
-  }
-
   async truncate(name: string, len?: number) {
     len = coerceLen(len);
     const absPath = resolve(name);
@@ -964,46 +850,5 @@ export class IDBFileSystem implements FileSystem {
 
     const newIno = await this.#db.add("table", newSymlinkInfo());
     await this.#db.add("tree", newIno, absNewPath);
-  }
-
-  ftruncate(rid: number, len?: number) {
-    const resc = this.#getResc(rid);
-    return resc.truncate(coerceLen(len));
-  }
-
-  fstatSync(rid: number) {
-    const resc = this.#getResc(rid);
-    return {
-      atime: null,
-      dev: null,
-      mode: null,
-      uid: null,
-      gid: null,
-      rdev: null,
-      blksize: null,
-      blocks: null,
-      ...resc.statSync(),
-    };
-  }
-
-  async fstat(rid: number) {
-    const resc = this.#getResc(rid);
-    return {
-      atime: null,
-      dev: null,
-      mode: null,
-      uid: null,
-      gid: null,
-      rdev: null,
-      blksize: null,
-      blocks: null,
-      ...(await resc.stat()),
-    };
-  }
-
-  #getResc(rid: number): IDBFile {
-    const resc = RESC_TABLE.get(rid);
-    if (!(resc instanceof IDBFile)) throw new NotFound(`rid: ${rid}`);
-    return resc;
   }
 }
