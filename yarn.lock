@@ -71,6 +71,7 @@ __metadata:
   dependencies:
     "@griffon/service": "workspace:*"
     "@griffon/window": "workspace:*"
+    xterm: 4.18.0
   languageName: unknown
   linkType: soft
 
@@ -3086,6 +3087,13 @@ __metadata:
   version: 1.0.2
   resolution: "wrappy@npm:1.0.2"
   checksum: 159da4805f7e84a3d003d8841557196034155008f817172d4e986bd591f74aa82aa7db55929a54222309e01079a65a92a9e6414da5a6aa4b01ee44a511ac3ee5
+  languageName: node
+  linkType: hard
+
+"xterm@npm:4.18.0":
+  version: 4.18.0
+  resolution: "xterm@npm:4.18.0"
+  checksum: c1f391b0894928e048f8b6334943470b9e8fe91987222716a6c82840757475b87196383f6ce872250fe3dff3d984f45411fdf3841436c22d9301e50bf6043d2e
   languageName: node
   linkType: hard
 

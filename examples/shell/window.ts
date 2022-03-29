@@ -1,3 +1,4 @@
+import "./terminal";
 import type {
   FileAccessStorageDevice,
   IndexedDBStorageDevice,
