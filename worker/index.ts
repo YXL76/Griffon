@@ -1,5 +1,10 @@
 import { Deno, PCB } from "@griffon/deno-std";
-import { ParentChildTp, WinWkrTp } from "@griffon/shared";
+import {
+  ParentChildTp,
+  WinWkrTp,
+  fsSyncHandler,
+  hackDenoFS,
+} from "@griffon/shared";
 import {
   addSignalListener,
   dispatchSignalEvent,
@@ -11,7 +16,7 @@ import { Process } from "./process";
 import { defaultSigHdls } from "./signals";
 
 self.Deno = Deno;
-hackDeno();
+void hackDeno().then((rootFS) => (self.ROOT_FS = rootFS));
 
 self.onmessage = ({ data, ports }: MessageEvent<Parent2Child>) => {
   switch (data._t) {
@@ -48,6 +53,9 @@ self.onmessage = ({ data, ports }: MessageEvent<Parent2Child>) => {
       break;
     case ParentChildTp.kill:
       dispatchSignalEvent(data.sig);
+      break;
+    case ParentChildTp.fsSync:
+      void fsSyncHandler(self.ROOT_FS, data);
   }
 };
 
@@ -76,6 +84,8 @@ function hackDeno() {
     const sab = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT);
     Atomics.wait(new Int32Array(sab), 0, 0, millis);
   };
+
+  return hackDenoFS(self.postMessage.bind(self));
 }
 
 /**

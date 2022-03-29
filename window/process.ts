@@ -1,4 +1,4 @@
-import { CONST, ParentChildTp, pid2Wid } from "@griffon/shared";
+import { CONST, ParentChildTp, fsSyncHandler, pid2Wid } from "@griffon/shared";
 import type { Child2Parent, Parent2Child, Win2Wkr } from "@griffon/shared";
 import type { ChildResource, DenoNamespace } from "@griffon/deno-std";
 import { PCB, RESC_TABLE, pathFromURL } from "@griffon/deno-std";
@@ -106,6 +106,8 @@ export class Process<
           this.#sig = data.sig;
           this.close();
           break;
+        case ParentChildTp.fsSync:
+          void fsSyncHandler(self.ROOT_FS, data);
       }
     };
     this.#worker.onmessageerror = console.error;

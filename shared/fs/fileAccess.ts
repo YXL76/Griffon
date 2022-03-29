@@ -173,7 +173,7 @@ class FileAccessFile implements FileResource {
 }
 
 class FileAccessStorageDevice implements StorageDevice {
-  #name = "fa" as const;
+  readonly #name = "fa" as const;
 
   get name() {
     return this.#name;

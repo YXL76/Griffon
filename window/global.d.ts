@@ -1,4 +1,5 @@
 import type { DenoType } from "@griffon/deno-std";
+import type { UnionFileSystem } from "@griffon/shared";
 
 /* eslint-disable no-var */
 declare global {
@@ -6,6 +7,7 @@ declare global {
   var Deno: DenoType;
   var SW: ServiceWorker;
   var SWR: ServiceWorkerRegistration;
+  var ROOT_FS: UnionFileSystem;
   /** Shared with all child processes. */
   var SAB: SharedArrayBuffer;
   var SAB32: Int32Array;

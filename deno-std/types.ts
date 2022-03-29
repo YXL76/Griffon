@@ -1,6 +1,6 @@
 import type { DenoNamespace, DenoType, SeekMode } from ".";
 
-export type DenoFsMethodsSyncWithoutTmpnfile =
+type DenoFsMethodsSyncWithoutTmpnfile =
   | "linkSync"
   | "openSync"
   | "createSync"
@@ -68,13 +68,17 @@ type DenoFsMethodsWithoutTmp =
   | DenoFsMethodsSyncWithoutTmpnfile
   | DenoFsMethodsAsyncWithoutTmpnfile;
 
-type DenoFsMethods =
+type DenoFsMethodsSync =
   | DenoTmpFSMethodsSync
-  | DenoTmpFSMethodsAsync
   | DenoFileFSMethodsSync
+  | DenoFsMethodsSyncWithoutTmpnfile;
+
+type DenoFsMethodsAsync =
+  | DenoTmpFSMethodsAsync
   | DenoFileFSMethodsAsync
-  | DenoFsMethodsSyncWithoutTmpnfile
   | DenoFsMethodsAsyncWithoutTmpnfile;
+
+type DenoFsMethods = DenoFsMethodsSync | DenoFsMethodsAsync;
 
 export type FileSystem = Partial<Pick<DenoType, DenoFsMethodsWithoutTmp>>;
 

@@ -1,11 +1,14 @@
 import {
   CONST,
+  ParentChildTp,
   WinSvcChanTp,
   WinSvcTp,
   WinWinTp,
+  hackDenoFS,
   pid2Uid,
 } from "@griffon/shared";
 import { Channel, msg2Svc, winHandler } from "./message";
+import type { Child2Parent, Win2Win } from "@griffon/shared";
 import { Deno, PCB } from "@griffon/deno-std";
 import {
   addSignalListener,
@@ -13,8 +16,6 @@ import {
   removeSignalListener,
 } from "./signals";
 import { Process } from "./process";
-import type { Win2Win } from "@griffon/shared";
-import { hackDenoFS } from "./fs";
 
 export type {
   IndexedDBStorageDevice,
@@ -67,10 +68,10 @@ export async function boot({ env = {} }: BootConfig = {}) {
   PCB.uid = pid2Uid(pid);
   self.Deno.pid = pid;
 
-  const rootFS = await hackDeno();
+  self.ROOT_FS = await hackDeno();
   const require = await hackNode();
 
-  return { require, rootFS };
+  return { require };
 }
 
 function hackDeno() {
@@ -102,7 +103,21 @@ function hackDeno() {
     }
   };
 
-  return hackDenoFS();
+  const worker = new Worker(CONST.workerURL, { type: "module" });
+  worker.onmessage = ({ data }: MessageEvent<Child2Parent>) => {
+    switch (data._t) {
+      case ParentChildTp.exit:
+        console.error("File System Worker exited unexpectedly.");
+        worker.terminate();
+        break;
+      case ParentChildTp.fsSync:
+        // noop
+        break;
+    }
+  };
+  worker.onmessageerror = console.error;
+
+  return hackDenoFS(worker.postMessage.bind(worker));
 }
 
 /**

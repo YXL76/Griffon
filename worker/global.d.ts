@@ -1,9 +1,11 @@
 import type { DenoType } from "@griffon/deno-std";
+import type { UnionFileSystem } from "@griffon/shared";
 
 /* eslint-disable no-var */
 declare global {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   var Deno: DenoType;
+  var ROOT_FS: UnionFileSystem;
   /** ID in the main thread. */
   var WID: number;
   var WIN: MessagePort;

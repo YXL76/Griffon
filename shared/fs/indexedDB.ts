@@ -289,9 +289,9 @@ class IndexedDBFile implements FileResource {
 }
 
 class IndexedDBStorageDevice implements StorageDevice {
-  #openedDB = new Map<string, DB>();
+  readonly #openedDB = new Map<string, DB>();
 
-  #name = "idb" as const;
+  readonly #name = "idb" as const;
 
   get name() {
     return this.#name;
