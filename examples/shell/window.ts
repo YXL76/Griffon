@@ -1,4 +1,5 @@
-import "@types/wicg-file-system-access";
+/// <reference types="wicg-file-system-access" />
+
 import "./terminal";
 import type {
   FileAccessStorageDevice,
