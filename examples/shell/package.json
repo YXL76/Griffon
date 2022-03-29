@@ -3,6 +3,9 @@
   "author": "YXL <chenxin.lan.76@gmail.com>",
   "license": "(MIT OR Apache-2.0)",
   "private": true,
+  "devDependencies": {
+    "@types/wicg-file-system-access": "2020.9.5"
+  },
   "dependencies": {
     "@griffon/service": "workspace:*",
     "@griffon/window": "workspace:*",

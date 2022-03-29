@@ -1,7 +1,7 @@
 import "xterm/css/xterm.css";
 import { Terminal } from "xterm";
 
-const isWindows =
+const windowsMode =
   ["Windows", "Win16", "Win32", "WinCE"].indexOf(
     (navigator as unknown as { userAgentData: { platform: string } })
       .userAgentData.platform
@@ -10,7 +10,7 @@ const term = new Terminal({
   cols: 160,
   cursorBlink: true,
   rows: 40,
-  windowsMode: isWindows,
+  windowsMode,
 });
 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 term.open(document.getElementById("terminal")!);

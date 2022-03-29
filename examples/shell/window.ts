@@ -1,3 +1,4 @@
+import "@types/wicg-file-system-access";
 import "./terminal";
 import type {
   FileAccessStorageDevice,
@@ -6,7 +7,7 @@ import type {
 import { boot } from "@griffon/window";
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-const { require, rootFS } = await boot();
+const { require, rootfs } = await boot();
 
 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 const faBtn = document.getElementById("fa-btn")! as HTMLButtonElement;
@@ -18,11 +19,15 @@ const runBtn = document.getElementById("run-btn")! as HTMLButtonElement;
 const input = document.getElementById("code-input")! as HTMLTextAreaElement;
 
 faBtn.addEventListener("click", () => {
-  rootFS.newStorageDev<FileAccessStorageDevice>("fa").catch(console.error);
+  showDirectoryPicker()
+    .then((root) =>
+      rootfs.newStorageDev<FileAccessStorageDevice>("fa", 1, root)
+    )
+    .catch(console.error);
 });
 
 idbBtn.addEventListener("click", () => {
-  rootFS.newStorageDev<IndexedDBStorageDevice>("idb").catch(console.error);
+  rootfs.newStorageDev<IndexedDBStorageDevice>("idb", 1).catch(console.error);
 });
 
 let lock = false;

@@ -1,5 +1,3 @@
-import "../global";
-
 import {
   AlreadyExists,
   Deno,
@@ -14,6 +12,7 @@ import {
   readAllSync,
   readAllSyncSized,
 } from "@griffon/deno-std";
+import type { DBSchema, IDBPDatabase } from "idb";
 import type {
   DenoNamespace,
   FileSystem,
@@ -29,47 +28,69 @@ import {
 } from ".";
 import type { FSSyncMsg } from "..";
 import { ParentChildTp } from "..";
+import { openDB } from "idb";
 import { resolve } from "@griffon/deno-std/deno_std/path/posix";
 
 class DeviceFileSystem implements FileSystem {
-  readonly #storageDevs: Record<string, { dev: StorageDevice; cnt: number }> = {
-    [fileAccessStorageDevice.name]: { dev: fileAccessStorageDevice, cnt: 0 },
-    [indexedDBStorageDevice.name]: { dev: indexedDBStorageDevice, cnt: 0 },
+  readonly #storageDevs: Record<string, { dev: StorageDevice }> = {
+    [fileAccessStorageDevice.name]: { dev: fileAccessStorageDevice },
+    [indexedDBStorageDevice.name]: { dev: indexedDBStorageDevice },
   };
 
   readonly #tree = new Map<string, FileSystem>();
 
-  has(path: string) {
-    return this.#tree.has(path);
-  }
-
-  set(path: string, fs: FileSystem) {
-    if (this.#tree.has(path)) throw new AlreadyExists(path);
-    this.#tree.set(path, fs);
+  async delete() {
+    for (const dev of this.#tree.values()) await dev.delete();
+    this.#tree.clear();
   }
 
   get(path: string) {
     return this.#tree.get(path);
   }
 
-  delete(path: string) {
-    this.#tree.delete(path);
-  }
-
   async newStorageDev<D extends StorageDevice>(
     name: D["name"],
+    id: number,
     ...args: Parameters<D["newDevice"]>
   ) {
     const dev = this.#storageDevs[name];
     if (!dev) throw new NotFound(name);
+
+    const path = `/${name}${id}`;
+    if (this.#tree.has(path)) throw new AlreadyExists(path);
+
     const newDev = await dev.dev.newDevice(...args);
-    dev.cnt += 1;
-    this.#tree.set(`/${name}${dev.cnt}`, newDev);
+    this.#tree.set(path, newDev);
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  removeSync(path: string | URL, _options?: DenoNamespace.RemoveOptions) {
+    const pathStr = pathFromURL(path);
+    const absPath = resolve(pathStr);
+
+    const dev = this.#tree.get(absPath);
+    if (!dev) throw new NotFound(`remove '${pathStr}'`);
+
+    const del = dev.delete();
+    if (del instanceof Promise) console.warn("removeSync: it is a Promise");
+
+    this.#tree.delete(absPath);
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async remove(path: string | URL, _options?: DenoNamespace.RemoveOptions) {
+    const pathStr = pathFromURL(path);
+    const absPath = resolve(pathStr);
+
+    const dev = this.#tree.get(absPath);
+    if (!dev) throw new NotFound(`remove '${pathStr}'`);
+
+    await dev.delete();
+    this.#tree.delete(absPath);
   }
 
   readDirSync(path: string | URL) {
-    const pathStr = pathFromURL(path);
-    const absPath = resolve(pathStr);
+    const absPath = resolve(pathFromURL(path));
 
     const tree = this.#tree;
     return {
@@ -85,8 +106,7 @@ class DeviceFileSystem implements FileSystem {
   }
 
   readDir(path: string | URL) {
-    const pathStr = pathFromURL(path);
-    const absPath = resolve(pathStr);
+    const absPath = resolve(pathFromURL(path));
 
     const tree = this.#tree;
     return {
@@ -103,10 +123,35 @@ class DeviceFileSystem implements FileSystem {
   }
 }
 
+type ChanMsg =
+  | {
+      fn: "newStorageDev";
+      name: StorageDevice["name"];
+      id: number;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      args: any[];
+    }
+  | { fn: "mount"; device: string; point: string }
+  | { fn: "unmount"; point: string };
+
 type SyncError = { name: string; msg: string };
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 type Mounts = Record<string, FileSystem> & { "/dev": DeviceFileSystem };
+
+interface MountSchema extends DBSchema {
+  dev: {
+    key: number;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    value: { name: StorageDevice["name"]; id: number; args: any[] };
+  };
+  mount: {
+    key: number;
+    value: { point: string; device: string };
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    indexes: { "by-point": string };
+  };
+}
 
 interface PostMessage {
   (message: FSSyncMsg, transfer: Transferable[]): void;
@@ -118,6 +163,8 @@ const TIMEOUT = 2000;
 
 class UnionFileSystem extends FileAccessFileSystem implements RootFileSystem {
   private static _instance?: UnionFileSystem;
+
+  readonly #db: IDBPDatabase<MountSchema>;
 
   /**
    * Cannot use `Atomics.wait` in the main thread.
@@ -133,12 +180,32 @@ class UnionFileSystem extends FileAccessFileSystem implements RootFileSystem {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   readonly #mounts: Mounts = { "/dev": new DeviceFileSystem() };
 
+  readonly #channel = new BroadcastChannel("rootfs-sync");
+
   private constructor(
     root: FileSystemDirectoryHandle,
+    db: IDBPDatabase<MountSchema>,
     postMessage: PostMessage
   ) {
     super(root);
+
+    this.#db = db;
+
     this.#postMessage = postMessage;
+    this.#channel.onmessage = ({ data }: MessageEvent<ChanMsg>) => {
+      switch (data.fn) {
+        case "newStorageDev":
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+          void this.#newStorageDev(data.name, data.id, ...data.args);
+          break;
+        case "mount":
+          this.#mount(data.device, data.point);
+          break;
+        case "unmount":
+          this.#unmount(data.point);
+      }
+    };
+    this.#channel.onmessageerror = console.error;
   }
 
   static async create(postMessage: PostMessage) {
@@ -150,38 +217,98 @@ class UnionFileSystem extends FileAccessFileSystem implements RootFileSystem {
         throw new Error("Permission denied");
       }
     }
-    return (this._instance = new UnionFileSystem(root, postMessage));
+
+    const db = await openDB<MountSchema>("rootfs-sync", 1, {
+      upgrade(db) {
+        db.createObjectStore("dev", { autoIncrement: true });
+        const mount = db.createObjectStore("mount", { autoIncrement: true });
+        mount.createIndex("by-point", "point", { unique: true });
+      },
+
+      terminated() {
+        console.error("rootfs-sync db terminated");
+      },
+    });
+
+    this._instance = new UnionFileSystem(root, db, postMessage);
+
+    const devs = await db.getAll("dev");
+    await Promise.all(
+      devs.map(({ name, id, args }) =>
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        this._instance!.#newStorageDev(name, id, args)
+      )
+    );
+
+    const mounts = await db.getAll("mount");
+    for (const { device, point } of mounts) {
+      this._instance.#mount(device, point);
+    }
+
+    return this._instance;
   }
 
-  newStorageDev<D extends StorageDevice>(
+  async newStorageDev<D extends StorageDevice>(
     name: D["name"],
+    id: number,
     ...args: Parameters<D["newDevice"]>
   ) {
-    return this.#mounts["/dev"].newStorageDev(name, ...args);
+    await this.#newStorageDev(name, id, ...args);
+
+    const msg: ChanMsg = { fn: "newStorageDev", name, id, args };
+    this.#channel.postMessage(msg);
+
+    await this.#db.add("dev", { name, id, args });
   }
 
-  mount(device: string | URL, point: string | URL) {
-    const pointStr = pathFromURL(point);
-    const absPoint = resolve(pointStr);
-
-    if (Object.keys(this.#mounts).find((v) => absPoint.startsWith(v)))
-      throw new AlreadyExists(`mount '${pointStr}'`);
-
-    const deviceStr = pathFromURL(device);
-    const absDevice = resolve(deviceStr);
-
-    const dev = this.#mounts["/dev"].get(absDevice.slice(5));
-    if (!absDevice.startsWith("/dev") || !dev)
-      throw new Error(`invalid device '${deviceStr}'`);
-
-    this.#mounts[absPoint] = dev;
+  #newStorageDev<D extends StorageDevice>(
+    name: D["name"],
+    id: number,
+    ...args: Parameters<D["newDevice"]>
+  ) {
+    return this.#mounts["/dev"].newStorageDev(name, id, ...args);
   }
 
-  unmount(point: string | URL) {
-    const pointStr = pathFromURL(point);
-    const absPoint = resolve(pointStr);
+  async mount(deviceu: string | URL, pointu: string | URL) {
+    const device = resolve(pathFromURL(deviceu));
+    const point = resolve(pathFromURL(pointu));
 
-    delete this.#mounts[absPoint];
+    this.#mount(device, point);
+
+    const msg: ChanMsg = { fn: "mount", device, point };
+    this.#channel.postMessage(msg);
+
+    await this.#db.add("mount", { device, point });
+  }
+
+  #mount(device: string, point: string) {
+    if (Object.keys(this.#mounts).find((v) => point.startsWith(v)))
+      throw new AlreadyExists(`mount '${point}'`);
+
+    const dev = this.#mounts["/dev"].get(device.slice(5));
+    if (!device.startsWith("/dev") || !dev)
+      throw new Error(`invalid device '${device}'`);
+
+    this.#mounts[point] = dev;
+  }
+
+  async unmount(pointu: string | URL) {
+    const point = resolve(pathFromURL(pointu));
+
+    this.#unmount(point);
+
+    const msg: ChanMsg = { fn: "unmount", point };
+    this.#channel.postMessage(msg);
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const key = (await this.#db.getKeyFromIndex("mount", "by-point", point))!;
+    await this.#db.delete("mount", key);
+  }
+
+  #unmount(point: string) {
+    if (point === "/dev") throw new Error(`cannot unmount '/dev'`);
+
+    delete this.#mounts[point];
   }
 
   linkSync(oldpath: string, newpath: string) {

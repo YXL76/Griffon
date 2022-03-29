@@ -19,9 +19,9 @@ import type {
   FileSystem,
   StorageDevice,
 } from "@griffon/deno-std";
+import { deleteDB, openDB } from "idb";
 import { newDirInfo, newFileInfo, newSymlinkInfo } from ".";
 import { dirname } from "@griffon/deno-std/deno_std/path/posix";
-import { openDB } from "idb";
 
 interface SFileInfo extends Omit<FileInfo, "ino"> {
   readonly isFile: boolean;
@@ -300,8 +300,7 @@ class IndexedDBStorageDevice implements StorageDevice {
   async newDevice(name = "fs", version = 1) {
     const key = `${name}-${version}`;
     if (this.#openedDB.has(key))
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      return new IndexedDBFileSystem(this.#openedDB.get(key)!);
+      throw new Error(`IndexedDBStorageDevice: ${key} is already opened`);
 
     const db = await openDB<FSSchema>(name, version, {
       upgrade(db) {
@@ -335,6 +334,16 @@ class IndexedDBFileSystem implements FileSystem {
 
   constructor(db: DB) {
     this.#db = db;
+  }
+
+  async delete() {
+    const name = this.#db.name;
+    this.#db.close();
+    await deleteDB(name);
+
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    this.#db = undefined;
   }
 
   async link(oldpath: string, newpath: string) {

@@ -182,11 +182,7 @@ class FileAccessStorageDevice implements StorageDevice {
   /**
    * Available only in window scope.
    */
-  async newDevice(ex?: FileSystemDirectoryHandle) {
-    if (ex instanceof FileSystemDirectoryHandle)
-      return new FileAccessFileSystem(ex);
-
-    const root = await showDirectoryPicker();
+  async newDevice(root: FileSystemDirectoryHandle) {
     if ((await root.queryPermission({ mode: "readwrite" })) !== "granted") {
       if ((await root.requestPermission({ mode: "readwrite" })) !== "granted") {
         throw new Error("Permission denied");
@@ -205,6 +201,14 @@ export class FileAccessFileSystem implements FileSystem {
 
   constructor(root: FileSystemDirectoryHandle) {
     this.#root = root;
+  }
+
+  delete() {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    this.#root = undefined;
+
+    return Promise.resolve();
   }
 
   async open(

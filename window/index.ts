@@ -68,10 +68,11 @@ export async function boot({ env = {} }: BootConfig = {}) {
   PCB.uid = pid2Uid(pid);
   self.Deno.pid = pid;
 
-  self.ROOT_FS = await hackDeno();
+  const rootfs = await hackDeno();
+  self.ROOT_FS = rootfs;
   const require = await hackNode();
 
-  return { require };
+  return { require, rootfs };
 }
 
 function hackDeno() {
