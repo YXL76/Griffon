@@ -10,12 +10,12 @@
     "pnp": "yarn sdks vscode vim"
   },
   "resolutions": {
-    "esbuild": "0.14.28"
+    "esbuild": "0.14.29"
   },
   "devDependencies": {
     "@types/eslint": "8.4.1",
-    "@typescript-eslint/eslint-plugin": "5.16.0",
-    "@typescript-eslint/parser": "5.16.0",
+    "@typescript-eslint/eslint-plugin": "5.17.0",
+    "@typescript-eslint/parser": "5.17.0",
     "@yarnpkg/sdks": "2.6.0",
     "eslint": "8.12.0",
     "eslint-config-prettier": "8.5.0",
