@@ -10,112 +10,112 @@ const fallback = [undefined, "Unknown"] as const;
 export class NotFound extends Error {
   override name = "NotFound";
 
-  constructor(msg = "", options?: ErrorOptions, no: number = errno.ENOENT) {
+  static from(msg = "", no: number = errno.ENOENT, options?: ErrorOptions) {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const [, desc] = errorMap.get(-no) ?? fallback;
-    super(`${desc} (os error ${no}), ${msg}`, options);
+    return new this(`${desc} (os error ${no}), ${msg}`, options);
   }
 }
 
 export class PermissionDenied extends Error {
   override name = "PermissionDenied";
 
-  constructor(msg = "", options?: ErrorOptions, no: number = errno.EACCES) {
+  static from(msg = "", no: number = errno.EACCES, options?: ErrorOptions) {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const [, desc] = errorMap.get(-no) ?? fallback;
-    super(`${desc} (os error ${no}), ${msg}`, options);
+    return new this(`${desc} (os error ${no}), ${msg}`, options);
   }
 }
 
 export class ConnectionRefused extends Error {
   override name = "ConnectionRefused";
 
-  constructor(
+  static from(
     msg = "",
-    options?: ErrorOptions,
-    no: number = errno.ECONNREFUSED
+    no: number = errno.ECONNREFUSED,
+    options?: ErrorOptions
   ) {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const [, desc] = errorMap.get(-no) ?? fallback;
-    super(`${desc} (os error ${no}), ${msg}`, options);
+    return new this(`${desc} (os error ${no}), ${msg}`, options);
   }
 }
 
 export class ConnectionReset extends Error {
   override name = "ConnectionReset";
 
-  constructor(msg = "", options?: ErrorOptions, no: number = errno.ECONNRESET) {
+  static from(msg = "", no: number = errno.ECONNRESET, options?: ErrorOptions) {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const [, desc] = errorMap.get(-no) ?? fallback;
-    super(`${desc} (os error ${no}), ${msg}`, options);
+    return new this(`${desc} (os error ${no}), ${msg}`, options);
   }
 }
 
 export class ConnectionAborted extends Error {
   override name = "ConnectionAborted";
 
-  constructor(
+  static from(
     msg = "",
-    options?: ErrorOptions,
-    no: number = errno.ECONNABORTED
+    no: number = errno.ECONNABORTED,
+    options?: ErrorOptions
   ) {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const [, desc] = errorMap.get(-no) ?? fallback;
-    super(`${desc} (os error ${no}), ${msg}`, options);
+    return new this(`${desc} (os error ${no}), ${msg}`, options);
   }
 }
 
 export class NotConnected extends Error {
   override name = "NotConnected";
 
-  constructor(msg = "", options?: ErrorOptions, no: number = errno.ENOTCONN) {
+  static from(msg = "", no: number = errno.ENOTCONN, options?: ErrorOptions) {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const [, desc] = errorMap.get(-no) ?? fallback;
-    super(`${desc} (os error ${no}), ${msg}`, options);
+    return new this(`${desc} (os error ${no}), ${msg}`, options);
   }
 }
 
 export class AddrInUse extends Error {
   override name = "AddrInUse";
 
-  constructor(msg = "", options?: ErrorOptions, no: number = errno.EADDRINUSE) {
+  static from(msg = "", no: number = errno.EADDRINUSE, options?: ErrorOptions) {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const [, desc] = errorMap.get(-no) ?? fallback;
-    super(`${desc} (os error ${no}), ${msg}`, options);
+    return new this(`${desc} (os error ${no}), ${msg}`, options);
   }
 }
 
 export class AddrNotAvailable extends Error {
   override name = "AddrNotAvailable";
 
-  constructor(
+  static from(
     msg = "",
-    options?: ErrorOptions,
-    no: number = errno.EADDRNOTAVAIL
+    no: number = errno.EADDRNOTAVAIL,
+    options?: ErrorOptions
   ) {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const [, desc] = errorMap.get(-no) ?? fallback;
-    super(`${desc} (os error ${no}), ${msg}`, options);
+    return new this(`${desc} (os error ${no}), ${msg}`, options);
   }
 }
 
 export class BrokenPipe extends Error {
   override name = "BrokenPipe";
 
-  constructor(msg = "", options?: ErrorOptions, no: number = errno.EPIPE) {
+  static from(msg = "", no: number = errno.EPIPE, options?: ErrorOptions) {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const [, desc] = errorMap.get(-no) ?? fallback;
-    super(`${desc} (os error ${no}), ${msg}`, options);
+    return new this(`${desc} (os error ${no}), ${msg}`, options);
   }
 }
 
 export class AlreadyExists extends Error {
   override name = "AlreadyExists";
 
-  constructor(msg = "", options?: ErrorOptions, no: number = errno.EEXIST) {
+  static from(msg = "", no: number = errno.EEXIST, options?: ErrorOptions) {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const [, desc] = errorMap.get(-no) ?? fallback;
-    super(`${desc} (os error ${no}), ${msg}`, options);
+    return new this(`${desc} (os error ${no}), ${msg}`, options);
   }
 }
 
@@ -126,20 +126,20 @@ export class InvalidData extends Error {
 export class TimedOut extends Error {
   override name = "TimedOut";
 
-  constructor(msg = "", options?: ErrorOptions, no: number = errno.ETIMEDOUT) {
+  static from(msg = "", no: number = errno.ETIMEDOUT, options?: ErrorOptions) {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const [, desc] = errorMap.get(-no) ?? fallback;
-    super(`${desc} (os error ${no}), ${msg}`, options);
+    return new this(`${desc} (os error ${no}), ${msg}`, options);
   }
 }
 
 export class Interrupted extends Error {
   override name = "Interrupted";
 
-  constructor(msg = "", options?: ErrorOptions, no: number = errno.EINTR) {
+  static from(msg = "", no: number = errno.EINTR, options?: ErrorOptions) {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const [, desc] = errorMap.get(-no) ?? fallback;
-    super(`${desc} (os error ${no}), ${msg}`, options);
+    return new this(`${desc} (os error ${no}), ${msg}`, options);
   }
 }
 
@@ -162,10 +162,10 @@ export class Http extends Error {
 export class Busy extends Error {
   override name = "Busy";
 
-  constructor(msg = "", options?: ErrorOptions, no: number = errno.EBUSY) {
+  static from(msg = "", no: number = errno.EBUSY, options?: ErrorOptions) {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const [, desc] = errorMap.get(-no) ?? fallback;
-    super(`${desc} (os error ${no}), ${msg}`, options);
+    return new this(`${desc} (os error ${no}), ${msg}`, options);
   }
 }
 

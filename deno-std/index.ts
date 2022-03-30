@@ -62,7 +62,7 @@ class ResourceTable {
 
   getOrThrow(rid: number) {
     const resc = this.#index.get(rid);
-    if (!resc) throw new NotFound(`rid: ${rid}`);
+    if (!resc) throw NotFound.from(`rid: ${rid}`);
     return resc;
   }
 

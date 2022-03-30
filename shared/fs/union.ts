@@ -178,7 +178,7 @@ export class UnionFileSystem
 
   #mount(device: string, point: string) {
     if (Object.keys(this.#mounts).find((v) => point.startsWith(v)))
-      throw new AlreadyExists(`mount '${point}'`);
+      throw AlreadyExists.from(`mount '${point}'`);
 
     const dev = this.#mounts["/dev"].get(device.slice(5));
     if (!device.startsWith("/dev") || !dev)
@@ -965,7 +965,7 @@ export class UnionFileSystem
 
   #getResc<K extends keyof Resource>(rid: number, fn: K) {
     const resc = RESC_TABLE.get(rid);
-    if (!resc) throw new NotFound(`rid: ${rid}`);
+    if (!resc) throw NotFound.from(`rid: ${rid}`);
     if (typeof resc[fn] !== "function") notImplemented();
 
     return resc as Resource & { [key in K]: NonNullable<Resource[K]> };

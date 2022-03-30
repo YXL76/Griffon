@@ -59,7 +59,7 @@ async function trvSymlink(db: DB, ino: number, info: SFileInfo) {
   // eslint-disable-next-line no-constant-condition
   while (ino && info.isSymlink) {
     ino = (await db.get("symlink", ino)) as number;
-    if (!ino) throw new NotFound(`stat`);
+    if (!ino) throw NotFound.from(`stat`);
 
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     info = (await db.get("table", ino))!;
@@ -266,7 +266,7 @@ class IndexedDBFile implements FileResource {
     if (this.#data) return this.#data;
 
     this.#data = await this.#db.get("file", this.#ino);
-    if (!this.#data) throw new NotFound(`ino: ${this.#ino}`);
+    if (!this.#data) throw NotFound.from(`ino: ${this.#ino}`);
 
     clearTimeout(this.#dataId);
     this.#dataId = setTimeout(() => (this.#data = undefined), EXPIRY_TIME);
@@ -278,7 +278,7 @@ class IndexedDBFile implements FileResource {
     if (this.#info) return this.#info;
 
     const info = await this.#db.get("table", this.#ino);
-    if (!info) throw new NotFound(`ino: ${this.#ino}`);
+    if (!info) throw NotFound.from(`ino: ${this.#ino}`);
     this.#info = this.#getProxyInfo(info);
 
     clearTimeout(this.#infoId);
@@ -361,9 +361,9 @@ class IndexedDBFileSystem implements FileSystem {
         tx.store.get(oldp),
         tx.store.getKey(newp),
       ]);
-      if (!ino) throw new NotFound(`link '${oldp}'`);
+      if (!ino) throw NotFound.from(`link '${oldp}'`);
       if (newKey === newp)
-        throw new AlreadyExists(`link '${oldpath}' -> '${newpath}'`);
+        throw AlreadyExists.from(`link '${oldpath}' -> '${newpath}'`);
 
       await Promise.all([tx.store.add(ino, newp), tx.done]);
     }
@@ -393,7 +393,7 @@ class IndexedDBFileSystem implements FileSystem {
     ino = await this.#db.get("tree", absPath);
     if (!ino) {
       if (!options.create && !options.createNew)
-        throw new NotFound(`open '${pathStr}'`);
+        throw NotFound.from(`open '${pathStr}'`);
 
       info = newFileInfo();
       ino = await this.#db.add("table", info);
@@ -402,7 +402,7 @@ class IndexedDBFileSystem implements FileSystem {
         this.#db.add("file", new ArrayBuffer(0), ino),
       ]);
     } else {
-      if (options.createNew) throw new AlreadyExists(`open '${pathStr}'`);
+      if (options.createNew) throw AlreadyExists.from(`open '${pathStr}'`);
 
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       info = (await this.#db.get("table", ino))!;
@@ -463,7 +463,7 @@ class IndexedDBFileSystem implements FileSystem {
         const tx = this.#db.transaction("tree");
 
         const curKey = await tx.store.getKey(cur);
-        if (curKey === cur) throw new AlreadyExists(`mkdir '${pathStr}'`);
+        if (curKey === cur) throw AlreadyExists.from(`mkdir '${pathStr}'`);
 
         let dir = cur;
         do {
@@ -507,8 +507,8 @@ class IndexedDBFileSystem implements FileSystem {
           tx.store.getKey(cur),
         ]);
 
-        if (!dirIno) throw new NotFound(`mkdir '${pathStr}'`);
-        if (curKey === cur) throw new AlreadyExists(`mkdir '${pathStr}'`);
+        if (!dirIno) throw NotFound.from(`mkdir '${pathStr}'`);
+        if (curKey === cur) throw AlreadyExists.from(`mkdir '${pathStr}'`);
       }
 
       const tx = this.#db.transaction("table", "readwrite");
@@ -545,7 +545,7 @@ class IndexedDBFileSystem implements FileSystem {
     const absPath = pathStr;
 
     const ino = await this.#db.get("tree", absPath);
-    if (!ino) throw new NotFound(`remove '${pathStr}'`);
+    if (!ino) throw NotFound.from(`remove '${pathStr}'`);
 
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const info = (await this.#db.get("table", ino))!;
@@ -636,7 +636,7 @@ class IndexedDBFileSystem implements FileSystem {
       const tx = this.#db.transaction("tree");
       oldIno = await tx.store.get(absOldPath);
       if (!oldIno)
-        throw new NotFound(`rename '${oldpathStr}' -> '${absNewPath}'`);
+        throw NotFound.from(`rename '${oldpathStr}' -> '${absNewPath}'`);
 
       const newIno = await tx.store.get(absNewPath);
       if (newIno) await this.remove(absNewPath);
@@ -656,7 +656,7 @@ class IndexedDBFileSystem implements FileSystem {
     const absPath = pathStr;
 
     const ino = await this.#db.get("tree", absPath);
-    if (!ino) throw new NotFound(`realpath '${pathStr}'`);
+    if (!ino) throw NotFound.from(`realpath '${pathStr}'`);
 
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const info = (await this.#db.get("table", ino))!;
@@ -678,7 +678,7 @@ class IndexedDBFileSystem implements FileSystem {
         const range = IDBKeyRange.lowerBound(absPath);
         let cur = await db.transaction("tree").store.openCursor(range);
 
-        if (!cur) throw new NotFound(`readDir '${pathStr}'`);
+        if (!cur) throw NotFound.from(`readDir '${pathStr}'`);
         cur = await cur.continue();
 
         while (cur && cur.key.startsWith(absPath)) {
@@ -712,13 +712,14 @@ class IndexedDBFileSystem implements FileSystem {
     const absToPath = toPathStr;
 
     const fromIno = await this.#db.get("tree", absFromPath);
-    if (!fromIno) throw new NotFound(`copy '${fromPathStr}' -> '${toPathStr}'`);
+    if (!fromIno)
+      throw NotFound.from(`copy '${fromPathStr}' -> '${toPathStr}'`);
 
     {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const fromInfo = (await this.#db.get("table", fromIno))!;
       if (!fromInfo.isFile && !fromInfo.isSymlink)
-        throw new NotFound(`copy '${fromPathStr}' -> '${toPathStr}'`);
+        throw NotFound.from(`copy '${fromPathStr}' -> '${toPathStr}'`);
     }
 
     const [fromData, toIno] = await Promise.all([
@@ -726,7 +727,7 @@ class IndexedDBFileSystem implements FileSystem {
       this.#db.get("tree", absToPath),
     ]);
     if (!fromData)
-      throw new NotFound(`copy '${fromPathStr}' -> '${toPathStr}'`);
+      throw NotFound.from(`copy '${fromPathStr}' -> '${toPathStr}'`);
 
     if (!toIno) {
       const ino = await this.#db.add("table", {
@@ -763,7 +764,7 @@ class IndexedDBFileSystem implements FileSystem {
     const absPath = pathStr;
 
     const ino = await this.#db.get("tree", absPath);
-    if (!ino) throw new NotFound(`readlink '${pathStr}'`);
+    if (!ino) throw NotFound.from(`readlink '${pathStr}'`);
 
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const info = (await this.#db.get("table", ino))!;
@@ -784,7 +785,7 @@ class IndexedDBFileSystem implements FileSystem {
     const absPath = pathStr;
 
     const ino = await this.#db.get("tree", absPath);
-    if (!ino) throw new NotFound(`lstat '${pathStr}'`);
+    if (!ino) throw NotFound.from(`lstat '${pathStr}'`);
 
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const info = (await this.#db.get("table", ino))!;
@@ -810,7 +811,7 @@ class IndexedDBFileSystem implements FileSystem {
     const absPath = pathStr;
 
     let ino = await this.#db.get("tree", absPath);
-    if (!ino) throw new NotFound(`lstat '${pathStr}'`);
+    if (!ino) throw NotFound.from(`lstat '${pathStr}'`);
 
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     let info = (await this.#db.get("table", ino))!;
@@ -838,10 +839,10 @@ class IndexedDBFileSystem implements FileSystem {
     const absPath = name;
 
     const ino = await this.#db.get("tree", absPath);
-    if (!ino) throw new NotFound(`truncate '${name}'`);
+    if (!ino) throw NotFound.from(`truncate '${name}'`);
 
     const info = await this.#db.get("table", ino);
-    if (!info) throw new NotFound(`truncate '${name}'`);
+    if (!info) throw NotFound.from(`truncate '${name}'`);
     if (info.isDirectory)
       throw new TypeError(`Is a directory (os error 21), truncate '${name}'`);
 
@@ -874,11 +875,11 @@ class IndexedDBFileSystem implements FileSystem {
 
       oldIno = await tx.store.get(absOldPath);
       if (!oldIno)
-        throw new NotFound(`symlink '${oldpathStr}' -> '${newpathStr}'`);
+        throw NotFound.from(`symlink '${oldpathStr}' -> '${newpathStr}'`);
 
       const newIno = await tx.store.get(absNewPath);
       if (newIno)
-        throw new AlreadyExists(`symlink '${oldpathStr}' -> '${newpathStr}'`);
+        throw AlreadyExists.from(`symlink '${oldpathStr}' -> '${newpathStr}'`);
     }
 
     {
@@ -886,7 +887,7 @@ class IndexedDBFileSystem implements FileSystem {
 
       const oldInfo = await tx.store.get(oldIno);
       if (!oldInfo)
-        throw new NotFound(`symlink '${oldpathStr}' -> '${newpathStr}'`);
+        throw NotFound.from(`symlink '${oldpathStr}' -> '${newpathStr}'`);
     }
 
     const newIno = await this.#db.add("table", newSymlinkInfo());

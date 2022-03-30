@@ -225,11 +225,11 @@ export class FileAccessFileSystem implements FileSystem {
 
     if (!base) {
       if ((!options.create && !options.createNew) || !name)
-        throw new NotFound(`open '${pathStr}'`);
+        throw NotFound.from(`open '${pathStr}'`);
 
       base = await dir.getFileHandle(name, { create: true });
     } else if (base.kind === "file") {
-      if (options.createNew) throw new AlreadyExists(`open '${pathStr}'`);
+      if (options.createNew) throw AlreadyExists.from(`open '${pathStr}'`);
 
       if (options.truncate) {
         const writable = await base.createWritable({ keepExistingData: false });
@@ -269,7 +269,7 @@ export class FileAccessFileSystem implements FileSystem {
       for (const part of parts)
         if (part) dir = await dir.getDirectoryHandle(part, opt);
     } catch {
-      throw new NotFound(`mkdir '${pathStr}'`);
+      throw NotFound.from(`mkdir '${pathStr}'`);
     }
 
     await dir.getDirectoryHandle(name, { create: true });
@@ -329,7 +329,8 @@ export class FileAccessFileSystem implements FileSystem {
       absOldPath,
       "copy"
     );
-    if (!oldBase) throw new NotFound(`copy '${oldpathStr}' -> '${newpathStr}'`);
+    if (!oldBase)
+      throw NotFound.from(`copy '${oldpathStr}' -> '${newpathStr}'`);
 
     if (oldBase.kind === "directory")
       throw new Error(
@@ -397,7 +398,7 @@ export class FileAccessFileSystem implements FileSystem {
     const absToPath = toPathStr;
 
     const { base } = await this.#getHandleOrThrow(absFromPath, "copy");
-    if (!base) throw new NotFound(`copy '${fromPathStr}' -> '${toPathStr}'`);
+    if (!base) throw NotFound.from(`copy '${fromPathStr}' -> '${toPathStr}'`);
 
     if (base.kind === "directory")
       throw new Error(
@@ -520,7 +521,7 @@ export class FileAccessFileSystem implements FileSystem {
       for (const part of parts)
         if (part) dir = await dir.getDirectoryHandle(part);
     } catch {
-      throw new NotFound(`${func} '${path}'`);
+      throw NotFound.from(`${func} '${path}'`);
     }
 
     let base: FSHandle | undefined;
@@ -535,20 +536,20 @@ export class FileAccessFileSystem implements FileSystem {
   async #getHandleOrThrow(path: string, func: string) {
     const parts = path.split("/");
     const name = parts.pop();
-    if (!name) throw new NotFound(`${func} '${path}'`);
+    if (!name) throw NotFound.from(`${func} '${path}'`);
 
     let dir = this.#root;
     try {
       for (const part of parts)
         if (part) dir = await dir.getDirectoryHandle(part);
     } catch {
-      throw new NotFound(`${func} '${path}'`);
+      throw NotFound.from(`${func} '${path}'`);
     }
 
     let base: FSHandle | undefined;
     base = await dir.getFileHandle(name).catch(() => undefined);
     if (!base) base = await dir.getDirectoryHandle(name).catch(() => undefined);
-    if (!base) throw new NotFound(`${func} '${path}'`);
+    if (!base) throw NotFound.from(`${func} '${path}'`);
     return { dir, base, name };
   }
 }

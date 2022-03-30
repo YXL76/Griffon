@@ -30,10 +30,10 @@ export class DeviceFileSystem implements FileSystem {
     ...args: Parameters<D["newDevice"]>
   ) {
     const dev = this.#storageDevs[name];
-    if (!dev) throw new NotFound(name);
+    if (!dev) throw NotFound.from(name);
 
     const path = `/${name}${id}`;
-    if (this.#tree.has(path)) throw new AlreadyExists(path);
+    if (this.#tree.has(path)) throw AlreadyExists.from(path);
 
     const newDev = await dev.dev.newDevice(...args);
     this.#tree.set(path, newDev);
@@ -45,7 +45,7 @@ export class DeviceFileSystem implements FileSystem {
     const absPath = resolve(pathStr);
 
     const dev = this.#tree.get(absPath);
-    if (!dev) throw new NotFound(`remove '${pathStr}'`);
+    if (!dev) throw NotFound.from(`remove '${pathStr}'`);
 
     const del = dev.delete();
     if (del instanceof Promise) console.warn("removeSync: it is a Promise");
@@ -59,7 +59,7 @@ export class DeviceFileSystem implements FileSystem {
     const absPath = resolve(pathStr);
 
     const dev = this.#tree.get(absPath);
-    if (!dev) throw new NotFound(`remove '${pathStr}'`);
+    if (!dev) throw NotFound.from(`remove '${pathStr}'`);
 
     await dev.delete();
     this.#tree.delete(absPath);
