@@ -600,11 +600,18 @@ class UnionFileSystem extends FileAccessFileSystem implements RootFileSystem {
       file = this.openSync(path);
     } catch {
       const ap = resolve(pathFromURL(path));
-      const sab = new SharedArrayBuffer(
-        Int32Array.BYTES_PER_ELEMENT * 1024 * 1024 * 8
-      ); // Bigger than [this.#sab]
+      let len = Int32Array.BYTES_PER_ELEMENT * 1024 * 1024 * 8;
+      try {
+        const { size } = this.statSync(ap);
+        if (size !== 0) len = size;
+      } catch {
+        // noop
+      }
+
+      const sab =
+        len > this.#sab.byteLength ? new SharedArrayBuffer(len) : this.#sab;
       this.#postMessage({ _t, fn: "readFile", sab, args: [ap] });
-      const ret = this.#wait();
+      const ret = this.#wait(sab);
 
       const u8 = new Uint8Array(sab);
       const start = Int32Array.BYTES_PER_ELEMENT + 1;
@@ -866,12 +873,10 @@ class UnionFileSystem extends FileAccessFileSystem implements RootFileSystem {
     } catch {
       const ap = resolve(pathFromURL(path));
       // TODO: transferable data ?
-      this.#postMessage({
-        _t,
-        fn: "writeFile",
-        sab: this.#sab,
-        args: [ap, data, options],
-      });
+      this.#postMessage(
+        { _t, fn: "writeFile", sab: this.#sab, args: [ap, data, options] },
+        [data.buffer]
+      );
       this.#wait();
       return;
     }
