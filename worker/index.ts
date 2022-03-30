@@ -55,7 +55,7 @@ self.onmessage = ({ data, ports }: MessageEvent<Parent2Child>) => {
       dispatchSignalEvent(data.sig);
       break;
     case ParentChildTp.fsSync:
-      void fsSyncHandler(self.ROOT_FS, data);
+      void fsSyncHandler(self.ROOT_FS, data, ports);
   }
 };
 

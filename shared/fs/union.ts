@@ -1,6 +1,7 @@
 import {
   AlreadyExists,
   Deno,
+  FsFile,
   NotFound,
   RESC_TABLE,
   checkOpenOptions,
@@ -15,113 +16,19 @@ import {
 import type { DBSchema, IDBPDatabase } from "idb";
 import type {
   DenoNamespace,
+  FileResource,
   FileSystem,
   Resource,
   RootFileSystem,
   SeekMode,
   StorageDevice,
 } from "@griffon/deno-std";
-import {
-  FileAccessFileSystem,
-  fileAccessStorageDevice,
-  indexedDBStorageDevice,
-} from ".";
-import type { FSSyncMsg } from "..";
+import { DeviceFileSystem, FileAccessFileSystem, waitMsg } from ".";
+import type { ProxyFileKey, ProxyFileMsg } from ".";
+import type { FSSyncPostMessage } from "..";
 import { ParentChildTp } from "..";
 import { openDB } from "idb";
 import { resolve } from "@griffon/deno-std/deno_std/path/posix";
-
-class DeviceFileSystem implements FileSystem {
-  readonly #storageDevs: Record<string, { dev: StorageDevice }> = {
-    [fileAccessStorageDevice.name]: { dev: fileAccessStorageDevice },
-    [indexedDBStorageDevice.name]: { dev: indexedDBStorageDevice },
-  };
-
-  readonly #tree = new Map<string, FileSystem>();
-
-  async delete() {
-    for (const dev of this.#tree.values()) await dev.delete();
-    this.#tree.clear();
-  }
-
-  get(path: string) {
-    return this.#tree.get(path);
-  }
-
-  async newStorageDev<D extends StorageDevice>(
-    name: D["name"],
-    id: number,
-    ...args: Parameters<D["newDevice"]>
-  ) {
-    const dev = this.#storageDevs[name];
-    if (!dev) throw new NotFound(name);
-
-    const path = `/${name}${id}`;
-    if (this.#tree.has(path)) throw new AlreadyExists(path);
-
-    const newDev = await dev.dev.newDevice(...args);
-    this.#tree.set(path, newDev);
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  removeSync(path: string | URL, _options?: DenoNamespace.RemoveOptions) {
-    const pathStr = pathFromURL(path);
-    const absPath = resolve(pathStr);
-
-    const dev = this.#tree.get(absPath);
-    if (!dev) throw new NotFound(`remove '${pathStr}'`);
-
-    const del = dev.delete();
-    if (del instanceof Promise) console.warn("removeSync: it is a Promise");
-
-    this.#tree.delete(absPath);
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async remove(path: string | URL, _options?: DenoNamespace.RemoveOptions) {
-    const pathStr = pathFromURL(path);
-    const absPath = resolve(pathStr);
-
-    const dev = this.#tree.get(absPath);
-    if (!dev) throw new NotFound(`remove '${pathStr}'`);
-
-    await dev.delete();
-    this.#tree.delete(absPath);
-  }
-
-  readDirSync(path: string | URL) {
-    const absPath = resolve(pathFromURL(path));
-
-    const tree = this.#tree;
-    return {
-      *[Symbol.iterator]() {
-        for (const path of tree.keys()) {
-          if (!path.startsWith(absPath)) continue;
-          const name = path.slice(absPath.length + 1);
-          if (!name || name.includes("/")) continue;
-          yield { name, isFile: false, isDirectory: false, isSymlink: false };
-        }
-      },
-    };
-  }
-
-  readDir(path: string | URL) {
-    const absPath = resolve(pathFromURL(path));
-
-    const tree = this.#tree;
-    return {
-      // eslint-disable-next-line @typescript-eslint/require-await
-      async *[Symbol.asyncIterator]() {
-        for (const path of tree.keys()) {
-          if (!path.startsWith(absPath)) continue;
-          const name = path.slice(absPath.length + 1);
-          if (!name || name.includes("/")) continue;
-          yield { name, isFile: false, isDirectory: false, isSymlink: false };
-        }
-      },
-    };
-  }
-}
 
 type ChanMsg =
   | {
@@ -133,8 +40,6 @@ type ChanMsg =
     }
   | { fn: "mount"; device: string; point: string }
   | { fn: "unmount"; point: string };
-
-type SyncError = { name: string; msg: string };
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 type Mounts = Record<string, FileSystem> & { "/dev": DeviceFileSystem };
@@ -153,29 +58,19 @@ interface MountSchema extends DBSchema {
   };
 }
 
-interface PostMessage {
-  (message: FSSyncMsg, transfer: Transferable[]): void;
-  (message: FSSyncMsg, options?: StructuredSerializeOptions): void;
-}
-
 const _t = ParentChildTp.fsSync;
-const TIMEOUT = 2000;
 
-class UnionFileSystem extends FileAccessFileSystem implements RootFileSystem {
+export class UnionFileSystem
+  extends FileAccessFileSystem
+  implements RootFileSystem
+{
   private static _instance?: UnionFileSystem;
 
   readonly #db: IDBPDatabase<MountSchema>;
 
-  /**
-   * Cannot use `Atomics.wait` in the main thread.
-   */
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore
-  readonly #canWait = typeof window !== "object";
-
   readonly #sab = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * 1024);
 
-  readonly #postMessage: PostMessage;
+  readonly #postMessage: FSSyncPostMessage;
 
   // eslint-disable-next-line @typescript-eslint/naming-convention
   readonly #mounts: Mounts = { "/dev": new DeviceFileSystem() };
@@ -185,7 +80,7 @@ class UnionFileSystem extends FileAccessFileSystem implements RootFileSystem {
   private constructor(
     root: FileSystemDirectoryHandle,
     db: IDBPDatabase<MountSchema>,
-    postMessage: PostMessage
+    postMessage: FSSyncPostMessage
   ) {
     super(root);
 
@@ -208,7 +103,7 @@ class UnionFileSystem extends FileAccessFileSystem implements RootFileSystem {
     this.#channel.onmessageerror = console.error;
   }
 
-  static async create(postMessage: PostMessage) {
+  static async create(postMessage: FSSyncPostMessage) {
     if (this._instance) return this._instance;
 
     const root = await navigator.storage.getDirectory();
@@ -319,7 +214,7 @@ class UnionFileSystem extends FileAccessFileSystem implements RootFileSystem {
     if (fs && i) return fs.linkSync(rp, np);
 
     this.#postMessage({ _t, fn: "link", sab: this.#sab, args: [ap, nap] });
-    this.#wait();
+    waitMsg(this.#sab);
   }
 
   link(oldpath: string, newpath: string) {
@@ -338,10 +233,18 @@ class UnionFileSystem extends FileAccessFileSystem implements RootFileSystem {
   ) {
     checkOpenOptions(options);
 
-    const { i, fs, rp } = this.#accessMount(path, "openSync");
+    const { i, fs, rp, ap } = this.#accessMount(path, "openSync");
     if (fs && i) return fs.openSync(rp, options);
 
-    notImplemented();
+    const { port1, port2 } = new MessageChannel();
+    this.#postMessage({ _t, fn: "open", sab: this.#sab, args: [ap, options] }, [
+      port1,
+    ]);
+    waitMsg(this.#sab);
+
+    const node = new ProxyFile(port2, this.#sab);
+    const rid = RESC_TABLE.add(node);
+    return new FsFile(rid);
   }
 
   override open(
@@ -351,7 +254,11 @@ class UnionFileSystem extends FileAccessFileSystem implements RootFileSystem {
     checkOpenOptions(options);
 
     const { i, fs, rp } = this.#accessMount(path, "open");
-    if (fs && i) return fs.open(rp, options);
+    if (fs) {
+      if (i) return fs.open(rp, options);
+
+      notImplemented();
+    }
 
     return super.open(rp, options);
   }
@@ -360,12 +267,21 @@ class UnionFileSystem extends FileAccessFileSystem implements RootFileSystem {
     const { i, fs, rp } = this.#accessMount(path, "createSync");
     if (fs && i) return fs.createSync(rp);
 
-    notImplemented();
+    return this.openSync(path, {
+      read: true,
+      write: true,
+      truncate: true,
+      create: true,
+    });
   }
 
   override create(path: string | URL) {
     const { i, fs, rp } = this.#accessMount(path, "create");
-    if (fs && i) return fs.create(rp);
+    if (fs) {
+      if (i) return fs.create(rp);
+
+      notImplemented();
+    }
 
     return super.create(rp);
   }
@@ -441,7 +357,7 @@ class UnionFileSystem extends FileAccessFileSystem implements RootFileSystem {
     if (fs && i) return fs.mkdirSync(rp, options);
 
     this.#postMessage({ _t, fn: "mkdir", sab: this.#sab, args: [ap, options] });
-    this.#wait();
+    waitMsg(this.#sab);
   }
 
   override mkdir(path: string | URL, options?: DenoNamespace.MkdirOptions) {
@@ -481,7 +397,7 @@ class UnionFileSystem extends FileAccessFileSystem implements RootFileSystem {
       if (i) return fs.chmodSync(rp, mode);
 
       this.#postMessage({ _t, fn: "chmod", sab: this.#sab, args: [ap, mode] });
-      this.#wait();
+      waitMsg(this.#sab);
     }
 
     return super.chmodSync(rp, mode);
@@ -513,7 +429,7 @@ class UnionFileSystem extends FileAccessFileSystem implements RootFileSystem {
         sab: this.#sab,
         args: [ap, uid, gid],
       });
-      this.#wait();
+      waitMsg(this.#sab);
     }
 
     return super.chownSync(rp, uid, gid);
@@ -540,7 +456,7 @@ class UnionFileSystem extends FileAccessFileSystem implements RootFileSystem {
       sab: this.#sab,
       args: [ap, options],
     });
-    this.#wait();
+    waitMsg(this.#sab);
   }
 
   override remove(path: string | URL, options?: DenoNamespace.RemoveOptions) {
@@ -566,7 +482,7 @@ class UnionFileSystem extends FileAccessFileSystem implements RootFileSystem {
     if (fs && i) return fs.renameSync(rp, nrp);
 
     this.#postMessage({ _t, fn: "rename", sab: this.#sab, args: [ap, nap] });
-    this.#wait();
+    waitMsg(this.#sab);
   }
 
   override rename(oldpath: string | URL, newpath: string | URL) {
@@ -595,28 +511,7 @@ class UnionFileSystem extends FileAccessFileSystem implements RootFileSystem {
   }
 
   readFileSync(path: string | URL) {
-    let file: DenoNamespace.FsFile;
-    try {
-      file = this.openSync(path);
-    } catch {
-      const ap = resolve(pathFromURL(path));
-      let len = Int32Array.BYTES_PER_ELEMENT * 1024 * 1024 * 8;
-      try {
-        const { size } = this.statSync(ap);
-        if (size !== 0) len = size;
-      } catch {
-        // noop
-      }
-
-      const sab =
-        len > this.#sab.byteLength ? new SharedArrayBuffer(len) : this.#sab;
-      this.#postMessage({ _t, fn: "readFile", sab, args: [ap] });
-      const ret = this.#wait(sab);
-
-      const u8 = new Uint8Array(sab);
-      const start = Int32Array.BYTES_PER_ELEMENT + 1;
-      return new Uint8Array(u8.subarray(start, start + ret));
-    }
+    const file = this.openSync(path);
 
     try {
       const { size } = file.statSync();
@@ -649,7 +544,7 @@ class UnionFileSystem extends FileAccessFileSystem implements RootFileSystem {
     if (fs && i) return fs.realPathSync(rp);
 
     this.#postMessage({ _t, fn: "realPath", sab: this.#sab, args: [ap] });
-    const ret = this.#wait();
+    const ret = waitMsg(this.#sab);
 
     const u8 = new Uint8Array(this.#sab);
     const start = Int32Array.BYTES_PER_ELEMENT + 1;
@@ -671,7 +566,7 @@ class UnionFileSystem extends FileAccessFileSystem implements RootFileSystem {
     if (fs && i) iter = fs.readDirSync(rp);
     else {
       this.#postMessage({ _t, fn: "readDir", sab: this.#sab, args: [ap] });
-      const ret = this.#wait();
+      const ret = waitMsg(this.#sab);
 
       const u8 = new Uint8Array(this.#sab);
       const start = Int32Array.BYTES_PER_ELEMENT + 1;
@@ -742,7 +637,7 @@ class UnionFileSystem extends FileAccessFileSystem implements RootFileSystem {
         sab: this.#sab,
         args: [ap, toap],
       });
-      this.#wait();
+      waitMsg(this.#sab);
     }
   }
 
@@ -784,7 +679,7 @@ class UnionFileSystem extends FileAccessFileSystem implements RootFileSystem {
     if (fs && i) return fs.readLinkSync(rp);
 
     this.#postMessage({ _t, fn: "readLink", sab: this.#sab, args: [ap] });
-    const ret = this.#wait();
+    const ret = waitMsg(this.#sab);
 
     const u8 = new Uint8Array(this.#sab);
     const start = Int32Array.BYTES_PER_ELEMENT + 1;
@@ -803,7 +698,7 @@ class UnionFileSystem extends FileAccessFileSystem implements RootFileSystem {
     if (fs && i) return fs.lstatSync(rp);
 
     this.#postMessage({ _t, fn: "lstat", sab: this.#sab, args: [ap] });
-    const ret = this.#wait();
+    const ret = waitMsg(this.#sab);
 
     const u8 = new Uint8Array(this.#sab);
     const start = Int32Array.BYTES_PER_ELEMENT + 1;
@@ -827,7 +722,7 @@ class UnionFileSystem extends FileAccessFileSystem implements RootFileSystem {
     if (fs && i) return fs.statSync(rp);
 
     this.#postMessage({ _t, fn: "stat", sab: this.#sab, args: [ap] });
-    const ret = this.#wait();
+    const ret = waitMsg(this.#sab);
 
     const u8 = new Uint8Array(this.#sab);
     const start = Int32Array.BYTES_PER_ELEMENT + 1;
@@ -867,19 +762,7 @@ class UnionFileSystem extends FileAccessFileSystem implements RootFileSystem {
       ? { write: true, create: true, append: true }
       : { write: true, create: true, truncate: true };
 
-    let file: DenoNamespace.FsFile;
-    try {
-      file = this.openSync(path, openOptions);
-    } catch {
-      const ap = resolve(pathFromURL(path));
-      // TODO: transferable data ?
-      this.#postMessage(
-        { _t, fn: "writeFile", sab: this.#sab, args: [ap, data, options] },
-        [data.buffer]
-      );
-      this.#wait();
-      return;
-    }
+    const file = this.openSync(path, openOptions);
 
     if (
       options.mode !== undefined &&
@@ -961,7 +844,7 @@ class UnionFileSystem extends FileAccessFileSystem implements RootFileSystem {
     if (fs && i) return fs.truncateSync(rp, len);
 
     this.#postMessage({ _t, fn: "truncate", sab: this.#sab, args: [ap, len] });
-    this.#wait();
+    waitMsg(this.#sab);
   }
 
   override truncate(name: string, len?: number) {
@@ -996,7 +879,7 @@ class UnionFileSystem extends FileAccessFileSystem implements RootFileSystem {
       sab: this.#sab,
       args: [ap, nap, options],
     });
-    this.#wait();
+    waitMsg(this.#sab);
   }
 
   symlink(
@@ -1059,31 +942,6 @@ class UnionFileSystem extends FileAccessFileSystem implements RootFileSystem {
     };
   }
 
-  #wait(sab = this.#sab) {
-    const i32 = new Int32Array(sab);
-    if (this.#canWait) Atomics.wait(i32, 0, 0, TIMEOUT);
-    else {
-      const start = performance.now();
-      while (i32[0] === 0 && performance.now() - start < TIMEOUT) {
-        // Do nothing.
-      }
-    }
-    const ret = Atomics.exchange(i32, 0, 0);
-    if (ret === 0) throw new Error("Timeout.");
-    else if (ret < 0) {
-      const u8 = new Uint8Array(sab);
-      const start = Int32Array.BYTES_PER_ELEMENT + 1;
-      const str = new TextDecoder().decode(u8.subarray(start, start - ret));
-      const { name, msg } = JSON.parse(str) as SyncError;
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      const Err = <ErrorConstructor>(Deno.errors[name] ?? self[name] ?? Error);
-      throw new Err(msg);
-    }
-    return ret;
-  }
-
   #accessMount<K extends keyof FileSystem>(path: string | URL, method: K) {
     const i = false as const;
     const ap = resolve(pathFromURL(path));
@@ -1114,110 +972,154 @@ class UnionFileSystem extends FileAccessFileSystem implements RootFileSystem {
   }
 }
 
-export type { UnionFileSystem };
+class ProxyFile implements FileResource {
+  readonly #port: MessagePort;
 
-export async function fsSyncHandler(fs: UnionFileSystem, msg: FSSyncMsg) {
-  const i32 = new Int32Array(msg.sab);
-  try {
+  readonly #sab: SharedArrayBuffer;
+
+  constructor(port: MessagePort, sab: SharedArrayBuffer) {
+    this.#port = port;
+    this.#sab = sab;
+  }
+
+  get name() {
+    return "fsFile" as const;
+  }
+
+  close() {
+    this.#port.close();
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
-    const ret = await fs[msg.fn](...msg.args);
-
-    let encoded: Uint8Array;
-    if (typeof ret === "string") encoded = new TextEncoder().encode(ret);
-    else if (typeof ret === "undefined" || ret === null) {
-      // Must have length, or the main thread will wait forever.
-      encoded = new Uint8Array(1);
-    } else if (typeof ret === "object") {
-      if (ret instanceof Uint8Array) encoded = ret;
-      else if ("mtime" in ret) {
-        encoded = new TextEncoder().encode(JSON.stringify(ret));
-      } else {
-        const dirs = [];
-        for await (const dir of ret) dirs.push(dir);
-        encoded = new TextEncoder().encode(JSON.stringify(dirs));
-      }
-    } else {
-      encoded = new Uint8Array(1);
-    }
-
-    const u8 = new Uint8Array(msg.sab);
-    u8.set(encoded, Int32Array.BYTES_PER_ELEMENT + 1);
-    Atomics.store(i32, 0, encoded.length);
-  } catch (err) {
-    const { name, message } = err as Error;
-    const str = JSON.stringify(<SyncError>{ name, msg: message });
-    const encoded = new TextEncoder().encode(str);
-    const u8 = new Uint8Array(msg.sab);
-    u8.set(encoded, Int32Array.BYTES_PER_ELEMENT + 1);
-
-    Atomics.store(i32, 0, -encoded.length);
-  } finally {
-    Atomics.notify(new Int32Array(msg.sab), 0);
+    this.#port = undefined;
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    this.#sab = undefined;
   }
-}
 
-export async function hackDenoFS(postMessage: PostMessage) {
-  const rootFS = await UnionFileSystem.create(postMessage);
+  readSync(buffer: Uint8Array) {
+    const sabBuf = new SharedArrayBuffer(buffer.byteLength);
+    const u8Buf = new Uint8Array(sabBuf);
 
-  Deno.linkSync = rootFS.linkSync.bind(rootFS);
-  Deno.link = rootFS.link.bind(rootFS);
-  Deno.openSync = rootFS.openSync.bind(rootFS);
-  Deno.open = rootFS.open.bind(rootFS);
-  Deno.createSync = rootFS.createSync.bind(rootFS);
-  Deno.create = rootFS.create.bind(rootFS);
-  Deno.readSync = rootFS.readSync.bind(rootFS);
-  Deno.read = rootFS.read.bind(rootFS);
-  Deno.writeSync = rootFS.writeSync.bind(rootFS);
-  Deno.write = rootFS.write.bind(rootFS);
-  Deno.seekSync = rootFS.seekSync.bind(rootFS);
-  Deno.seek = rootFS.seek.bind(rootFS);
-  Deno.fsyncSync = rootFS.fsyncSync.bind(rootFS);
-  Deno.fsync = rootFS.fsync.bind(rootFS);
-  Deno.fdatasyncSync = rootFS.fdatasyncSync.bind(rootFS);
-  Deno.fdatasync = rootFS.fdatasync.bind(rootFS);
-  Deno.mkdirSync = rootFS.mkdirSync.bind(rootFS);
-  Deno.mkdir = rootFS.mkdir.bind(rootFS);
-  Deno.makeTempDirSync = rootFS.makeTempDirSync.bind(rootFS);
-  Deno.makeTempDir = rootFS.makeTempDir.bind(rootFS);
-  Deno.makeTempFileSync = rootFS.makeTempFileSync.bind(rootFS);
-  Deno.makeTempFile = rootFS.makeTempFile.bind(rootFS);
-  Deno.chmodSync = rootFS.chmodSync.bind(rootFS);
-  Deno.chmod = rootFS.chmod.bind(rootFS);
-  Deno.chownSync = rootFS.chownSync.bind(rootFS);
-  Deno.chown = rootFS.chown.bind(rootFS);
-  Deno.removeSync = rootFS.removeSync.bind(rootFS);
-  Deno.remove = rootFS.remove.bind(rootFS);
-  Deno.renameSync = rootFS.renameSync.bind(rootFS);
-  Deno.rename = rootFS.rename.bind(rootFS);
-  Deno.readTextFileSync = rootFS.readTextFileSync.bind(rootFS);
-  Deno.readTextFile = rootFS.readTextFile.bind(rootFS);
-  Deno.readFileSync = rootFS.readFileSync.bind(rootFS);
-  Deno.readFile = rootFS.readFile.bind(rootFS);
-  Deno.realPathSync = rootFS.realPathSync.bind(rootFS);
-  Deno.realPath = rootFS.realPath.bind(rootFS);
-  Deno.readDirSync = rootFS.readDirSync.bind(rootFS);
-  Deno.readDir = rootFS.readDir.bind(rootFS);
-  Deno.copyFileSync = rootFS.copyFileSync.bind(rootFS);
-  Deno.copyFile = rootFS.copyFile.bind(rootFS);
-  Deno.readLinkSync = rootFS.readLinkSync.bind(rootFS);
-  Deno.readLink = rootFS.readLink.bind(rootFS);
-  Deno.lstatSync = rootFS.lstatSync.bind(rootFS);
-  Deno.lstat = rootFS.lstat.bind(rootFS);
-  Deno.statSync = rootFS.statSync.bind(rootFS);
-  Deno.stat = rootFS.stat.bind(rootFS);
-  Deno.writeFileSync = rootFS.writeFileSync.bind(rootFS);
-  Deno.writeFile = rootFS.writeFile.bind(rootFS);
-  Deno.writeTextFileSync = rootFS.writeTextFileSync.bind(rootFS);
-  Deno.writeTextFile = rootFS.writeTextFile.bind(rootFS);
-  Deno.truncateSync = rootFS.truncateSync.bind(rootFS);
-  Deno.truncate = rootFS.truncate.bind(rootFS);
-  Deno.symlinkSync = rootFS.symlinkSync.bind(rootFS);
-  Deno.symlink = rootFS.symlink.bind(rootFS);
-  Deno.ftruncateSync = rootFS.ftruncateSync.bind(rootFS);
-  Deno.ftruncate = rootFS.ftruncate.bind(rootFS);
-  Deno.fstatSync = rootFS.fstatSync.bind(rootFS);
-  Deno.fstat = rootFS.fstat.bind(rootFS);
+    this.#postMessage({ fn: "read", sab: this.#sab, args: [u8Buf] });
+    const ret = waitMsg(this.#sab);
 
-  return rootFS;
+    const u8 = new Uint8Array(this.#sab);
+    const start = Int32Array.BYTES_PER_ELEMENT + 1;
+    const decoded = new TextDecoder().decode(u8.subarray(start, start + ret));
+    const nread = JSON.parse(decoded) as number;
+
+    buffer.set(u8Buf, nread);
+    return nread;
+  }
+
+  read(buffer: Uint8Array) {
+    return this.#chanMessage({ fn: "read", args: [buffer] }) as Promise<
+      number | null
+    >;
+  }
+
+  writeSync(p: Uint8Array) {
+    this.#postMessage({ fn: "write", sab: this.#sab, args: [p] });
+    const ret = waitMsg(this.#sab);
+
+    const u8 = new Uint8Array(this.#sab);
+    const start = Int32Array.BYTES_PER_ELEMENT + 1;
+    const decoded = new TextDecoder().decode(u8.subarray(start, start + ret));
+    return JSON.parse(decoded) as number;
+  }
+
+  write(buffer: Uint8Array) {
+    return this.#chanMessage({
+      fn: "write",
+      args: [buffer],
+    }) as Promise<number>;
+  }
+
+  syncSync() {
+    // noop
+  }
+
+  async sync() {
+    // noop
+  }
+
+  datasyncSync() {
+    // noop
+  }
+
+  async datasync() {
+    // noop
+  }
+
+  truncateSync(len: number) {
+    this.#postMessage({ fn: "truncate", sab: this.#sab, args: [len] });
+    waitMsg(this.#sab);
+  }
+
+  truncate(len: number) {
+    return this.#chanMessage({ fn: "truncate", args: [len] }) as Promise<void>;
+  }
+
+  seekSync(offset: number, whence: SeekMode) {
+    this.#postMessage({ fn: "seek", sab: this.#sab, args: [offset, whence] });
+    const ret = waitMsg(this.#sab);
+
+    const u8 = new Uint8Array(this.#sab);
+    const start = Int32Array.BYTES_PER_ELEMENT + 1;
+    const decoded = new TextDecoder().decode(u8.subarray(start, start + ret));
+    return JSON.parse(decoded) as number;
+  }
+
+  seek(offset: number, whence: SeekMode) {
+    return this.#chanMessage({
+      fn: "seek",
+      args: [offset, whence],
+    }) as Promise<number>;
+  }
+
+  statSync() {
+    this.#postMessage({ fn: "stat", sab: this.#sab, args: [] });
+    const ret = waitMsg(this.#sab);
+
+    const u8 = new Uint8Array(this.#sab);
+    const start = Int32Array.BYTES_PER_ELEMENT + 1;
+    const decoded = new TextDecoder().decode(u8.subarray(start, start + ret));
+    return JSON.parse(decoded) as DenoNamespace.FileInfo;
+  }
+
+  stat() {
+    return this.#chanMessage({
+      fn: "stat",
+      args: [],
+    }) as Promise<DenoNamespace.FileInfo>;
+  }
+
+  #postMessage<K extends ProxyFileKey>(msg: ProxyFileMsg<K>) {
+    this.#port.postMessage(msg);
+  }
+
+  #chanMessage<K extends ProxyFileKey>(msg: Omit<ProxyFileMsg<K>, "port">) {
+    return new Promise((resolve, reject) => {
+      const { port1, port2 } = new MessageChannel();
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      port1.onmessage = ({
+        data,
+      }: MessageEvent<{ ret: unknown } | { name: string; msg: string }>) => {
+        if ("ret" in data) resolve(data.ret);
+        else {
+          const { name, msg } = data;
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          const Err = <ErrorConstructor>(
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            (Deno.errors[name] ?? self[name] ?? Error)
+          );
+          reject(new Err(msg));
+        }
+        port1.close();
+      };
+      port1.onmessageerror = reject;
+      this.#port.postMessage({ ...msg, port: port2 }, [port2]);
+    });
+  }
 }

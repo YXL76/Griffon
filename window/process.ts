@@ -99,7 +99,7 @@ export class Process<
      * Therefore, all `postMessage` will be delayed until the worker is ready.
      */
     this.#worker = new Worker(CONST.workerURL, { type: "module" });
-    this.#worker.onmessage = ({ data }: MessageEvent<Child2Parent>) => {
+    this.#worker.onmessage = ({ data, ports }: MessageEvent<Child2Parent>) => {
       switch (data._t) {
         case ParentChildTp.exit:
           this.#code = data.code;
@@ -107,7 +107,7 @@ export class Process<
           this.close();
           break;
         case ParentChildTp.fsSync:
-          void fsSyncHandler(self.ROOT_FS, data);
+          void fsSyncHandler(self.ROOT_FS, data, ports);
       }
     };
     this.#worker.onmessageerror = console.error;

@@ -21,15 +21,23 @@ export const enum ParentChildTp {
 
 type Msg<T extends ParentChildTp, D = Dict> = { _t: T } & D;
 
-type FSSyncMsgKey =
-  | Exclude<DenoFsMethodsAsyncWithoutTmpnfile, "open" | "create">
-  | "readFile"
-  | "writeFile";
-
-export type FSSyncMsg<K extends FSSyncMsgKey = FSSyncMsgKey> = Msg<
+export type FSSyncMsg<
+  K extends DenoFsMethodsAsyncWithoutTmpnfile = DenoFsMethodsAsyncWithoutTmpnfile
+> = Msg<
   ParentChildTp.fsSync,
   { fn: K; sab: SharedArrayBuffer; args: Parameters<DenoType[K]> }
 >;
+
+export interface FSSyncPostMessage {
+  <K extends DenoFsMethodsAsyncWithoutTmpnfile>(
+    message: FSSyncMsg<K>,
+    transfer: Transferable[]
+  ): void;
+  <K extends DenoFsMethodsAsyncWithoutTmpnfile>(
+    message: FSSyncMsg<K>,
+    options?: StructuredSerializeOptions
+  ): void;
+}
 
 export type Parent2Child =
   | Msg<
