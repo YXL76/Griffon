@@ -60,7 +60,7 @@ export type ProxyFileMsg<K extends ProxyFileKey = ProxyFileKey> =
   | { fn: K; sab: SharedArrayBuffer; args: Parameters<DenoNamespace.FsFile[K]> }
   | { fn: K; port: MessagePort; args: Parameters<DenoNamespace.FsFile[K]> };
 
-function proxyFileHandler(
+async function proxyFileHandler(
   file: DenoNamespace.FsFile,
   { data }: MessageEvent<ProxyFileMsg>
 ) {
