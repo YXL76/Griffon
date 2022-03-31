@@ -15,8 +15,8 @@ export class DeviceFileSystem implements FileSystem {
 
   readonly #tree = new Map<string, FileSystem>();
 
-  async delete() {
-    for (const dev of this.#tree.values()) await dev.delete();
+  async close() {
+    for (const dev of this.#tree.values()) await dev.close();
     this.#tree.clear();
   }
 
@@ -39,6 +39,14 @@ export class DeviceFileSystem implements FileSystem {
     this.#tree.set(path, newDev);
   }
 
+  async deleteStorageDev(path: string) {
+    const dev = this.#tree.get(path);
+    if (!dev) throw NotFound.from(`remove '${path}'`);
+
+    this.#tree.delete(path);
+    await dev.close();
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   chmodSync(_path: string | URL, _mode: number) {
     // noop
@@ -59,30 +67,8 @@ export class DeviceFileSystem implements FileSystem {
     // noop
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  removeSync(path: string | URL, _options?: DenoNamespace.RemoveOptions) {
-    const pathStr = pathFromURL(path);
-    const absPath = resolve(pathStr);
-
-    const dev = this.#tree.get(absPath);
-    if (!dev) throw NotFound.from(`remove '${pathStr}'`);
-
-    const del = dev.delete();
-    if (del instanceof Promise) console.warn("removeSync: it is a Promise");
-
-    this.#tree.delete(absPath);
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async remove(path: string | URL, _options?: DenoNamespace.RemoveOptions) {
-    const pathStr = pathFromURL(path);
-    const absPath = resolve(pathStr);
-
-    const dev = this.#tree.get(absPath);
-    if (!dev) throw NotFound.from(`remove '${pathStr}'`);
-
-    await dev.delete();
-    this.#tree.delete(absPath);
+  remove(): never {
+    throw new Error("This should never be called");
   }
 
   readDirSync(path: string | URL) {
@@ -143,10 +129,10 @@ export class DeviceFileSystem implements FileSystem {
       birthtime: null,
       nlink: null,
       ino: null,
-      isFile: false,
       isSymlink: false,
       size: 0,
 
+      isFile: !isDirectory,
       isDirectory,
     };
   }

@@ -81,7 +81,7 @@ type DenoFsMethodsAsync =
 type DenoFsMethods = DenoFsMethodsSync | DenoFsMethodsAsync;
 
 export type FileSystem = Partial<Pick<DenoType, DenoFsMethodsWithoutTmp>> & {
-  delete(): void | Promise<void>;
+  close(): void | Promise<void>;
 };
 
 export interface StorageDevice {

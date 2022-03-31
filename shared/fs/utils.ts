@@ -25,6 +25,7 @@ export async function fsSyncHandler(
     } else if (typeof ret === "object") {
       if ("mtime" in ret) {
         /** FileInfo */
+        // NOTE: The `Date` object is not serializable
         encoded = new TextEncoder().encode(JSON.stringify(ret));
       } else if ("writeSync" in ret) {
         /** FsFile */

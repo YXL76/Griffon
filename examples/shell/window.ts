@@ -75,24 +75,63 @@ let module = {} as { exports: { default: typeof Shelljs } };
 // eslint-disable-next-line @typescript-eslint/no-implied-eval
 new Function("require", "module", SHELLJS_CODE_BYTES)(require, module);
 
-let hispos = 1;
+const commands = [
+  "cat",
+  "cd",
+  "chmod",
+  "cp",
+  "dirs",
+  "echo",
+  "exec",
+  "find",
+  "grep",
+  "head",
+  "ln",
+  "ls",
+  "mkdir",
+  "mv",
+  "pwd",
+  "rm",
+  "sed",
+  "set",
+  "sort",
+  "tail",
+  "tempdir",
+  "test",
+  "touch",
+  "uniq",
+  "which",
+
+  // Custom
+  "clear",
+  "mount",
+  "umount",
+] as const;
+
+let hispos = 0;
 const history: string[] = [];
 
 let linelock = false;
-let pos = 0;
 let line = "";
 term.onData((data) => {
   switch (data) {
     case "\x04" /** Ctrl+D */:
       term.writeln("^D");
       break;
-    case "\t" /** Tab */:
+    case "\t" /** Tab */: {
+      const last = line.trimEnd().split(" ").pop();
+      term.writeln("");
+      if (last)
+        term.writeln(commands.filter((c) => c.startsWith(last)).join(" "));
+      else term.writeln(commands.join(" "));
+      term.write(`${head()}${line}`);
       break;
+    }
     case "\r" /** Enter */: {
       term.writeln("");
       const l = line;
       line = "";
-      newline(l);
+      void newline(l);
       break;
     }
     case "\x7F" /** Backspace */:
@@ -104,29 +143,19 @@ term.onData((data) => {
     case "\x1B\x5B\x41" /** Up */:
       if (!linelock && hispos > 0) {
         --hispos;
-        term.write(`\x1b[G\x1b[K${head()}${history[hispos]}`);
+        line = history[hispos];
+        term.write(`\x1b[G\x1b[K${head()}${line}`);
       }
       break;
     case "\x1B\x5B\x42" /** Down */:
       if (!linelock && hispos <= history.length - 1) {
         ++hispos;
-        hispos === history.length
-          ? term.write(`\x1b[G\x1b[K${head()}`)
-          : term.write(`\x1b[G\x1b[K${head()}${history[hispos]}`);
+        line = hispos === history.length ? "" : history[hispos];
+        term.write(`\x1b[G\x1b[K${head()}${line}`);
       }
       break;
     case "\x1B\x5B\x43" /** Right */:
-      if (pos < line.length) {
-        ++pos;
-        term.write(data);
-      }
-      break;
     case "\x1B\x5B\x44" /** Left */:
-      if (pos > 0) {
-        --pos;
-        term.write(data);
-      }
-      break;
     case "\x01":
     case "\x02":
     case "\x03":
@@ -162,46 +191,13 @@ term.onData((data) => {
 
 term.write(head());
 
-const commands = [
-  "cat",
-  "cd",
-  "chmod",
-  "cp",
-  "dirs",
-  "echo",
-  "exec",
-  "find",
-  "grep",
-  "head",
-  "ln",
-  "ls",
-  "mkdir",
-  "mv",
-  "pwd",
-  "rm",
-  "sed",
-  "set",
-  "sort",
-  "tail",
-  "tempdir",
-  "test",
-  "touch",
-  "uniq",
-  "which",
-
-  // Custom
-  "clear",
-  "mount",
-  "unmount",
-] as const;
-
 type ExtractArray<A> = A extends ReadonlyArray<infer R> ? R : never;
 type Keys = Exclude<
   ExtractArray<typeof commands>,
-  "clear" | "mount" | "unmount"
+  "clear" | "mount" | "umount"
 >;
 
-function newline(line: string) {
+async function newline(line: string) {
   linelock = true;
 
   const args = line.split(" ").filter((s) => s);
@@ -210,28 +206,31 @@ function newline(line: string) {
   try {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
-    if (!command || !commands.includes(command as Keys)) {
-      term.writeln("Unknown command");
-    } else if (command === "clear") {
+    if (!command || !commands.includes(command as Keys))
+      throw new Error("Unknown command");
+
+    if (command === "clear") {
       if (args.length) throw new Error("invalid option");
       else term.clear();
     } else if (command === "mount") {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
-      void rootfs.mount(...args);
-    } else if (command === "unmount") {
+      await rootfs.mount(...args);
+    } else if (command === "umount") {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
-      void rootfs.unmount(...args);
+      await rootfs.umount(...args);
     } else {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
       const ret = module.exports.default[command as Keys](...args);
 
       const stdout = (Array.isArray(ret) && ret.join(" ")) || ret?.toString();
-      if (stdout) term.writeln(stdout);
+      if (stdout) stdout.split("\n").forEach((l) => term.writeln(l));
       if (typeof ret === "object" && ret?.stderr) term.writeln(ret.stderr);
+    }
 
+    if (history.length === 0 || line !== history[history.length - 1]) {
       history.push(line);
     }
   } catch (err) {
@@ -242,7 +241,6 @@ function newline(line: string) {
 
   term.write(head());
   hispos = history.length;
-  pos = 0;
 
   linelock = false;
 }

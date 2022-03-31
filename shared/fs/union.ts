@@ -38,25 +38,34 @@ type ChanMsg =
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       args: any[];
     }
+  | { fn: "deleteStorageDev"; path: string }
   | { fn: "mount"; device: string; point: string }
-  | { fn: "unmount"; point: string };
-
-// eslint-disable-next-line @typescript-eslint/naming-convention
-type Mounts = Record<string, FileSystem> & { "/dev": DeviceFileSystem };
+  | { fn: "umount"; point: string };
 
 interface MountSchema extends DBSchema {
   dev: {
     key: number;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    value: { name: StorageDevice["name"]; id: number; args: any[] };
+    value: {
+      path: string;
+      name: StorageDevice["name"];
+      id: number;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      args: any[];
+    };
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    indexes: { "by-path": string };
   };
+
   mount: {
     key: number;
     value: { point: string; device: string };
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    indexes: { "by-point": string };
+    indexes: { "by-point": string; "by-device": string };
   };
 }
+
+// eslint-disable-next-line @typescript-eslint/naming-convention
+type Mounts = Record<string, FileSystem> & { "/dev": DeviceFileSystem };
 
 // TODO: "Failed to execute 'decode' on 'TextDecoder': The provided ArrayBufferView value must not be shared."
 
@@ -70,7 +79,9 @@ export class UnionFileSystem
 
   readonly #db: IDBPDatabase<MountSchema>;
 
-  readonly #sab = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * 1024);
+  readonly #sab = new SharedArrayBuffer(
+    Int32Array.BYTES_PER_ELEMENT * 1024 * 128
+  );
 
   readonly #postMessage: FSSyncPostMessage;
 
@@ -95,11 +106,14 @@ export class UnionFileSystem
           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           void this.#newStorageDev(data.name, data.id, ...data.args);
           break;
+        case "deleteStorageDev":
+          void this.#deleteStorageDev(data.path);
+          break;
         case "mount":
           this.#mount(data.device, data.point);
           break;
-        case "unmount":
-          this.#unmount(data.point);
+        case "umount":
+          this.#umount(data.point);
       }
     };
     this.#channel.onmessageerror = console.error;
@@ -117,9 +131,12 @@ export class UnionFileSystem
 
     const db = await openDB<MountSchema>("rootfs-sync", 1, {
       upgrade(db) {
-        db.createObjectStore("dev", { autoIncrement: true });
+        const dev = db.createObjectStore("dev", { autoIncrement: true });
+        dev.createIndex("by-path", "path", { unique: true });
+
         const mount = db.createObjectStore("mount", { autoIncrement: true });
         mount.createIndex("by-point", "point", { unique: true });
+        mount.createIndex("by-device", "device", { unique: true });
       },
 
       terminated() {
@@ -155,7 +172,7 @@ export class UnionFileSystem
     const msg: ChanMsg = { fn: "newStorageDev", name, id, args };
     this.#channel.postMessage(msg);
 
-    await this.#db.add("dev", { name, id, args });
+    await this.#db.add("dev", { path: `/${name}${id}`, name, id, args });
   }
 
   #newStorageDev<D extends StorageDevice>(
@@ -166,9 +183,38 @@ export class UnionFileSystem
     return this.#mounts["/dev"].newStorageDev(name, id, ...args);
   }
 
+  /**
+   * @param subpath link `/faX`
+   * @param path linke `/dev/faX`
+   */
+  async deleteStorageDev(subpath: string, path: string) {
+    const key = await this.#db.getKeyFromIndex("mount", "by-device", path);
+    if (key) throw new Error(`The device '${path}' is mounted`);
+
+    await this.#deleteStorageDev(subpath);
+
+    const msg: ChanMsg = { fn: "deleteStorageDev", path: subpath };
+    this.#channel.postMessage(msg);
+
+    const key2 = await this.#db.getKeyFromIndex("dev", "by-path", subpath);
+    if (key2) await this.#db.delete("dev", key2);
+  }
+
+  #deleteStorageDev(path: string) {
+    return this.#mounts["/dev"].deleteStorageDev(path);
+  }
+
   async mount(deviceu: string | URL, pointu: string | URL) {
     const device = resolve(pathFromURL(deviceu));
     const point = resolve(pathFromURL(pointu));
+
+    if (Object.keys(this.#mounts).find((v) => point.startsWith(v)))
+      throw AlreadyExists.from(`mount '${point}'`);
+    if (!device.startsWith("/dev"))
+      throw new Error(`invalid device '${device}'`);
+
+    const key = await this.#db.getKeyFromIndex("mount", "by-device", device);
+    if (key) throw new Error(`The device '${device}' is mounted`);
 
     this.#mount(device, point);
 
@@ -179,32 +225,27 @@ export class UnionFileSystem
   }
 
   #mount(device: string, point: string) {
-    if (Object.keys(this.#mounts).find((v) => point.startsWith(v)))
-      throw AlreadyExists.from(`mount '${point}'`);
-
     const dev = this.#mounts["/dev"].get(device.slice(4));
-    if (!device.startsWith("/dev") || !dev)
-      throw new Error(`invalid device '${device}'`);
+    if (!dev) throw new Error(`invalid device '${device}'`);
 
     this.#mounts[point] = dev;
   }
 
-  async unmount(pointu: string | URL) {
+  async umount(pointu: string | URL) {
     const point = resolve(pathFromURL(pointu));
 
-    this.#unmount(point);
+    if (point === "/dev") throw new Error(`cannot umount '/dev'`);
 
-    const msg: ChanMsg = { fn: "unmount", point };
+    this.#umount(point);
+
+    const msg: ChanMsg = { fn: "umount", point };
     this.#channel.postMessage(msg);
 
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const key = (await this.#db.getKeyFromIndex("mount", "by-point", point))!;
-    await this.#db.delete("mount", key);
+    const key = await this.#db.getKeyFromIndex("mount", "by-point", point);
+    if (key) await this.#db.delete("mount", key);
   }
 
-  #unmount(point: string) {
-    if (point === "/dev") throw new Error(`cannot unmount '/dev'`);
-
+  #umount(point: string) {
     delete this.#mounts[point];
   }
 
@@ -462,9 +503,13 @@ export class UnionFileSystem
   }
 
   override remove(path: string | URL, options?: DenoNamespace.RemoveOptions) {
-    const { i, fs, rp } = this.#accessMount(path, "remove");
+    const { i, fs, rp, ap } = this.#accessMount(path, "remove");
     if (fs) {
-      if (i) return fs.remove(rp, options);
+      if (i) {
+        if (fs === this.#mounts["/dev"]) return this.deleteStorageDev(rp, ap);
+
+        return fs.remove(rp, options);
+      }
 
       notImplemented();
     }
@@ -713,7 +758,14 @@ export class UnionFileSystem
     const decoded = new TextDecoder().decode(
       new Uint8Array(u8.subarray(start, start + ret))
     );
-    return JSON.parse(decoded) as DenoNamespace.FileInfo;
+    const info = JSON.parse(decoded) as ParesdFileInfo;
+    return {
+      ...info,
+
+      atime: info.atime ? new Date(info.atime) : null,
+      mtime: info.mtime ? new Date(info.mtime) : null,
+      birthtime: info.birthtime ? new Date(info.birthtime) : null,
+    };
   }
 
   override lstat(path: string | URL) {
@@ -739,7 +791,14 @@ export class UnionFileSystem
     const decoded = new TextDecoder().decode(
       new Uint8Array(u8.subarray(start, start + ret))
     );
-    return JSON.parse(decoded) as DenoNamespace.FileInfo;
+    const info = JSON.parse(decoded) as ParesdFileInfo;
+    return {
+      ...info,
+
+      atime: info.atime ? new Date(info.atime) : null,
+      mtime: info.mtime ? new Date(info.mtime) : null,
+      birthtime: info.birthtime ? new Date(info.birthtime) : null,
+    };
   }
 
   override stat(path: string | URL) {
@@ -964,12 +1023,12 @@ export class UnionFileSystem
       if (typeof fs[method] === "function") {
         return {
           i: true as const,
-          rp: ap.slice(point.length + 1) || "/",
+          rp: ap.slice(point.length) || "/",
           fs: fs as FileSystem & { [key in K]: NonNullable<FileSystem[K]> },
           ap,
         };
       } else {
-        return { i, rp: ap.slice(point.length + 1) || "/", fs, ap };
+        return { i, rp: ap.slice(point.length) || "/", fs, ap };
       }
     }
     return { i, rp: ap, ap };
@@ -1025,7 +1084,7 @@ class ProxyFile implements FileResource {
     );
     const nread = JSON.parse(decoded) as number;
 
-    buffer.set(u8Buf, nread);
+    buffer.set(u8Buf.subarray(0, nread));
     return nread;
   }
 
@@ -1105,7 +1164,14 @@ class ProxyFile implements FileResource {
     const decoded = new TextDecoder().decode(
       new Uint8Array(u8.subarray(start, start + ret))
     );
-    return JSON.parse(decoded) as DenoNamespace.FileInfo;
+    const info = JSON.parse(decoded) as ParesdFileInfo;
+    return {
+      ...info,
+
+      atime: info.atime ? new Date(info.atime) : null,
+      mtime: info.mtime ? new Date(info.mtime) : null,
+      birthtime: info.birthtime ? new Date(info.birthtime) : null,
+    };
   }
 
   stat() {
@@ -1144,3 +1210,8 @@ class ProxyFile implements FileResource {
     });
   }
 }
+
+type ParesdFileInfo = Omit<
+  DenoNamespace.FileInfo,
+  "mtime" | "atime" | "birthtime"
+> & { mtime: number | null; atime: number | null; birthtime: number | null };

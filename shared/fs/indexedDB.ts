@@ -336,7 +336,7 @@ class IndexedDBFileSystem implements FileSystem {
     this.#db = db;
   }
 
-  async delete() {
+  async close() {
     const name = this.#db.name;
     this.#db.close();
     await deleteDB(name);
