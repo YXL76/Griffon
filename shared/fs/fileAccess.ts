@@ -184,7 +184,7 @@ class FileAccessStorageDevice implements StorageDevice {
    */
   async newDevice(root: FileSystemDirectoryHandle) {
     if ((await root.queryPermission({ mode: "readwrite" })) !== "granted") {
-      if ((await root.requestPermission({ mode: "readwrite" })) !== "granted") {
+      if ((await root.requestPermission({ mode: "readwrite" })) === "denied") {
         throw new Error("Permission denied");
       }
     }
@@ -368,10 +368,7 @@ export class FileAccessFileSystem implements FileSystem {
     // const absPath = resolve(pathStr);
     const absPath = pathStr;
 
-    const getHandle =
-      absPath === "/"
-        ? Promise.resolve({ base: this.#root })
-        : this.#getHandleOrThrow(absPath, "readDir");
+    const getHandle = this.#getHandleOrThrow(absPath, "readDir");
     return {
       async *[Symbol.asyncIterator]() {
         const { base } = await getHandle;
@@ -534,11 +531,13 @@ export class FileAccessFileSystem implements FileSystem {
   }
 
   async #getHandleOrThrow(path: string, func: string) {
+    let dir = this.#root;
+    if (path === "/") return { dir, base: this.#root };
+
     const parts = path.split("/");
     const name = parts.pop();
     if (!name) throw NotFound.from(`${func} '${path}'`);
 
-    let dir = this.#root;
     try {
       for (const part of parts)
         if (part) dir = await dir.getDirectoryHandle(part);

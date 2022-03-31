@@ -40,6 +40,26 @@ export class DeviceFileSystem implements FileSystem {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  chmodSync(_path: string | URL, _mode: number) {
+    // noop
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async chmod(_path: string | URL, _mode: number) {
+    // noop
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  chownSync(_path: string | URL, _uid: number | null, _gid: number | null) {
+    // noop
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async chown(_path: string | URL, _uid: number | null, _gid: number | null) {
+    // noop
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   removeSync(path: string | URL, _options?: DenoNamespace.RemoveOptions) {
     const pathStr = pathFromURL(path);
     const absPath = resolve(pathStr);
@@ -71,9 +91,11 @@ export class DeviceFileSystem implements FileSystem {
     const tree = this.#tree;
     return {
       *[Symbol.iterator]() {
+        const prefixLen = absPath === "/" ? 1 : absPath.length + 1;
+
         for (const path of tree.keys()) {
           if (!path.startsWith(absPath)) continue;
-          const name = path.slice(absPath.length + 1);
+          const name = path.slice(prefixLen);
           if (!name || name.includes("/")) continue;
           yield { name, isFile: false, isDirectory: false, isSymlink: false };
         }
@@ -88,13 +110,56 @@ export class DeviceFileSystem implements FileSystem {
     return {
       // eslint-disable-next-line @typescript-eslint/require-await
       async *[Symbol.asyncIterator]() {
+        const prefixLen = absPath === "/" ? 1 : absPath.length + 1;
+
         for (const path of tree.keys()) {
           if (!path.startsWith(absPath)) continue;
-          const name = path.slice(absPath.length + 1);
+          const name = path.slice(prefixLen);
           if (!name || name.includes("/")) continue;
           yield { name, isFile: false, isDirectory: false, isSymlink: false };
         }
       },
     };
+  }
+
+  lstatSync(path: string | URL): DenoNamespace.FileInfo {
+    const absPath = resolve(pathFromURL(path));
+
+    let isDirectory = false;
+    if (absPath === "/") isDirectory = true;
+    else if (!this.#tree.has(absPath))
+      throw NotFound.from(`lstat '${absPath}'`);
+
+    return {
+      mtime: null,
+      atime: null,
+      dev: null,
+      mode: null,
+      uid: null,
+      gid: null,
+      rdev: null,
+      blksize: null,
+      blocks: null,
+      birthtime: null,
+      nlink: null,
+      ino: null,
+      isFile: false,
+      isSymlink: false,
+      size: 0,
+
+      isDirectory,
+    };
+  }
+
+  lstat(path: string | URL) {
+    return Promise.resolve(this.lstatSync(path));
+  }
+
+  statSync(path: string | URL) {
+    return this.lstatSync(path);
+  }
+
+  stat(path: string | URL) {
+    return Promise.resolve(this.statSync(path));
   }
 }

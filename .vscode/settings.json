@@ -18,7 +18,8 @@
   "search.exclude": {
     "**/.pnp.*": true,
     "**/.yarn": true,
-    "deno-std/deno_std": true
+    "deno-std/deno_std": true,
+    "examples/shell/shelljs": true
   },
   "typescript.enablePromptUseWorkspaceTsdk": true,
   "typescript.tsdk": ".yarn/sdks/typescript/lib"

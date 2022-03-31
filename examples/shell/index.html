@@ -5,26 +5,35 @@
     <title>Griffon Shell</title>
     <link rel="stylesheet" href="window.css" />
     <script defer type="module" src="window.mjs"></script>
+
+    <style>
+      body {
+        display: flex;
+        justify-content: center;
+        padding-top: 32px;
+        column-gap: 64px;
+      }
+      #right-panel {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        row-gap: 32px;
+      }
+      #right-panel > * {
+        display: block;
+        width: 200px;
+        font-size: 28px;
+      }
+    </style>
   </head>
   <body>
-    <!-- <style>
-      .btn {
-        display: block;
-        margin: 16px auto;
-        font-size: 32px;
-      }
-      #code-input {
-        display: block;
-        width: 1024px;
-        height: 768px;
-        font-size: 18px;
-        margin: 0 auto;
-      }
-    </style> -->
     <div id="terminal"></div>
-    <!-- <button class="btn" id="fa-btn">FA Device</button>
-    <button class="btn" id="idb-btn">IDB Device</button>
-    <button class="btn" id="run-btn">Run</button>
-    <textarea id="code-input"></textarea> -->
+    <div id="right-panel">
+      <button class="btn" id="boot-btn">Boot</button>
+      <input id="fa-input" type="number" placeholder="Please input id" />
+      <button class="btn" id="fa-btn">FA Device</button>
+      <input id="idb-input" type="number" placeholder="Please input id" />
+      <button class="btn" id="idb-btn">IDB Device</button>
+    </div>
   </body>
 </html>

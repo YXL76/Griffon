@@ -76,8 +76,6 @@ export async function boot({ env = {} }: BootConfig = {}) {
 }
 
 function hackDeno() {
-  self.Deno.env.set("HOME", `/home/${PCB.uid}`);
-
   self.Deno.exit = () => self.close() as never;
 
   self.Deno.addSignalListener = addSignalListener;

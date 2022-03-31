@@ -54,7 +54,13 @@ export async function fsSyncHandler(
   }
 }
 
-export type ProxyFileKey = "write" | "truncate" | "read" | "seek" | "stat";
+export type ProxyFileKey =
+  | "close"
+  | "write"
+  | "truncate"
+  | "read"
+  | "seek"
+  | "stat";
 
 export type ProxyFileMsg<K extends ProxyFileKey = ProxyFileKey> =
   | { fn: K; sab: SharedArrayBuffer; args: Parameters<DenoNamespace.FsFile[K]> }
@@ -128,7 +134,9 @@ export function waitMsg(sab: SharedArrayBuffer) {
   else if (ret < 0) {
     const u8 = new Uint8Array(sab);
     const start = Int32Array.BYTES_PER_ELEMENT + 1;
-    const str = new TextDecoder().decode(u8.subarray(start, start - ret));
+    const str = new TextDecoder().decode(
+      new Uint8Array(u8.subarray(start, start - ret))
+    );
     const { name, msg } = JSON.parse(str) as SyncError;
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
@@ -140,68 +148,68 @@ export function waitMsg(sab: SharedArrayBuffer) {
 }
 
 export async function hackDenoFS(postMessage: FSSyncPostMessage) {
-  const rootFS = await UnionFileSystem.create(postMessage);
+  const rootfs = await UnionFileSystem.create(postMessage);
 
-  Deno.linkSync = rootFS.linkSync.bind(rootFS);
-  Deno.link = rootFS.link.bind(rootFS);
-  Deno.openSync = rootFS.openSync.bind(rootFS);
-  Deno.open = rootFS.open.bind(rootFS);
-  Deno.createSync = rootFS.createSync.bind(rootFS);
-  Deno.create = rootFS.create.bind(rootFS);
-  Deno.readSync = rootFS.readSync.bind(rootFS);
-  Deno.read = rootFS.read.bind(rootFS);
-  Deno.writeSync = rootFS.writeSync.bind(rootFS);
-  Deno.write = rootFS.write.bind(rootFS);
-  Deno.seekSync = rootFS.seekSync.bind(rootFS);
-  Deno.seek = rootFS.seek.bind(rootFS);
-  Deno.fsyncSync = rootFS.fsyncSync.bind(rootFS);
-  Deno.fsync = rootFS.fsync.bind(rootFS);
-  Deno.fdatasyncSync = rootFS.fdatasyncSync.bind(rootFS);
-  Deno.fdatasync = rootFS.fdatasync.bind(rootFS);
-  Deno.mkdirSync = rootFS.mkdirSync.bind(rootFS);
-  Deno.mkdir = rootFS.mkdir.bind(rootFS);
-  Deno.makeTempDirSync = rootFS.makeTempDirSync.bind(rootFS);
-  Deno.makeTempDir = rootFS.makeTempDir.bind(rootFS);
-  Deno.makeTempFileSync = rootFS.makeTempFileSync.bind(rootFS);
-  Deno.makeTempFile = rootFS.makeTempFile.bind(rootFS);
-  Deno.chmodSync = rootFS.chmodSync.bind(rootFS);
-  Deno.chmod = rootFS.chmod.bind(rootFS);
-  Deno.chownSync = rootFS.chownSync.bind(rootFS);
-  Deno.chown = rootFS.chown.bind(rootFS);
-  Deno.removeSync = rootFS.removeSync.bind(rootFS);
-  Deno.remove = rootFS.remove.bind(rootFS);
-  Deno.renameSync = rootFS.renameSync.bind(rootFS);
-  Deno.rename = rootFS.rename.bind(rootFS);
-  Deno.readTextFileSync = rootFS.readTextFileSync.bind(rootFS);
-  Deno.readTextFile = rootFS.readTextFile.bind(rootFS);
-  Deno.readFileSync = rootFS.readFileSync.bind(rootFS);
-  Deno.readFile = rootFS.readFile.bind(rootFS);
-  Deno.realPathSync = rootFS.realPathSync.bind(rootFS);
-  Deno.realPath = rootFS.realPath.bind(rootFS);
-  Deno.readDirSync = rootFS.readDirSync.bind(rootFS);
-  Deno.readDir = rootFS.readDir.bind(rootFS);
-  Deno.copyFileSync = rootFS.copyFileSync.bind(rootFS);
-  Deno.copyFile = rootFS.copyFile.bind(rootFS);
-  Deno.readLinkSync = rootFS.readLinkSync.bind(rootFS);
-  Deno.readLink = rootFS.readLink.bind(rootFS);
-  Deno.lstatSync = rootFS.lstatSync.bind(rootFS);
-  Deno.lstat = rootFS.lstat.bind(rootFS);
-  Deno.statSync = rootFS.statSync.bind(rootFS);
-  Deno.stat = rootFS.stat.bind(rootFS);
-  Deno.writeFileSync = rootFS.writeFileSync.bind(rootFS);
-  Deno.writeFile = rootFS.writeFile.bind(rootFS);
-  Deno.writeTextFileSync = rootFS.writeTextFileSync.bind(rootFS);
-  Deno.writeTextFile = rootFS.writeTextFile.bind(rootFS);
-  Deno.truncateSync = rootFS.truncateSync.bind(rootFS);
-  Deno.truncate = rootFS.truncate.bind(rootFS);
-  Deno.symlinkSync = rootFS.symlinkSync.bind(rootFS);
-  Deno.symlink = rootFS.symlink.bind(rootFS);
-  Deno.ftruncateSync = rootFS.ftruncateSync.bind(rootFS);
-  Deno.ftruncate = rootFS.ftruncate.bind(rootFS);
-  Deno.fstatSync = rootFS.fstatSync.bind(rootFS);
-  Deno.fstat = rootFS.fstat.bind(rootFS);
+  Deno.linkSync = rootfs.linkSync.bind(rootfs);
+  Deno.link = rootfs.link.bind(rootfs);
+  Deno.openSync = rootfs.openSync.bind(rootfs);
+  Deno.open = rootfs.open.bind(rootfs);
+  Deno.createSync = rootfs.createSync.bind(rootfs);
+  Deno.create = rootfs.create.bind(rootfs);
+  Deno.readSync = rootfs.readSync.bind(rootfs);
+  Deno.read = rootfs.read.bind(rootfs);
+  Deno.writeSync = rootfs.writeSync.bind(rootfs);
+  Deno.write = rootfs.write.bind(rootfs);
+  Deno.seekSync = rootfs.seekSync.bind(rootfs);
+  Deno.seek = rootfs.seek.bind(rootfs);
+  Deno.fsyncSync = rootfs.fsyncSync.bind(rootfs);
+  Deno.fsync = rootfs.fsync.bind(rootfs);
+  Deno.fdatasyncSync = rootfs.fdatasyncSync.bind(rootfs);
+  Deno.fdatasync = rootfs.fdatasync.bind(rootfs);
+  Deno.mkdirSync = rootfs.mkdirSync.bind(rootfs);
+  Deno.mkdir = rootfs.mkdir.bind(rootfs);
+  Deno.makeTempDirSync = rootfs.makeTempDirSync.bind(rootfs);
+  Deno.makeTempDir = rootfs.makeTempDir.bind(rootfs);
+  Deno.makeTempFileSync = rootfs.makeTempFileSync.bind(rootfs);
+  Deno.makeTempFile = rootfs.makeTempFile.bind(rootfs);
+  Deno.chmodSync = rootfs.chmodSync.bind(rootfs);
+  Deno.chmod = rootfs.chmod.bind(rootfs);
+  Deno.chownSync = rootfs.chownSync.bind(rootfs);
+  Deno.chown = rootfs.chown.bind(rootfs);
+  Deno.removeSync = rootfs.removeSync.bind(rootfs);
+  Deno.remove = rootfs.remove.bind(rootfs);
+  Deno.renameSync = rootfs.renameSync.bind(rootfs);
+  Deno.rename = rootfs.rename.bind(rootfs);
+  Deno.readTextFileSync = rootfs.readTextFileSync.bind(rootfs);
+  Deno.readTextFile = rootfs.readTextFile.bind(rootfs);
+  Deno.readFileSync = rootfs.readFileSync.bind(rootfs);
+  Deno.readFile = rootfs.readFile.bind(rootfs);
+  Deno.realPathSync = rootfs.realPathSync.bind(rootfs);
+  Deno.realPath = rootfs.realPath.bind(rootfs);
+  Deno.readDirSync = rootfs.readDirSync.bind(rootfs);
+  Deno.readDir = rootfs.readDir.bind(rootfs);
+  Deno.copyFileSync = rootfs.copyFileSync.bind(rootfs);
+  Deno.copyFile = rootfs.copyFile.bind(rootfs);
+  Deno.readLinkSync = rootfs.readLinkSync.bind(rootfs);
+  Deno.readLink = rootfs.readLink.bind(rootfs);
+  Deno.lstatSync = rootfs.lstatSync.bind(rootfs);
+  Deno.lstat = rootfs.lstat.bind(rootfs);
+  Deno.statSync = rootfs.statSync.bind(rootfs);
+  Deno.stat = rootfs.stat.bind(rootfs);
+  Deno.writeFileSync = rootfs.writeFileSync.bind(rootfs);
+  Deno.writeFile = rootfs.writeFile.bind(rootfs);
+  Deno.writeTextFileSync = rootfs.writeTextFileSync.bind(rootfs);
+  Deno.writeTextFile = rootfs.writeTextFile.bind(rootfs);
+  Deno.truncateSync = rootfs.truncateSync.bind(rootfs);
+  Deno.truncate = rootfs.truncate.bind(rootfs);
+  Deno.symlinkSync = rootfs.symlinkSync.bind(rootfs);
+  Deno.symlink = rootfs.symlink.bind(rootfs);
+  Deno.ftruncateSync = rootfs.ftruncateSync.bind(rootfs);
+  Deno.ftruncate = rootfs.ftruncate.bind(rootfs);
+  Deno.fstatSync = rootfs.fstatSync.bind(rootfs);
+  Deno.fstat = rootfs.fstat.bind(rootfs);
 
-  return rootFS;
+  return rootfs;
 }
 
 export function newFileInfo() {

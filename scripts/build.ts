@@ -35,9 +35,27 @@ const basicConfig: BuildOptions = {
 (async () => {
   await rm(distPath, { force: true, recursive: true });
 
+  const {
+    outputFiles: [file],
+  } = await build({
+    ...basicConfig,
+    sourcemap: false,
+    format: "cjs",
+    target: "node16",
+
+    splitting: false,
+    platform: "node",
+    write: false,
+    entryPoints: [resolve(examplePath, "shell.js")],
+  });
+
   await Promise.all([
     build({
       ...basicConfig,
+      define: {
+        SHELLJS_CODE_BYTES: JSON.stringify(file.text),
+      },
+
       entryPoints: {
         service: resolve(examplePath, "service.ts"),
         window: resolve(examplePath, "window.ts"),

@@ -26,12 +26,14 @@ import {
   TimedOut,
   UnexpectedEof,
   WriteZero,
+  pathFromURL,
   stderr,
   stdin,
   stdout,
 } from "./runtime";
 import type { DenoClass, DenoDeprecated, DenoFFI, Resource } from "./types";
 import type { Deno as DenoNamespace } from "./lib.deno";
+import { resolve } from "./deno_std/path/posix";
 
 export type { DenoNamespace };
 
@@ -90,7 +92,7 @@ export const PCB: {
   cwd: string;
   uid: number;
   env: Map<string, string>;
-} = { cwd: "/", uid: NaN, env: new Map() };
+} = { cwd: "/", uid: NaN, env: new Map([["HOME", "/"]]) };
 
 export type DenoType = Omit<
   typeof DenoNamespace,
@@ -160,7 +162,12 @@ export const Deno: DenoType = {
   },
 
   execPath: () => "/usr/bin/deno",
-  chdir: notImplemented,
+  chdir: (directory) => {
+    const path = resolve(pathFromURL(directory));
+
+    if (Deno.statSync(path).isDirectory) PCB.cwd = path;
+    else throw NotFound.from(`${path} is not a directory.`);
+  },
   cwd: () => PCB.cwd,
   linkSync: notImplemented,
   link: notImplemented,
@@ -322,6 +329,6 @@ export const Deno: DenoType = {
   upgradeHttp: notImplemented,
 };
 
-RESC_TABLE.add(stdin);
-RESC_TABLE.add(stdout);
-RESC_TABLE.add(stderr);
+RESC_TABLE.add(null as unknown as Resource);
+RESC_TABLE.add(null as unknown as Resource);
+RESC_TABLE.add(null as unknown as Resource);

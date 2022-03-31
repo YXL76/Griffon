@@ -58,6 +58,8 @@ interface MountSchema extends DBSchema {
   };
 }
 
+// TODO: "Failed to execute 'decode' on 'TextDecoder': The provided ArrayBufferView value must not be shared."
+
 const _t = ParentChildTp.fsSync;
 
 export class UnionFileSystem
@@ -108,7 +110,7 @@ export class UnionFileSystem
 
     const root = await navigator.storage.getDirectory();
     if ((await root.queryPermission({ mode: "readwrite" })) !== "granted") {
-      if ((await root.requestPermission({ mode: "readwrite" })) !== "granted") {
+      if ((await root.requestPermission({ mode: "readwrite" })) === "denied") {
         throw new Error("Permission denied");
       }
     }
@@ -130,8 +132,8 @@ export class UnionFileSystem
     const devs = await db.getAll("dev");
     await Promise.all(
       devs.map(({ name, id, args }) =>
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        this._instance!.#newStorageDev(name, id, args)
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-unsafe-argument
+        this._instance!.#newStorageDev(name, id, ...args)
       )
     );
 
@@ -180,7 +182,7 @@ export class UnionFileSystem
     if (Object.keys(this.#mounts).find((v) => point.startsWith(v)))
       throw AlreadyExists.from(`mount '${point}'`);
 
-    const dev = this.#mounts["/dev"].get(device.slice(5));
+    const dev = this.#mounts["/dev"].get(device.slice(4));
     if (!device.startsWith("/dev") || !dev)
       throw new Error(`invalid device '${device}'`);
 
@@ -548,7 +550,9 @@ export class UnionFileSystem
 
     const u8 = new Uint8Array(this.#sab);
     const start = Int32Array.BYTES_PER_ELEMENT + 1;
-    return new TextDecoder().decode(u8.subarray(start, start + ret));
+    return new TextDecoder().decode(
+      new Uint8Array(u8.subarray(start, start + ret).slice())
+    );
   }
 
   realPath(path: string | URL) {
@@ -570,8 +574,10 @@ export class UnionFileSystem
 
       const u8 = new Uint8Array(this.#sab);
       const start = Int32Array.BYTES_PER_ELEMENT + 1;
-      const decoded = new TextDecoder().decode(u8.subarray(start, start + ret));
-      iter = JSON.parse(decoded) as DenoNamespace.DirEntry[];
+      const decoded = new TextDecoder().decode(
+        new Uint8Array(u8.subarray(start, start + ret))
+      );
+      return JSON.parse(decoded) as DenoNamespace.DirEntry[];
     }
 
     const mounts = Object.keys(this.#mounts);
@@ -683,7 +689,9 @@ export class UnionFileSystem
 
     const u8 = new Uint8Array(this.#sab);
     const start = Int32Array.BYTES_PER_ELEMENT + 1;
-    return new TextDecoder().decode(u8.subarray(start, start + ret));
+    return new TextDecoder().decode(
+      new Uint8Array(u8.subarray(start, start + ret))
+    );
   }
 
   readLink(path: string | URL) {
@@ -702,7 +710,9 @@ export class UnionFileSystem
 
     const u8 = new Uint8Array(this.#sab);
     const start = Int32Array.BYTES_PER_ELEMENT + 1;
-    const decoded = new TextDecoder().decode(u8.subarray(start, start + ret));
+    const decoded = new TextDecoder().decode(
+      new Uint8Array(u8.subarray(start, start + ret))
+    );
     return JSON.parse(decoded) as DenoNamespace.FileInfo;
   }
 
@@ -726,7 +736,9 @@ export class UnionFileSystem
 
     const u8 = new Uint8Array(this.#sab);
     const start = Int32Array.BYTES_PER_ELEMENT + 1;
-    const decoded = new TextDecoder().decode(u8.subarray(start, start + ret));
+    const decoded = new TextDecoder().decode(
+      new Uint8Array(u8.subarray(start, start + ret))
+    );
     return JSON.parse(decoded) as DenoNamespace.FileInfo;
   }
 
@@ -987,6 +999,9 @@ class ProxyFile implements FileResource {
   }
 
   close() {
+    this.#postMessage({ fn: "close", sab: this.#sab, args: [] });
+    waitMsg(this.#sab);
+
     this.#port.close();
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
@@ -1005,7 +1020,9 @@ class ProxyFile implements FileResource {
 
     const u8 = new Uint8Array(this.#sab);
     const start = Int32Array.BYTES_PER_ELEMENT + 1;
-    const decoded = new TextDecoder().decode(u8.subarray(start, start + ret));
+    const decoded = new TextDecoder().decode(
+      new Uint8Array(u8.subarray(start, start + ret))
+    );
     const nread = JSON.parse(decoded) as number;
 
     buffer.set(u8Buf, nread);
@@ -1024,7 +1041,9 @@ class ProxyFile implements FileResource {
 
     const u8 = new Uint8Array(this.#sab);
     const start = Int32Array.BYTES_PER_ELEMENT + 1;
-    const decoded = new TextDecoder().decode(u8.subarray(start, start + ret));
+    const decoded = new TextDecoder().decode(
+      new Uint8Array(u8.subarray(start, start + ret))
+    );
     return JSON.parse(decoded) as number;
   }
 
@@ -1083,7 +1102,9 @@ class ProxyFile implements FileResource {
 
     const u8 = new Uint8Array(this.#sab);
     const start = Int32Array.BYTES_PER_ELEMENT + 1;
-    const decoded = new TextDecoder().decode(u8.subarray(start, start + ret));
+    const decoded = new TextDecoder().decode(
+      new Uint8Array(u8.subarray(start, start + ret))
+    );
     return JSON.parse(decoded) as DenoNamespace.FileInfo;
   }
 

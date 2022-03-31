@@ -2,3 +2,8 @@
 	path = deno-std/deno_std
 	url = https://github.com/YXL76/deno_std
 	branch = griffon
+
+[submodule "examples/shell/shelljs"]
+	path = examples/shell/shelljs
+	url = https://github.com/YXL76/shelljs
+	branch = griffon

@@ -16,7 +16,7 @@ import { Process } from "./process";
 import { defaultSigHdls } from "./signals";
 
 self.Deno = Deno;
-void hackDeno().then((rootFS) => (self.ROOT_FS = rootFS));
+void hackDeno().then((rootfs) => (self.ROOT_FS = rootfs));
 
 self.onmessage = ({ data, ports }: MessageEvent<Parent2Child>) => {
   switch (data._t) {
