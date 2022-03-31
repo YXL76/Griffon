@@ -15,10 +15,11 @@ const windowsMode =
       .userAgentData.platform
   ) >= 0;
 const term = new Terminal({
-  cols: 150,
+  cols: 108,
   cursorBlink: true,
-  rows: 40,
+  rows: 32,
   windowsMode,
+  fontSize: 22,
 });
 
 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
