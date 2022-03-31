@@ -19,7 +19,7 @@ const basicConfig: BuildOptions = {
   color: true,
   format: "esm",
   logLevel: "warning",
-  target: "chrome99",
+  target: "chrome100",
   minify: prod,
 
   bundle: true,

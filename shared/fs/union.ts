@@ -75,8 +75,6 @@ export class UnionFileSystem
   extends FileAccessFileSystem
   implements RootFileSystem
 {
-  private static _instance?: UnionFileSystem;
-
   readonly #db: IDBPDatabase<MountSchema>;
 
   readonly #sab = new SharedArrayBuffer(
@@ -120,8 +118,6 @@ export class UnionFileSystem
   }
 
   static async create(postMessage: FSSyncPostMessage) {
-    if (this._instance) return this._instance;
-
     const root = await navigator.storage.getDirectory();
     if ((await root.queryPermission({ mode: "readwrite" })) !== "granted") {
       if ((await root.requestPermission({ mode: "readwrite" })) === "denied") {
@@ -144,22 +140,22 @@ export class UnionFileSystem
       },
     });
 
-    this._instance = new UnionFileSystem(root, db, postMessage);
+    const instance = new UnionFileSystem(root, db, postMessage);
 
     const devs = await db.getAll("dev");
     await Promise.all(
       devs.map(({ name, id, args }) =>
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-unsafe-argument
-        this._instance!.#newStorageDev(name, id, ...args)
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        instance.#newStorageDev(name, id, ...args)
       )
     );
 
     const mounts = await db.getAll("mount");
     for (const { device, point } of mounts) {
-      this._instance.#mount(device, point);
+      instance.#mount(device, point);
     }
 
-    return this._instance;
+    return instance;
   }
 
   async newStorageDev<D extends StorageDevice>(
