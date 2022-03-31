@@ -108,7 +108,7 @@ export class UnionFileSystem
           void this.#deleteStorageDev(data.path);
           break;
         case "mount":
-          this.#mount(data.device, data.point);
+          this.#mount(data.point, data.device);
           break;
         case "umount":
           this.#umount(data.point);
@@ -151,8 +151,8 @@ export class UnionFileSystem
     );
 
     const mounts = await db.getAll("mount");
-    for (const { device, point } of mounts) {
-      instance.#mount(device, point);
+    for (const { point, device } of mounts) {
+      instance.#mount(point, device);
     }
 
     return instance;
@@ -200,9 +200,9 @@ export class UnionFileSystem
     return this.#mounts["/dev"].deleteStorageDev(path);
   }
 
-  async mount(deviceu: string | URL, pointu: string | URL) {
-    const device = resolve(pathFromURL(deviceu));
+  async mount(pointu: string | URL, deviceu: string | URL) {
     const point = resolve(pathFromURL(pointu));
+    const device = resolve(pathFromURL(deviceu));
 
     if (Object.keys(this.#mounts).find((v) => point.startsWith(v)))
       throw AlreadyExists.from(`mount '${point}'`);
@@ -212,7 +212,7 @@ export class UnionFileSystem
     const key = await this.#db.getKeyFromIndex("mount", "by-device", device);
     if (key) throw new Error(`The device '${device}' is mounted`);
 
-    this.#mount(device, point);
+    this.#mount(point, device);
 
     const msg: ChanMsg = { fn: "mount", device, point };
     this.#channel.postMessage(msg);
@@ -220,7 +220,7 @@ export class UnionFileSystem
     await this.#db.add("mount", { device, point });
   }
 
-  #mount(device: string, point: string) {
+  #mount(point: string, device: string) {
     const dev = this.#mounts["/dev"].get(device.slice(4));
     if (!dev) throw new Error(`invalid device '${device}'`);
 

@@ -23,19 +23,34 @@ const term = new Terminal({
 
 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 term.open(document.getElementById("terminal")!);
-term.writeln("Hello from \x1B[1;3;31mxterm.js\x1B[0m $ ");
 term.focus();
+
+term.writeln("Hello from \x1B[1;3;31mGriffon\x1B[0m");
+term.writeln("");
+term.writeln(
+  "You can add devices on the right panel. You need to give a \x1B[1;34munique\x1B[0m ID."
+);
+term.writeln("\x1B[3;33mFA Device\x1B[0m means File System Access.");
+term.writeln("\x1B[3;33mIDB Device\x1B[0m means IndexedDB.");
+term.writeln("");
+term.writeln("To mount a device, type");
+term.writeln("  # mount /mount/point /dev/deviceX");
+term.writeln("");
+term.writeln("If you want to remove a device, type");
+term.writeln("  # rm -f /dev/deviceX");
+term.writeln("");
+term.writeln("Enter \x1B[1;34mtab\x1B[0m for autocomplete.");
+term.writeln("");
+term.writeln("First, you need to click the \x1B[1;34mBoot\x1B[0m button.");
 
 const { require, rootfs } = await new Promise<Awaited<ReturnType<typeof boot>>>(
   (resolve) => {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     document
       .getElementById("boot-btn")!
-      .addEventListener(
-        "click",
-        () => void boot().then(resolve).catch(console.error),
-        { once: true }
-      );
+      .addEventListener("click", () => void boot().then(resolve).catch(alert), {
+        once: true,
+      });
   }
 );
 
@@ -52,7 +67,7 @@ document.getElementById("fa-btn")!.addEventListener("click", () => {
     .then((root) =>
       rootfs.newStorageDev<FileAccessStorageDevice>("fa", id, root)
     )
-    .catch(console.error);
+    .catch(alert);
 });
 
 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -61,14 +76,14 @@ document.getElementById("idb-btn")!.addEventListener("click", () => {
   if (Number.isNaN(id) || id < 0) throw new Error("invalid id");
   rootfs
     .newStorageDev<IndexedDBStorageDevice>("idb", id, `fs${id}`)
-    .catch(console.error);
+    .catch(alert);
 });
 
 declare const SHELLJS_CODE_BYTES: string;
 // eslint-disable-next-line @typescript-eslint/naming-convention
 declare const Deno: { cwd(): string };
 
-const head = () => `${Deno.cwd()}> `;
+const head = () => `${Deno.cwd()}# `;
 
 // eslint-disable-next-line prefer-const
 let module = {} as { exports: { default: typeof Shelljs } };

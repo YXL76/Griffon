@@ -4,7 +4,7 @@ import { build } from "esbuild";
 import { pnpPlugin } from "@yarnpkg/esbuild-plugin-pnp";
 import { resolve } from "path";
 
-const prod = process.env["NODE_ENV"] === "production";
+const prod = process.env["VERCEL_ENV"] === "production";
 
 // TODO
 const rootPath = resolve(process.cwd(), "..");
