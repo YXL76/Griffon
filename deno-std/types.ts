@@ -16,7 +16,8 @@ type DenoFsMethodsSyncWithoutTmpnfile =
   | "lstatSync"
   | "statSync"
   | "truncateSync"
-  | "symlinkSync";
+  | "symlinkSync"
+  | "utimeSync";
 
 export type DenoFsMethodsAsyncWithoutTmpnfile =
   | "link"
@@ -34,7 +35,8 @@ export type DenoFsMethodsAsyncWithoutTmpnfile =
   | "lstat"
   | "stat"
   | "truncate"
-  | "symlink";
+  | "symlink"
+  | "utime";
 
 type DenoTmpFSMethodsSync = "makeTempDirSync" | "makeTempFileSync";
 type DenoFileFSMethodsSync =
@@ -48,7 +50,10 @@ type DenoFileFSMethodsSync =
   | "writeFileSync"
   | "writeTextFileSync"
   | "ftruncateSync"
-  | "fstatSync";
+  | "fstatSync"
+  | "futimeSync"
+  | "flockSync"
+  | "funlockSync";
 
 type DenoTmpFSMethodsAsync = "makeTempDir" | "makeTempFile";
 type DenoFileFSMethodsAsync =
@@ -62,7 +67,10 @@ type DenoFileFSMethodsAsync =
   | "writeFile"
   | "writeTextFile"
   | "ftruncate"
-  | "fstat";
+  | "fstat"
+  | "futime"
+  | "flock"
+  | "funlock";
 
 type DenoFsMethodsWithoutTmp =
   | DenoFsMethodsSyncWithoutTmpnfile
@@ -145,6 +153,12 @@ export interface Resource {
   seek?(offset: number, whence: SeekMode): Promise<number>;
   statSync?(): FileInfo;
   stat?(): Promise<FileInfo>;
+  utimeSync?(atime: number | Date, mtime: number | Date): void;
+  utime?(atime: number | Date, mtime: number | Date): Promise<void>;
+  lockSync?(exclusive?: boolean): void;
+  lock?(exclusive?: boolean): Promise<void>;
+  unlockSync?(): void;
+  unlock?(): Promise<void>;
 }
 
 /**

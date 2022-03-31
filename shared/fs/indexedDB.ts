@@ -78,7 +78,7 @@ class IndexedDBFile implements FileResource {
 
   #data?: ArrayBuffer;
 
-  #info?: SFileInfo;
+  #info?: { proxy: SFileInfo; revoke: () => void };
 
   #dataId?: number;
 
@@ -177,23 +177,39 @@ class IndexedDBFile implements FileResource {
     this.#dataId = setTimeout(() => (this.#data = undefined), EXPIRY_TIME);
 
     const thieInfo = await this.#tryGetInfo();
-    thieInfo.size = this.#data.byteLength;
+    thieInfo.proxy.size = this.#data.byteLength;
     this.#offset = this.#data.byteLength;
     await this.#db.put("file", this.#data, this.#ino);
     return buffer.length;
   }
 
+  syncSync() {
+    // noop
+  }
+
+  async sync() {
+    // noop
+  }
+
+  datasyncSync() {
+    // noop
+  }
+
+  async datasync() {
+    // noop
+  }
+
   async truncate(len: number) {
     if (!this.#perms.write) throw new Error("Bad file descriptor (os error 9)");
 
-    const [thisData, thieInfo] = await Promise.all([
+    const [thisData, thisInfo] = await Promise.all([
       this.#tryGetData(),
       this.#tryGetInfo(),
     ]);
     if (thisData.byteLength <= len) return;
 
     this.#data = thisData.slice(0, len);
-    thieInfo.size = this.#data.byteLength;
+    thisInfo.proxy.size = this.#data.byteLength;
     await this.#db.put("file", this.#data, this.#ino);
   }
 
@@ -217,7 +233,7 @@ class IndexedDBFile implements FileResource {
     if (whence === SeekMode.Start) ret = offset;
     else if (whence === SeekMode.Current) ret = this.#offset + offset;
     else if (whence === SeekMode.End)
-      ret = (await this.#tryGetInfo()).size + offset;
+      ret = (await this.#tryGetInfo()).proxy.size + offset;
     else throw new TypeError(`Invalid seek mode: ${whence as number}`);
 
     if (ret < 0) throw new TypeError("Invalid argument (os error 22)");
@@ -228,18 +244,48 @@ class IndexedDBFile implements FileResource {
 
   statSync() {
     if (!this.#info) notImplemented();
-    return { ...this.#info, ino: this.#ino };
+    return { ...this.#info.proxy, ino: this.#ino };
   }
 
   async stat() {
-    return { ...(await this.#tryGetInfo()), ino: this.#ino };
+    return { ...(await this.#tryGetInfo()).proxy, ino: this.#ino };
+  }
+
+  async utime(_atime: number | Date, mtime: number | Date) {
+    const info = await this.#tryGetInfo();
+    info.revoke();
+
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    info.proxy.mtime = new Date(mtime);
+
+    await this.#db.put("table", info.proxy, this.#ino);
+    this.#info = this.#getProxyInfo(info.proxy);
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  lockSync(_exclusive?: boolean) {
+    // TODO
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async lock(_exclusive?: boolean) {
+    // TODO
+  }
+
+  unlockSync() {
+    // TODO
+  }
+
+  async unlock() {
+    // TODO
   }
 
   #getProxyInfo(info: SFileInfo) {
     type Key = keyof SFileInfo;
 
     let infoLock = false;
-    return new Proxy(info, {
+    return Proxy.revocable(info, {
       set: <K extends Key>(obj: SFileInfo, p: K, v: SFileInfo[K]) => {
         if (obj[p] !== v) {
           obj[p] = v;
@@ -252,7 +298,7 @@ class IndexedDBFile implements FileResource {
             // Use `queueMicrotask` or `setTimeout`?
             queueMicrotask(() => {
               void this.#db
-                .put("table", obj, this.#ino)
+                .put("table", { ...obj }, this.#ino) // Need to copy?
                 .then(() => (infoLock = false));
             });
           }
@@ -892,5 +938,24 @@ class IndexedDBFileSystem implements FileSystem {
 
     const newIno = await this.#db.add("table", newSymlinkInfo());
     await this.#db.add("tree", newIno, absNewPath);
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async utime(path: string | URL, _atime: number | Date, mtime: number | Date) {
+    const pathStr = pathFromURL(path);
+    // const absOldPath = resolve(oldpathStr);
+    const absPath = pathStr;
+
+    const ino = await this.#db.get("tree", absPath);
+    if (!ino) throw NotFound.from(`utime '${pathStr}'`);
+
+    const tx = this.#db.transaction("table", "readwrite");
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const info = (await tx.store.get(ino))!;
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    info.mtime = new Date(mtime);
+
+    await Promise.all([tx.store.put(info, ino), tx.done]);
   }
 }

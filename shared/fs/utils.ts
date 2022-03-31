@@ -1,5 +1,5 @@
+import { Deno, notImplemented } from "@griffon/deno-std";
 import type { FSSyncMsg, FSSyncPostMessage } from "..";
-import { Deno } from "@griffon/deno-std";
 import type { DenoNamespace } from "@griffon/deno-std";
 import { UnionFileSystem } from ".";
 
@@ -75,6 +75,8 @@ async function proxyFileHandler(
     const u8 = new Uint8Array(data.sab);
     const i32 = new Int32Array(data.sab);
     try {
+      if (!(data.fn in file)) notImplemented();
+
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
       const ret = await file[data.fn](...data.args);
@@ -103,6 +105,8 @@ async function proxyFileHandler(
     }
   } else {
     try {
+      if (!(data.fn in file)) notImplemented();
+
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
       const ret = await file[data.fn](...data.args);
@@ -209,6 +213,14 @@ export async function hackDenoFS(postMessage: FSSyncPostMessage) {
   Deno.ftruncate = rootfs.ftruncate.bind(rootfs);
   Deno.fstatSync = rootfs.fstatSync.bind(rootfs);
   Deno.fstat = rootfs.fstat.bind(rootfs);
+  Deno.utimeSync = rootfs.utimeSync.bind(rootfs);
+  Deno.utime = rootfs.utime.bind(rootfs);
+  Deno.futime = rootfs.futime.bind(rootfs);
+  Deno.futimeSync = rootfs.futimeSync.bind(rootfs);
+  Deno.flock = rootfs.flock.bind(rootfs);
+  Deno.flockSync = rootfs.flockSync.bind(rootfs);
+  Deno.funlock = rootfs.funlock.bind(rootfs);
+  Deno.funlockSync = rootfs.funlockSync.bind(rootfs);
 
   return rootfs;
 }

@@ -1009,6 +1009,78 @@ export class UnionFileSystem
     };
   }
 
+  override utimeSync(
+    path: string | URL,
+    atime: number | Date,
+    mtime: number | Date
+  ) {
+    const { i, fs, rp, ap } = this.#accessMount(path, "utimeSync");
+    if (fs) {
+      if (i) return fs.utimeSync(rp, atime, mtime);
+
+      this.#postMessage({
+        _t,
+        fn: "utime",
+        sab: this.#sab,
+        args: [ap, atime, mtime],
+      });
+      waitMsg(this.#sab);
+    }
+
+    return super.utimeSync(rp, atime, mtime);
+  }
+
+  override utime(
+    path: string | URL,
+    atime: number | Date,
+    mtime: number | Date
+  ) {
+    const { i, fs, rp } = this.#accessMount(path, "utime");
+    if (fs) {
+      if (i) return fs.utime(rp, atime, mtime);
+
+      notImplemented();
+    }
+
+    return super.utime(rp, atime, mtime);
+  }
+
+  futimeSync(rid: number, atime: number | Date, mtime: number | Date) {
+    const resc = this.#getResc(rid, "utimeSync");
+
+    return resc.utimeSync(atime, mtime);
+  }
+
+  futime(rid: number, atime: number | Date, mtime: number | Date) {
+    const resc = this.#getResc(rid, "utime");
+
+    return resc.utime(atime, mtime);
+  }
+
+  flockSync(rid: number, exclusive?: boolean) {
+    const resc = this.#getResc(rid, "lockSync");
+
+    return resc.lockSync(exclusive);
+  }
+
+  flock(rid: number, exclusive?: boolean) {
+    const resc = this.#getResc(rid, "lock");
+
+    return resc.lock(exclusive);
+  }
+
+  funlockSync(rid: number) {
+    const resc = this.#getResc(rid, "unlockSync");
+
+    return resc.unlockSync();
+  }
+
+  funlock(rid: number) {
+    const resc = this.#getResc(rid, "unlock");
+
+    return resc.unlock();
+  }
+
   #accessMount<K extends keyof FileSystem>(path: string | URL, method: K) {
     const i = false as const;
     const ap = resolve(pathFromURL(path));
@@ -1175,6 +1247,34 @@ class ProxyFile implements FileResource {
       fn: "stat",
       args: [],
     }) as Promise<DenoNamespace.FileInfo>;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  utimeSync(_atime: number | Date, _mtime: number | Date) {
+    // TODO
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async utime(_atime: number | Date, _mtime: number | Date) {
+    // TODO
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  lockSync(_exclusive?: boolean) {
+    // TODO
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async lock(_exclusive?: boolean) {
+    // TODO
+  }
+
+  unlockSync() {
+    // TODO
+  }
+
+  async unlock() {
+    // TODO
   }
 
   #postMessage<K extends ProxyFileKey>(msg: ProxyFileMsg<K>) {

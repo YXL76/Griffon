@@ -241,9 +241,15 @@ async function newline(line: string) {
       // @ts-ignore
       const ret = module.exports.default[command as Keys](...args);
 
-      const stdout = (Array.isArray(ret) && ret.join(" ")) || ret?.toString();
-      if (stdout) stdout.split("\n").forEach((l) => term.writeln(l));
-      if (typeof ret === "object" && ret?.stderr) term.writeln(ret.stderr);
+      if (typeof ret === "object") {
+        if (ret?.stdout) {
+          const lines = ret.stdout.split("\n");
+          if (lines.length && lines[lines.length - 1] === "") lines.pop();
+          lines.forEach((l) => term.writeln(l));
+        } else if (Array.isArray(ret)) term.writeln(ret.join(" "));
+
+        if (ret?.stderr) ret.stderr.split("\n").forEach((l) => term.writeln(l));
+      } else if (ret !== undefined) term.writeln(ret.toString());
     }
 
     if (history.length === 0 || line !== history[history.length - 1]) {

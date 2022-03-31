@@ -89,6 +89,22 @@ class FileAccessFile implements FileResource {
     return buffer.length;
   }
 
+  syncSync() {
+    // noop
+  }
+
+  async sync() {
+    // noop
+  }
+
+  datasyncSync() {
+    // noop
+  }
+
+  async datasync() {
+    // noop
+  }
+
   async truncate(len: number) {
     if (!this.#perms.write || this.#handle.kind !== "file")
       throw new Error("Bad file descriptor (os error 9)");
@@ -169,6 +185,34 @@ class FileAccessFile implements FileResource {
       size,
       mtime,
     };
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  utimeSync(_atime: number | Date, _mtime: number | Date) {
+    // noop
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async utime(_atime: number | Date, _mtime: number | Date) {
+    // noop
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  lockSync(_exclusive?: boolean) {
+    // TODO
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async lock(_exclusive?: boolean) {
+    // TODO
+  }
+
+  unlockSync() {
+    // TODO
+  }
+
+  async unlock() {
+    // TODO
   }
 }
 
@@ -507,6 +551,22 @@ export class FileAccessFileSystem implements FileSystem {
     const writable = await base.createWritable();
     await writable.truncate(len);
     await writable.close();
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  utimeSync(_path: string | URL, _atime: number | Date, _mtime: number | Date) {
+    // noop
+  }
+
+  async utime(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _path: string | URL,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _atime: number | Date,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _mtime: number | Date
+  ) {
+    // noop
   }
 
   async #getHandle(path: string, func: string) {
