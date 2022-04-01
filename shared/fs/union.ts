@@ -1186,19 +1186,21 @@ class ProxyFile implements FileResource {
   }
 
   syncSync() {
-    // noop
+    this.#postMessage({ fn: "sync", sab: this.#sab, args: [] });
+    waitMessage(this.#sab);
   }
 
-  async sync() {
-    // noop
+  sync() {
+    return this.#chanMessage({ fn: "sync", args: [] }) as Promise<void>;
   }
 
   datasyncSync() {
-    // noop
+    this.#postMessage({ fn: "datasync", sab: this.#sab, args: [] });
+    waitMessage(this.#sab);
   }
 
-  async datasync() {
-    // noop
+  datasync() {
+    return this.#chanMessage({ fn: "datasync", args: [] }) as Promise<void>;
   }
 
   truncateSync(len: number) {
@@ -1253,32 +1255,37 @@ class ProxyFile implements FileResource {
     }) as Promise<DenoNamespace.FileInfo>;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  utimeSync(_atime: number | Date, _mtime: number | Date) {
-    // TODO
+  utimeSync(atime: number | Date, mtime: number | Date) {
+    this.#postMessage({ fn: "utime", sab: this.#sab, args: [atime, mtime] });
+    waitMessage(this.#sab);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async utime(_atime: number | Date, _mtime: number | Date) {
-    // TODO
+  utime(atime: number | Date, mtime: number | Date) {
+    return this.#chanMessage({
+      fn: "utime",
+      args: [atime, mtime],
+    }) as Promise<void>;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  lockSync(_exclusive?: boolean) {
-    // TODO
+  lockSync(exclusive?: boolean) {
+    this.#postMessage({ fn: "lock", sab: this.#sab, args: [exclusive] });
+    waitMessage(this.#sab);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async lock(_exclusive?: boolean) {
-    // TODO
+  lock(exclusive?: boolean) {
+    return this.#chanMessage({
+      fn: "lock",
+      args: [exclusive],
+    }) as Promise<void>;
   }
 
   unlockSync() {
-    // TODO
+    this.#postMessage({ fn: "unlock", sab: this.#sab, args: [] });
+    waitMessage(this.#sab);
   }
 
-  async unlock() {
-    // TODO
+  unlock() {
+    return this.#chanMessage({ fn: "unlock", args: [] }) as Promise<void>;
   }
 
   #postMessage<K extends ProxyFileKey>(msg: ProxyFileMsg<K>) {

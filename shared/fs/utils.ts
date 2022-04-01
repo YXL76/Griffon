@@ -1,6 +1,7 @@
-import { Deno, notImplemented } from "@griffon/deno-std";
+import { Deno, NotFound, notImplemented } from "@griffon/deno-std";
+import type { DenoNamespace, Resource } from "@griffon/deno-std";
 import type { FSSyncMsg, FSSyncPostMessage } from "..";
-import type { DenoNamespace } from "@griffon/deno-std";
+import { RESC_TABLE } from "@griffon/deno-std";
 import { UnionFileSystem } from ".";
 
 type SyncError = { name: string; msg: string };
@@ -61,28 +62,39 @@ export async function fsSyncHandler(
 export type ProxyFileKey =
   | "close"
   | "write"
+  | "sync"
+  | "datasync"
   | "truncate"
   | "read"
   | "seek"
-  | "stat";
+  | "stat"
+  | "utime"
+  | "lock"
+  | "unlock";
+
+type NonNullableResource = {
+  [K in keyof Resource]: NonNullable<Resource[K]>;
+};
 
 export type ProxyFileMsg<K extends ProxyFileKey = ProxyFileKey> =
-  | { fn: K; sab: SharedArrayBuffer; args: Parameters<DenoNamespace.FsFile[K]> }
-  | { fn: K; port: MessagePort; args: Parameters<DenoNamespace.FsFile[K]> };
+  | { fn: K; sab: SharedArrayBuffer; args: Parameters<NonNullableResource[K]> }
+  | { fn: K; port: MessagePort; args: Parameters<NonNullableResource[K]> };
 
 async function proxyFileHandler(
-  file: DenoNamespace.FsFile,
+  { rid }: DenoNamespace.FsFile,
   { data }: MessageEvent<ProxyFileMsg>
 ) {
   if ("sab" in data) {
     const u8 = new Uint8Array(data.sab);
     const i32 = new Int32Array(data.sab);
     try {
-      if (!(data.fn in file)) notImplemented();
+      const resc = RESC_TABLE.get(rid);
+      if (!resc) throw NotFound.from(`rid: ${rid}`);
+      if (!(data.fn in resc)) notImplemented();
 
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
-      const ret = await file[data.fn](...data.args);
+      const ret = await resc[data.fn](...data.args);
 
       let encoded: Uint8Array;
       if (typeof ret === "undefined") {
@@ -108,11 +120,13 @@ async function proxyFileHandler(
     }
   } else {
     try {
-      if (!(data.fn in file)) notImplemented();
+      const resc = RESC_TABLE.get(rid);
+      if (!resc) throw NotFound.from(`rid: ${rid}`);
+      if (!(data.fn in resc)) notImplemented();
 
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
-      const ret = await file[data.fn](...data.args);
+      const ret = await resc[data.fn](...data.args);
       data.port.postMessage({ ret });
     } catch (err) {
       const { name, message } = err as Error;
