@@ -23,7 +23,13 @@ import type {
   SeekMode,
   StorageDevice,
 } from "@griffon/deno-std";
-import { DeviceFileSystem, FileAccessFileSystem, waitMsg } from ".";
+import {
+  DeviceFileSystem,
+  FileAccessFileSystem,
+  textDecoder,
+  textEncoder,
+  waitMessage,
+} from ".";
 import type { ProxyFileKey, ProxyFileMsg } from ".";
 import type { FSSyncPostMessage } from "..";
 import { ParentChildTp } from "..";
@@ -253,7 +259,7 @@ export class UnionFileSystem
     if (fs && i) return fs.linkSync(rp, np);
 
     this.#postMessage({ _t, fn: "link", sab: this.#sab, args: [ap, nap] });
-    waitMsg(this.#sab);
+    waitMessage(this.#sab);
   }
 
   link(oldpath: string, newpath: string) {
@@ -279,7 +285,7 @@ export class UnionFileSystem
     this.#postMessage({ _t, fn: "open", sab: this.#sab, args: [ap, options] }, [
       port1,
     ]);
-    waitMsg(this.#sab);
+    waitMessage(this.#sab);
 
     const node = new ProxyFile(port2, this.#sab);
     const rid = RESC_TABLE.add(node);
@@ -396,7 +402,7 @@ export class UnionFileSystem
     if (fs && i) return fs.mkdirSync(rp, options);
 
     this.#postMessage({ _t, fn: "mkdir", sab: this.#sab, args: [ap, options] });
-    waitMsg(this.#sab);
+    waitMessage(this.#sab);
   }
 
   override mkdir(path: string | URL, options?: DenoNamespace.MkdirOptions) {
@@ -436,7 +442,7 @@ export class UnionFileSystem
       if (i) return fs.chmodSync(rp, mode);
 
       this.#postMessage({ _t, fn: "chmod", sab: this.#sab, args: [ap, mode] });
-      waitMsg(this.#sab);
+      waitMessage(this.#sab);
     }
 
     return super.chmodSync(rp, mode);
@@ -468,7 +474,7 @@ export class UnionFileSystem
         sab: this.#sab,
         args: [ap, uid, gid],
       });
-      waitMsg(this.#sab);
+      waitMessage(this.#sab);
     }
 
     return super.chownSync(rp, uid, gid);
@@ -495,7 +501,7 @@ export class UnionFileSystem
       sab: this.#sab,
       args: [ap, options],
     });
-    waitMsg(this.#sab);
+    waitMessage(this.#sab);
   }
 
   override remove(path: string | URL, options?: DenoNamespace.RemoveOptions) {
@@ -525,7 +531,7 @@ export class UnionFileSystem
     if (fs && i) return fs.renameSync(rp, nrp);
 
     this.#postMessage({ _t, fn: "rename", sab: this.#sab, args: [ap, nap] });
-    waitMsg(this.#sab);
+    waitMessage(this.#sab);
   }
 
   override rename(oldpath: string | URL, newpath: string | URL) {
@@ -543,14 +549,14 @@ export class UnionFileSystem
   }
 
   readTextFileSync(path: string | URL) {
-    return new TextDecoder().decode(this.readFileSync(path));
+    return textDecoder.decode(this.readFileSync(path));
   }
 
   async readTextFile(
     path: string | URL,
     options?: DenoNamespace.ReadFileOptions
   ) {
-    return new TextDecoder().decode(await this.readFile(path, options));
+    return textDecoder.decode(await this.readFile(path, options));
   }
 
   readFileSync(path: string | URL) {
@@ -587,11 +593,11 @@ export class UnionFileSystem
     if (fs && i) return fs.realPathSync(rp);
 
     this.#postMessage({ _t, fn: "realPath", sab: this.#sab, args: [ap] });
-    const ret = waitMsg(this.#sab);
+    const ret = waitMessage(this.#sab);
 
     const u8 = new Uint8Array(this.#sab);
     const start = Int32Array.BYTES_PER_ELEMENT + 1;
-    return new TextDecoder().decode(
+    return textDecoder.decode(
       new Uint8Array(u8.subarray(start, start + ret).slice())
     );
   }
@@ -611,11 +617,11 @@ export class UnionFileSystem
     if (fs && i) iter = fs.readDirSync(rp);
     else {
       this.#postMessage({ _t, fn: "readDir", sab: this.#sab, args: [ap] });
-      const ret = waitMsg(this.#sab);
+      const ret = waitMessage(this.#sab);
 
       const u8 = new Uint8Array(this.#sab);
       const start = Int32Array.BYTES_PER_ELEMENT + 1;
-      const decoded = new TextDecoder().decode(
+      const decoded = textDecoder.decode(
         new Uint8Array(u8.subarray(start, start + ret))
       );
       return JSON.parse(decoded) as DenoNamespace.DirEntry[];
@@ -684,7 +690,7 @@ export class UnionFileSystem
         sab: this.#sab,
         args: [ap, toap],
       });
-      waitMsg(this.#sab);
+      waitMessage(this.#sab);
     }
   }
 
@@ -726,13 +732,11 @@ export class UnionFileSystem
     if (fs && i) return fs.readLinkSync(rp);
 
     this.#postMessage({ _t, fn: "readLink", sab: this.#sab, args: [ap] });
-    const ret = waitMsg(this.#sab);
+    const ret = waitMessage(this.#sab);
 
     const u8 = new Uint8Array(this.#sab);
     const start = Int32Array.BYTES_PER_ELEMENT + 1;
-    return new TextDecoder().decode(
-      new Uint8Array(u8.subarray(start, start + ret))
-    );
+    return textDecoder.decode(new Uint8Array(u8.subarray(start, start + ret)));
   }
 
   readLink(path: string | URL) {
@@ -747,11 +751,11 @@ export class UnionFileSystem
     if (fs && i) return fs.lstatSync(rp);
 
     this.#postMessage({ _t, fn: "lstat", sab: this.#sab, args: [ap] });
-    const ret = waitMsg(this.#sab);
+    const ret = waitMessage(this.#sab);
 
     const u8 = new Uint8Array(this.#sab);
     const start = Int32Array.BYTES_PER_ELEMENT + 1;
-    const decoded = new TextDecoder().decode(
+    const decoded = textDecoder.decode(
       new Uint8Array(u8.subarray(start, start + ret))
     );
     const info = JSON.parse(decoded) as ParesdFileInfo;
@@ -780,11 +784,11 @@ export class UnionFileSystem
     if (fs && i) return fs.statSync(rp);
 
     this.#postMessage({ _t, fn: "stat", sab: this.#sab, args: [ap] });
-    const ret = waitMsg(this.#sab);
+    const ret = waitMessage(this.#sab);
 
     const u8 = new Uint8Array(this.#sab);
     const start = Int32Array.BYTES_PER_ELEMENT + 1;
-    const decoded = new TextDecoder().decode(
+    const decoded = textDecoder.decode(
       new Uint8Array(u8.subarray(start, start + ret))
     );
     const info = JSON.parse(decoded) as ParesdFileInfo;
@@ -893,7 +897,7 @@ export class UnionFileSystem
     data: string,
     options: DenoNamespace.WriteFileOptions = {}
   ) {
-    const encoder = new TextEncoder();
+    const encoder = textEncoder;
     return this.writeFileSync(path, encoder.encode(data), options);
   }
 
@@ -902,7 +906,7 @@ export class UnionFileSystem
     data: string,
     options: DenoNamespace.WriteFileOptions = {}
   ) {
-    const encoder = new TextEncoder();
+    const encoder = textEncoder;
     return this.writeFile(path, encoder.encode(data), options);
   }
 
@@ -911,7 +915,7 @@ export class UnionFileSystem
     if (fs && i) return fs.truncateSync(rp, len);
 
     this.#postMessage({ _t, fn: "truncate", sab: this.#sab, args: [ap, len] });
-    waitMsg(this.#sab);
+    waitMessage(this.#sab);
   }
 
   override truncate(name: string, len?: number) {
@@ -946,7 +950,7 @@ export class UnionFileSystem
       sab: this.#sab,
       args: [ap, nap, options],
     });
-    waitMsg(this.#sab);
+    waitMessage(this.#sab);
   }
 
   symlink(
@@ -1024,7 +1028,7 @@ export class UnionFileSystem
         sab: this.#sab,
         args: [ap, atime, mtime],
       });
-      waitMsg(this.#sab);
+      waitMessage(this.#sab);
     }
 
     return super.utimeSync(rp, atime, mtime);
@@ -1127,7 +1131,7 @@ class ProxyFile implements FileResource {
 
   close() {
     this.#postMessage({ fn: "close", sab: this.#sab, args: [] });
-    waitMsg(this.#sab);
+    waitMessage(this.#sab);
 
     this.#port.close();
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -1143,11 +1147,11 @@ class ProxyFile implements FileResource {
     const u8Buf = new Uint8Array(sabBuf);
 
     this.#postMessage({ fn: "read", sab: this.#sab, args: [u8Buf] });
-    const ret = waitMsg(this.#sab);
+    const ret = waitMessage(this.#sab);
 
     const u8 = new Uint8Array(this.#sab);
     const start = Int32Array.BYTES_PER_ELEMENT + 1;
-    const decoded = new TextDecoder().decode(
+    const decoded = textDecoder.decode(
       new Uint8Array(u8.subarray(start, start + ret))
     );
     const nread = JSON.parse(decoded) as number;
@@ -1164,11 +1168,11 @@ class ProxyFile implements FileResource {
 
   writeSync(p: Uint8Array) {
     this.#postMessage({ fn: "write", sab: this.#sab, args: [p] });
-    const ret = waitMsg(this.#sab);
+    const ret = waitMessage(this.#sab);
 
     const u8 = new Uint8Array(this.#sab);
     const start = Int32Array.BYTES_PER_ELEMENT + 1;
-    const decoded = new TextDecoder().decode(
+    const decoded = textDecoder.decode(
       new Uint8Array(u8.subarray(start, start + ret))
     );
     return JSON.parse(decoded) as number;
@@ -1199,7 +1203,7 @@ class ProxyFile implements FileResource {
 
   truncateSync(len: number) {
     this.#postMessage({ fn: "truncate", sab: this.#sab, args: [len] });
-    waitMsg(this.#sab);
+    waitMessage(this.#sab);
   }
 
   truncate(len: number) {
@@ -1208,11 +1212,11 @@ class ProxyFile implements FileResource {
 
   seekSync(offset: number, whence: SeekMode) {
     this.#postMessage({ fn: "seek", sab: this.#sab, args: [offset, whence] });
-    const ret = waitMsg(this.#sab);
+    const ret = waitMessage(this.#sab);
 
     const u8 = new Uint8Array(this.#sab);
     const start = Int32Array.BYTES_PER_ELEMENT + 1;
-    const decoded = new TextDecoder().decode(u8.subarray(start, start + ret));
+    const decoded = textDecoder.decode(u8.subarray(start, start + ret));
     return JSON.parse(decoded) as number;
   }
 
@@ -1225,11 +1229,11 @@ class ProxyFile implements FileResource {
 
   statSync() {
     this.#postMessage({ fn: "stat", sab: this.#sab, args: [] });
-    const ret = waitMsg(this.#sab);
+    const ret = waitMessage(this.#sab);
 
     const u8 = new Uint8Array(this.#sab);
     const start = Int32Array.BYTES_PER_ELEMENT + 1;
-    const decoded = new TextDecoder().decode(
+    const decoded = textDecoder.decode(
       new Uint8Array(u8.subarray(start, start + ret))
     );
     const info = JSON.parse(decoded) as ParesdFileInfo;

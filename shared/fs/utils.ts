@@ -5,6 +5,9 @@ import { UnionFileSystem } from ".";
 
 type SyncError = { name: string; msg: string };
 
+export const textDecoder = new TextDecoder();
+export const textEncoder = new TextEncoder();
+
 export async function fsSyncHandler(
   fs: UnionFileSystem,
   msg: FSSyncMsg,
@@ -18,7 +21,7 @@ export async function fsSyncHandler(
     const ret = await fs[msg.fn](...msg.args);
 
     let encoded: Uint8Array;
-    if (typeof ret === "string") encoded = new TextEncoder().encode(ret);
+    if (typeof ret === "string") encoded = textEncoder.encode(ret);
     else if (typeof ret === "undefined") {
       // Must have length, or the main thread will wait forever.
       encoded = new Uint8Array(1);
@@ -26,7 +29,7 @@ export async function fsSyncHandler(
       if ("mtime" in ret) {
         /** FileInfo */
         // NOTE: The `Date` object is not serializable
-        encoded = new TextEncoder().encode(JSON.stringify(ret));
+        encoded = textEncoder.encode(JSON.stringify(ret));
       } else if ("writeSync" in ret) {
         /** FsFile */
         ports[0].onmessage = proxyFileHandler.bind(null, ret);
@@ -35,7 +38,7 @@ export async function fsSyncHandler(
         /** { [Symbol.asyncIterator](): AsyncGenerator<Deno.DirEntry, void, unknown>; } */
         const dirs = [];
         for await (const dir of ret) dirs.push(dir);
-        encoded = new TextEncoder().encode(JSON.stringify(dirs));
+        encoded = textEncoder.encode(JSON.stringify(dirs));
       }
     } else {
       encoded = new Uint8Array(1);
@@ -46,7 +49,7 @@ export async function fsSyncHandler(
   } catch (err) {
     const { name, message } = err as Error;
     const str = JSON.stringify(<SyncError>{ name, msg: message });
-    const encoded = new TextEncoder().encode(str);
+    const encoded = textEncoder.encode(str);
     u8.set(encoded, Int32Array.BYTES_PER_ELEMENT + 1);
 
     Atomics.store(i32, 0, -encoded.length);
@@ -86,7 +89,7 @@ async function proxyFileHandler(
         // Must have length, or the main thread will wait forever.
         encoded = new Uint8Array(1);
       } else if (typeof ret === "object" || typeof ret === "number") {
-        encoded = new TextEncoder().encode(JSON.stringify(ret));
+        encoded = textEncoder.encode(JSON.stringify(ret));
       } else {
         encoded = new Uint8Array(1);
       }
@@ -96,7 +99,7 @@ async function proxyFileHandler(
     } catch (err) {
       const { name, message } = err as Error;
       const str = JSON.stringify(<SyncError>{ name, msg: message });
-      const encoded = new TextEncoder().encode(str);
+      const encoded = textEncoder.encode(str);
       u8.set(encoded, Int32Array.BYTES_PER_ELEMENT + 1);
 
       Atomics.store(i32, 0, -encoded.length);
@@ -120,7 +123,7 @@ async function proxyFileHandler(
 
 const TIMEOUT = 2000;
 
-export function waitMsg(sab: SharedArrayBuffer) {
+export function waitMessage(sab: SharedArrayBuffer) {
   const i32 = new Int32Array(sab);
   /**
    * Cannot use `Atomics.wait` in the main thread.
@@ -139,7 +142,7 @@ export function waitMsg(sab: SharedArrayBuffer) {
   else if (ret < 0) {
     const u8 = new Uint8Array(sab);
     const start = Int32Array.BYTES_PER_ELEMENT + 1;
-    const str = new TextDecoder().decode(
+    const str = textDecoder.decode(
       new Uint8Array(u8.subarray(start, start - ret))
     );
     const { name, msg } = JSON.parse(str) as SyncError;
