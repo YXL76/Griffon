@@ -138,10 +138,11 @@ export type FilePerms = Pick<
  */
 export interface Resource {
   name: string;
+
   close(): void;
   readSync?(buffer: Uint8Array): number | null;
   read?(buffer: Uint8Array): Promise<number | null>;
-  writeSync?(p: Uint8Array): number;
+  writeSync?(buffer: Uint8Array): number;
   write?(buffer: Uint8Array): Promise<number>;
   syncSync?(): void;
   sync?(): Promise<void>;
@@ -164,8 +165,50 @@ export interface Resource {
 /**
  * {@link https://github.com/denoland/deno/blob/1fb5858009f598ce3f917f9f49c466db81f4d9b0/runtime/ops/io.rs#L229}
  */
-export interface FileResource extends Resource {
+export interface StdFileResource extends Resource {
   name: "fsFile";
+
+  read(buffer: Uint8Array): Promise<number | null>;
+  write(buffer: Uint8Array): Promise<number>;
+  truncate(len: number): Promise<void>;
+  seek(offset: number, whence: SeekMode): Promise<number>;
+  stat(): Promise<FileInfo>;
+}
+
+/**
+ * {@link https://github.com/denoland/deno/blob/1fb5858009f598ce3f917f9f49c466db81f4d9b0/runtime/ops/io.rs#L103}
+ */
+export interface WriteOnlyResource extends Resource {
+  read: undefined;
+  readSync: undefined;
+
+  write(buffer: Uint8Array): Promise<number>;
+  stat(): Promise<FileInfo>;
+}
+
+/**
+ * {@link https://github.com/denoland/deno/blob/1fb5858009f598ce3f917f9f49c466db81f4d9b0/runtime/ops/io.rs#L137}
+ */
+export interface ReadOnlyResource extends Resource {
+  write: undefined;
+  writeSync: undefined;
+  truncate: undefined;
+  truncateSync: undefined;
+
+  read(buffer: Uint8Array): Promise<number | null>;
+  stat(): Promise<FileInfo>;
+}
+
+export interface ChildStdinResource extends WriteOnlyResource {
+  name: "childStdin";
+}
+
+export interface ChildStdoutResource extends ReadOnlyResource {
+  name: "childStdout";
+}
+
+export interface ChildStderrResource extends ReadOnlyResource {
+  name: "childStderr";
 }
 
 /**

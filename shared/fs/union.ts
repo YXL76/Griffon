@@ -16,11 +16,11 @@ import {
 import type { DBSchema, IDBPDatabase } from "idb";
 import type {
   DenoNamespace,
-  FileResource,
   FileSystem,
   Resource,
   RootFileSystem,
   SeekMode,
+  StdFileResource,
   StorageDevice,
 } from "@griffon/deno-std";
 import {
@@ -1115,7 +1115,7 @@ export class UnionFileSystem
   }
 }
 
-class ProxyFile implements FileResource {
+class ProxyFile implements StdFileResource {
   readonly #port: MessagePort;
 
   readonly #sab: SharedArrayBuffer;

@@ -15,8 +15,8 @@ import type {
   DenoNamespace,
   FileInfo,
   FilePerms,
-  FileResource,
   FileSystem,
+  StdFileResource,
   StorageDevice,
 } from "@griffon/deno-std";
 import { deleteDB, openDB } from "idb";
@@ -73,7 +73,7 @@ const EXPIRY_TIME = 128;
 /**
  * {@link https://github.com/denoland/deno/blob/1fb5858009f598ce3f917f9f49c466db81f4d9b0/runtime/ops/io.rs#L229}
  */
-class IndexedDBFile implements FileResource {
+class IndexedDBFile implements StdFileResource {
   #offset = 0;
 
   #data?: ArrayBuffer;

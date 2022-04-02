@@ -51,7 +51,7 @@ export namespace Deno {
   /** Reflects the `NO_COLOR` environment variable at program start.
    *
    * See: https://no-color.org/ */
-  export const noColor: boolean;
+  export let noColor: boolean;
 
   export type PermissionOptions = "inherit" | "none" | PermissionOptionsObject;
 
@@ -2619,7 +2619,7 @@ export namespace Deno {
    *
    * [ "/etc/passwd" ]
    */
-  export const args: string[];
+  export let args: string[];
 
   /**
    * A symbol which can be used as a key for a custom method which will be

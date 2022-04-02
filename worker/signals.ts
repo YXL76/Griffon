@@ -11,7 +11,7 @@ function noop() {
 
 function term(sig: number) {
   msg2Parent({ _t: ParentChildTp.exit, code: sig, sig });
-  return self.close() as never;
+  return undefined as never;
 }
 
 function stop() {

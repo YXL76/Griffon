@@ -12,14 +12,14 @@ import {
 import type {
   DenoNamespace,
   FilePerms,
-  FileResource,
   FileSystem,
+  StdFileResource,
   StorageDevice,
 } from "@griffon/deno-std";
 
 type FSHandle = FileSystemDirectoryHandle | FileSystemFileHandle;
 
-class FileAccessFile implements FileResource {
+class FileAccessFile implements StdFileResource {
   #offset = 0;
 
   readonly #handle: FSHandle;

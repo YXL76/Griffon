@@ -32,6 +32,7 @@ import {
   stdout,
 } from "./runtime";
 import type { DenoClass, DenoDeprecated, DenoFFI, Resource } from "./types";
+import { getNoColor, setNoColor } from "./ext";
 import type { Deno as DenoNamespace } from "./lib.deno";
 import { resolve } from "./deno_std/path/posix";
 
@@ -64,7 +65,7 @@ class ResourceTable {
 
   getOrThrow(rid: number) {
     const resc = this.#index.get(rid);
-    if (!resc) throw NotFound.from(`rid: ${rid}`);
+    if (!resc) throw new Error("Bad resource ID");
     return resc;
   }
 
@@ -92,7 +93,17 @@ export const PCB: {
   cwd: string;
   uid: number;
   env: Map<string, string>;
-} = { cwd: "/", uid: NaN, env: new Map([["HOME", "/"]]) };
+  stdout: "piped" | "null";
+  stderr: "piped" | "null";
+  stdin: "piped" | "null";
+} = {
+  cwd: "/",
+  uid: NaN,
+  env: new Map([["HOME", "/"]]),
+  stdout: "null",
+  stderr: "null",
+  stdin: "null",
+};
 
 export type DenoType = Omit<
   typeof DenoNamespace,
@@ -161,7 +172,7 @@ export const Deno: DenoType = {
     toObject: () => Object.fromEntries(PCB.env),
   },
 
-  execPath: () => "/usr/bin/deno",
+  execPath: () => "/bin/deno",
   chdir: (directory) => {
     const path = resolve(pathFromURL(directory));
 
@@ -329,6 +340,9 @@ export const Deno: DenoType = {
   upgradeHttp: notImplemented,
 };
 
-RESC_TABLE.add(null as unknown as Resource);
-RESC_TABLE.add(null as unknown as Resource);
-RESC_TABLE.add(null as unknown as Resource);
+Object.defineProperty(Deno, "noColor", {
+  get: getNoColor,
+  set: (value) => setNoColor(!!value),
+});
+
+Deno.noColor = true;

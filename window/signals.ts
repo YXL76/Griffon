@@ -1,3 +1,4 @@
+import { Deno } from "@griffon/deno-std";
 import type { DenoNamespace } from "@griffon/deno-std";
 import type { Signal } from "@griffon/shared";
 
@@ -10,32 +11,32 @@ function noop() {
 export const defaultSigHdls: Record<Signal, SigHandlers> = {
   /* eslint-disable @typescript-eslint/naming-convention */
   // TermSig
-  SIGALRM: () => self.Deno.exit(14),
-  SIGHUP: () => self.Deno.exit(1),
-  SIGINT: () => self.Deno.exit(2),
-  SIGKILL: () => self.Deno.exit(9),
-  SIGPIPE: () => self.Deno.exit(13),
-  SIGPROF: () => self.Deno.exit(24),
-  SIGTERM: () => self.Deno.exit(15),
-  SIGUSR1: () => self.Deno.exit(10),
-  SIGUSR2: () => self.Deno.exit(12),
-  SIGVTALRM: () => self.Deno.exit(26),
+  SIGALRM: () => Deno.exit(14),
+  SIGHUP: () => Deno.exit(1),
+  SIGINT: () => Deno.exit(2),
+  SIGKILL: () => Deno.exit(9),
+  SIGPIPE: () => Deno.exit(13),
+  SIGPROF: () => Deno.exit(24),
+  SIGTERM: () => Deno.exit(15),
+  SIGUSR1: () => Deno.exit(10),
+  SIGUSR2: () => Deno.exit(12),
+  SIGVTALRM: () => Deno.exit(26),
 
   // IgnSig
   SIGCHLD: noop,
   SIGURG: noop,
 
   // TermSig
-  SIGABRT: () => self.Deno.exit(6),
-  SIGBUS: () => self.Deno.exit(7),
-  SIGFPE: () => self.Deno.exit(8),
-  SIGILL: () => self.Deno.exit(4),
-  SIGQUIT: () => self.Deno.exit(3),
-  SIGSEGV: () => self.Deno.exit(11),
-  SIGSYS: () => self.Deno.exit(31),
-  SIGTRAP: () => self.Deno.exit(5),
-  SIGXCPU: () => self.Deno.exit(24),
-  SIGXFSZ: () => self.Deno.exit(25),
+  SIGABRT: () => Deno.exit(6),
+  SIGBUS: () => Deno.exit(7),
+  SIGFPE: () => Deno.exit(8),
+  SIGILL: () => Deno.exit(4),
+  SIGQUIT: () => Deno.exit(3),
+  SIGSEGV: () => Deno.exit(11),
+  SIGSYS: () => Deno.exit(31),
+  SIGTRAP: () => Deno.exit(5),
+  SIGXCPU: () => Deno.exit(24),
+  SIGXFSZ: () => Deno.exit(25),
 
   // The main thread cannot be stopped or continued.
   // StopSig

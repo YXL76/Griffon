@@ -78,7 +78,7 @@ export async function readAllInner(
   return concatBuffers(buffers);
 }
 
-export function readAllSync(r: DenoNamespace.FsFile) {
+export function readAllSync(r: { readSync(p: Uint8Array): number | null }) {
   const buffers: Uint8Array[] = [];
 
   // eslint-disable-next-line no-constant-condition
@@ -112,7 +112,10 @@ export function concatBuffers(buffers: Uint8Array[]) {
   return contents;
 }
 
-export function readAllSyncSized(r: DenoNamespace.FsFile, size: number) {
+export function readAllSyncSized(
+  r: { readSync(p: Uint8Array): number | null },
+  size: number
+) {
   const buf = new Uint8Array(size + 1); // 1B to detect extended files
   let cursor = 0;
 

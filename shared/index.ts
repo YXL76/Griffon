@@ -1,6 +1,7 @@
 export * from "./fetch";
 export * from "./fs";
 export * from "./message";
+export * from "./process";
 export * from "./signals";
 
 export const enum CONST {

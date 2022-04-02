@@ -1,5 +1,6 @@
 import {
   CONST,
+  NullFile,
   ParentChildTp,
   WinSvcChanTp,
   WinSvcTp,
@@ -9,7 +10,7 @@ import {
 } from "@griffon/shared";
 import { Channel, msg2Svc, winHandler } from "./message";
 import type { Child2Parent, Win2Win } from "@griffon/shared";
-import { Deno, PCB } from "@griffon/deno-std";
+import { Deno, PCB, RESC_TABLE } from "@griffon/deno-std";
 import {
   addSignalListener,
   defaultSigHdls,
@@ -36,13 +37,18 @@ export async function boot({ env = {} }: BootConfig = {}) {
   });
 
   self.Deno = Deno;
+  // TODO
+  RESC_TABLE.add(new NullFile("stdin"));
+  RESC_TABLE.add(new NullFile("stdout"));
+  RESC_TABLE.add(new NullFile("stderr"));
+
   // Pretend the max child process number is 64.
   self.SAB = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * 64);
   self.SAB32 = new Int32Array(self.SAB);
 
   self.addEventListener("message", winHandler);
   self.addEventListener("unload", () =>
-    msg2Svc({ _t: WinSvcTp.exit, pid: self.Deno.pid })
+    msg2Svc({ _t: WinSvcTp.exit, pid: Deno.pid })
   );
 
   for (const [key, value] of Object.entries(env)) Deno.env.set(key, value);
@@ -66,7 +72,7 @@ export async function boot({ env = {} }: BootConfig = {}) {
 
   const { pid } = await Channel.svc({ _t: WinSvcChanTp.user });
   PCB.uid = pid2Uid(pid);
-  self.Deno.pid = pid;
+  Deno.pid = pid;
 
   const rootfs = await hackDeno();
   self.ROOT_FS = rootfs;
@@ -76,25 +82,25 @@ export async function boot({ env = {} }: BootConfig = {}) {
 }
 
 function hackDeno() {
-  self.Deno.exit = () => self.close() as never;
+  Deno.exit = () => self.close() as never;
 
-  self.Deno.addSignalListener = addSignalListener;
+  Deno.addSignalListener = addSignalListener;
 
-  self.Deno.removeSignalListener = removeSignalListener;
+  Deno.removeSignalListener = removeSignalListener;
 
-  self.Deno.run = (opt) => new Process(opt);
+  Deno.run = (opt) => new Process(opt);
 
-  self.Deno.kill = (pid, sig) => {
+  Deno.kill = (pid, sig) => {
     if (!Object.hasOwn(defaultSigHdls, sig))
       throw new TypeError(`Unknown signal: ${sig}`);
 
     const data: Win2Win = { _t: WinWinTp.kill, pid, sig };
-    if (pid === self.Deno.pid || pid2Uid(pid) === PCB.uid) {
+    if (pid === Deno.pid || pid2Uid(pid) === PCB.uid) {
       self.dispatchEvent(new MessageEvent("message", { data }));
     } else self.postMessage(data, self.location.origin);
   };
 
-  self.Deno.sleepSync = (millis) => {
+  Deno.sleepSync = (millis) => {
     console.warn("Try not to use Deno.sleepSync in main thread.");
     const start = performance.now();
     while (performance.now() - start < millis) {

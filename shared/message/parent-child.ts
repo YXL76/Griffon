@@ -9,14 +9,20 @@ export const enum ParentChildTp {
   none,
   /** Basic process information. */
   proc,
-  /** The code to run. */
-  code,
+  /** The Node.js code to run. */
+  node,
+  /** The Deno code to run. */
+  deno,
   /** The process is going to exit. */
   exit,
   /** Like POSIX kill. */
   kill,
   /** Filesystem sync request. */
   fsSync,
+
+  stdin,
+  stdout,
+  stderr,
 }
 
 type Msg<T extends ParentChildTp, D = Dict> = { _t: T } & D;
@@ -51,10 +57,19 @@ export type Parent2Child =
         wid: number;
         sab: SharedArrayBuffer;
         winSab: SharedArrayBuffer;
+
+        args: string[];
+        stdout: "piped" | "null";
+        stderr: "piped" | "null";
+        stdin: "piped" | "null";
       }
     >
-  | Msg<ParentChildTp.code, { code: string }>
+  | Msg<ParentChildTp.node, { code: string }>
+  | Msg<ParentChildTp.deno, { code: string }>
   | Msg<ParentChildTp.kill, { sig: SignalNoCont }>
+  | Msg<ParentChildTp.stdin>
+  | Msg<ParentChildTp.stdout>
+  | Msg<ParentChildTp.stderr>
   | FSSyncMsg;
 
 export type Child2Parent =

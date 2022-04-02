@@ -3,11 +3,19 @@ import {
   ParentChildTp,
   WinWkrTp,
   fsSyncHandler,
+  parseCmd,
+  parseStdio,
   pid2Wid,
+  stdioFile,
+  textDecoder,
 } from "@griffon/shared";
-import type { Child2Parent, Parent2Child } from "@griffon/shared";
+import type {
+  Child2Parent,
+  Parent2Child,
+  StdioReadOnlyFile,
+} from "@griffon/shared";
 import type { ChildResource, DenoNamespace } from "@griffon/deno-std";
-import { PCB, RESC_TABLE, pathFromURL } from "@griffon/deno-std";
+import { Deno, PCB, RESC_TABLE, readAllSyncSized } from "@griffon/deno-std";
 import { defaultSigHdls } from "./signals";
 import { msg2Win } from "./message";
 
@@ -27,9 +35,9 @@ export class Process<
 
   #code = 0;
 
-  #output = new Uint8Array();
+  #output?: Uint8Array;
 
-  #stderrOutput = new Uint8Array();
+  #stderrOutput?: Uint8Array;
 
   readonly #statusQueue: ((value: DenoNamespace.ProcessStatus) => void)[] = [];
 
@@ -39,11 +47,11 @@ export class Process<
 
   readonly #sab = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT);
 
-  readonly stdin = null as DenoNamespace.Process<T>["stdin"];
+  readonly stdin: DenoNamespace.Process<T>["stdin"] & { rid: number };
 
-  readonly stdout = null as DenoNamespace.Process<T>["stdout"];
+  readonly stdout: DenoNamespace.Process<T>["stdout"] & { rid: number };
 
-  readonly stderr = null as DenoNamespace.Process<T>["stderr"];
+  readonly stderr: DenoNamespace.Process<T>["stderr"] & { rid: number };
 
   constructor({
     cmd,
@@ -51,17 +59,18 @@ export class Process<
     clearEnv = false,
     env = {},
     // gid = undefined,
-    // stdout = "inherit",
-    // stderr = "inherit",
-    // stdin = "inherit",
+    stdout = "inherit",
+    stderr = "inherit",
+    stdin = "inherit",
     uid = PCB.uid,
   }: T & { clearEnv?: boolean; gid?: number; uid?: number }) {
-    if (cmd[0] != null) cmd[0] = pathFromURL(cmd[0]);
+    const { type, file, args } = parseCmd(self.ROOT_FS, cmd);
 
-    if (cmd[0] !== "deno" && cmd[0] !== "node")
-      throw new Error("Invalid command");
+    if (!clearEnv) env = { ...Deno.env.toObject(), ...env };
 
-    if (!clearEnv) env = { ...self.Deno.env.toObject(), ...env };
+    stdout = parseStdio(stdout, PCB.stdout);
+    stderr = parseStdio(stderr, PCB.stderr);
+    stdin = parseStdio(stdin, PCB.stdin);
 
     /**
      * @notice Chromium need some time(about 20ms) to set up the worker.
@@ -94,42 +103,39 @@ export class Process<
       {
         _t: ParentChildTp.proc,
         pid: this.pid,
-        ppid: self.Deno.pid,
+        ppid: Deno.pid,
         cwd,
         uid,
         env,
         wid: this.#wid,
         sab: this.#sab,
         winSab: self.WIN_SAB,
+
+        args,
+        stdout,
+        stderr,
+        stdin,
       },
       [port2]
     );
 
+    const ret = stdioFile(stdin, stdout, stderr, this.#toChild.bind(this));
+    this.stdin = ret.stdin;
+    this.stdout = ret.stdout;
+    this.stderr = ret.stderr;
+
     this.#rid = RESC_TABLE.add(this);
 
-    if (self.WID <= 5) {
-      // Temporary
-      this.#toChild({
-        _t: ParentChildTp.code,
-        code: `const { createHash } = require("crypto");
-const { spawn } = require("child_process");
-
-const hash = createHash("sha256");
-
-hash.on("readable", () => {
-  const data = hash.read();
-  if (data) console.log(process.pid, data.toString("hex"));
-});
-
-hash.write("some data to hash");
-hash.end();
-
-const node = spawn("node", { stdio: "ignore" });
-node.on("close", (code) =>
-  console.log(\`child process \${process.pid} exited with code \${code}\`)
-);`,
+    self.ROOT_FS.readFile(file)
+      .then((buf) => {
+        const code = textDecoder.decode(buf);
+        this.#toChild({ _t: type, code });
+      })
+      .catch((err) => {
+        console.error(err);
+        this.#code = 1;
+        this.close();
       });
-    }
   }
 
   get name() {
@@ -155,7 +161,13 @@ node.on("close", (code) =>
       throw new TypeError("stdout was not piped");
     }
 
-    if (!this.#worker) return Promise.resolve(this.#output);
+    if (!this.#worker) {
+      if (!this.#output) throw new Error("Bad resource ID");
+
+      const ret = this.#output;
+      this.#output = undefined;
+      return Promise.resolve(ret);
+    }
 
     return new Promise((resolve) => this.#outputQueue.push(resolve));
   }
@@ -165,7 +177,13 @@ node.on("close", (code) =>
       throw new TypeError("stderr was not piped");
     }
 
-    if (!this.#worker) return Promise.resolve(this.#stderrOutput);
+    if (!this.#worker) {
+      if (!this.#stderrOutput) throw new Error("Bad resource ID");
+
+      const ret = this.#stderrOutput;
+      this.#stderrOutput = undefined;
+      return Promise.resolve(ret);
+    }
 
     return new Promise((resolve) => this.#stderrOutputQueue.push(resolve));
   }
@@ -173,9 +191,29 @@ node.on("close", (code) =>
   close() {
     if (!this.#worker) return;
 
-    // msg2Svc({ _t: WkrSvcTp.exit, pid: this.pid });
+    // msg2Svc({ _t: WinSvcTp.exit, pid: this.pid });
     this.#worker.terminate();
     this.#worker = undefined;
+
+    this.stdin.close();
+
+    try {
+      const stdout = <StdioReadOnlyFile>RESC_TABLE.getOrThrow(this.stdout.rid);
+      const { size } = stdout.statSync();
+      this.#output = readAllSyncSized(stdout, size);
+    } finally {
+      this.stdout.close();
+    }
+    this.#output ??= new Uint8Array(0);
+
+    try {
+      const stderr = <StdioReadOnlyFile>RESC_TABLE.getOrThrow(this.stderr.rid);
+      const { size } = stderr.statSync();
+      this.#stderrOutput = readAllSyncSized(stderr, size);
+    } finally {
+      this.stderr.close();
+    }
+    this.#stderrOutput ??= new Uint8Array(0);
 
     if (this.#statusQueue.length) {
       const status = this.#runStatus();
@@ -183,12 +221,18 @@ node.on("close", (code) =>
       this.#statusQueue.length = 0;
     }
     if (this.#outputQueue.length) {
-      this.#outputQueue.forEach((q) => q(this.#output));
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      this.#outputQueue.forEach((q) => q(this.#output!));
       this.#outputQueue.length = 0;
+
+      this.#output = undefined;
     }
     if (this.#stderrOutputQueue.length) {
-      this.#stderrOutputQueue.forEach((q) => q(this.#stderrOutput));
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      this.#stderrOutputQueue.forEach((q) => q(this.#stderrOutput!));
       this.#stderrOutputQueue.length = 0;
+
+      this.#stderrOutput = undefined;
     }
   }
 
