@@ -7,6 +7,7 @@ import type {
 } from "@griffon/window";
 import type Shelljs from "shelljs";
 import { Terminal } from "xterm";
+import { WebLinksAddon } from "xterm-addon-web-links";
 import { boot } from "@griffon/window";
 
 const windowsMode =
@@ -21,12 +22,15 @@ const term = new Terminal({
   windowsMode,
   fontSize: 22,
 });
+const weblink = new WebLinksAddon();
+term.loadAddon(weblink);
 
 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 term.open(document.getElementById("terminal")!);
 term.focus();
 
 term.writeln("Hello from \x1B[1;3;31mGriffon\x1B[0m");
+term.writeln("Details: https://github.com/YXL76/Griffon");
 term.writeln("");
 term.writeln(
   "You can add devices on the right panel. You need to give a \x1B[1;34munique\x1B[0m ID."
@@ -37,23 +41,36 @@ term.writeln("");
 term.writeln("To mount a device, type");
 term.writeln("  # mount /mount/point /dev/deviceX");
 term.writeln("");
-term.writeln("If you want to remove a device, type");
+term.writeln("To remove a device, type");
 term.writeln("  # rm -f /dev/deviceX");
+term.writeln("");
+term.writeln("If you want to run your code, type");
+term.writeln("  # node mycode.js");
+term.writeln("or");
+term.writeln("  # deno run mycode.js");
+term.writeln(
+  "\x1B[1;31mNOTE:\x1B[0m the program must end with \x1B[3mDeno.exit()\x1B[0m or \x1B[3mprocess.exit()\x1B[0m, or the terminal will hang up"
+);
 term.writeln("");
 term.writeln("Enter \x1B[1;34mtab\x1B[0m for autocomplete.");
 term.writeln("");
 term.writeln("First, you need to click the \x1B[1;34mBoot\x1B[0m button.");
 
-const { require, rootfs } = await new Promise<Awaited<ReturnType<typeof boot>>>(
-  (resolve) => {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    document
-      .getElementById("boot-btn")!
-      .addEventListener("click", () => void boot().then(resolve).catch(alert), {
-        once: true,
-      });
-  }
-);
+// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+const bootBtn = document.getElementById("boot-btn")! as HTMLButtonElement;
+// eslint-disable-next-line @typescript-eslint/naming-convention
+const { require, rootfs, Deno } = await new Promise<
+  Awaited<ReturnType<typeof boot>>
+>((resolve) => {
+  bootBtn.addEventListener(
+    "click",
+    () => {
+      bootBtn.disabled = true;
+      void boot().then(resolve).catch(alert);
+    },
+    { once: true }
+  );
+});
 
 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 const faInput = document.getElementById("fa-input")! as HTMLInputElement;
@@ -80,14 +97,11 @@ document.getElementById("idb-btn")!.addEventListener("click", () => {
     .catch(alert);
 });
 
-declare const SHELLJS_CODE_BYTES: string;
-// eslint-disable-next-line @typescript-eslint/naming-convention
-declare const Deno: { cwd(): string };
-
 const head = () => `${Deno.cwd()}# `;
 
 // eslint-disable-next-line prefer-const
 let module = {} as { exports: { default: typeof Shelljs } };
+declare const SHELLJS_CODE_BYTES: string;
 // eslint-disable-next-line @typescript-eslint/no-implied-eval
 new Function("require", "module", SHELLJS_CODE_BYTES)(require, module);
 
@@ -122,6 +136,9 @@ const commands = [
   "clear",
   "mount",
   "umount",
+
+  "node",
+  "deno",
 ] as const;
 
 let hispos = 0;
@@ -210,8 +227,10 @@ term.write(head());
 type ExtractArray<A> = A extends ReadonlyArray<infer R> ? R : never;
 type Keys = Exclude<
   ExtractArray<typeof commands>,
-  "clear" | "mount" | "umount"
+  "clear" | "mount" | "umount" | "node" | "deno"
 >;
+
+const textDecoder = new TextDecoder();
 
 async function newline(line: string) {
   linelock = true;
@@ -236,6 +255,17 @@ async function newline(line: string) {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
       await rootfs.umount(...args);
+    } else if (command === "node" || command === "deno") {
+      const p = Deno.run({
+        cmd: [command, ...args],
+        stdout: "piped",
+        stderr: "piped",
+      });
+      const { success } = await p.status();
+      const str = success ? p.output() : p.stderrOutput();
+      const lines = textDecoder.decode(await str).split("\n");
+      if (lines.length && lines[lines.length - 1] === "") lines.pop();
+      lines.forEach((l) => term.writeln(l));
     } else {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore

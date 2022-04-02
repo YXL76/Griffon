@@ -78,7 +78,8 @@ export async function boot({ env = {} }: BootConfig = {}) {
   self.ROOT_FS = rootfs;
   const require = await hackNode();
 
-  return { require, rootfs };
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  return { require, rootfs, Deno };
 }
 
 function hackDeno() {
