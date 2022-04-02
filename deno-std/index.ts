@@ -99,7 +99,10 @@ export const PCB: {
 } = {
   cwd: "/",
   uid: NaN,
-  env: new Map([["HOME", "/"]]),
+  env: new Map([
+    ["HOME", "/"],
+    ["TMPDIR", "/tmp"],
+  ]),
   stdout: "null",
   stderr: "null",
   stdin: "null",

@@ -441,6 +441,9 @@ class IndexedDBFileSystem implements FileSystem {
       if (!options.create && !options.createNew)
         throw NotFound.from(`open '${pathStr}'`);
 
+      if (!(await this.stat(dirname(absPath))).isDirectory)
+        throw NotFound.from(`open '${pathStr}'`);
+
       info = newFileInfo();
       ino = await this.#db.add("table", info);
       await Promise.all([

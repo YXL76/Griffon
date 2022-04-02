@@ -416,24 +416,46 @@ export class UnionFileSystem
     return super.mkdir(rp, options);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  makeTempDirSync(_options?: DenoNamespace.MakeTempOptions): string {
-    notImplemented();
+  makeTempDirSync(options?: DenoNamespace.MakeTempOptions) {
+    return this.#makeTmpSync(true, options);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  makeTempDir(_options?: DenoNamespace.MakeTempOptions): Promise<string> {
-    notImplemented();
+  makeTempDir(options?: DenoNamespace.MakeTempOptions) {
+    return this.#makeTmp(true, options);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  makeTempFileSync(_options?: DenoNamespace.MakeTempOptions): string {
-    notImplemented();
+  makeTempFileSync(options?: DenoNamespace.MakeTempOptions) {
+    return this.#makeTmpSync(false, options);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  makeTempFile(_options?: DenoNamespace.MakeTempOptions): Promise<string> {
-    notImplemented();
+  makeTempFile(options?: DenoNamespace.MakeTempOptions) {
+    return this.#makeTmp(false, options);
+  }
+
+  #makeTmpSync(
+    isdir: boolean,
+    { dir, prefix = "", suffix = "" }: DenoNamespace.MakeTempOptions = {}
+  ) {
+    const name = `${prefix}${Math.random().toString(16)}${suffix}`;
+    const path = resolve(dir || Deno.env.get("TMPDIR") || "/tmp", name);
+
+    if (isdir) this.createSync(path);
+    else this.mkdirSync(path);
+
+    return path;
+  }
+
+  async #makeTmp(
+    isdir: boolean,
+    { dir, prefix = "", suffix = "" }: DenoNamespace.MakeTempOptions = {}
+  ) {
+    const name = `${prefix}${Math.random().toString(16)}${suffix}`;
+    const path = resolve(dir || Deno.env.get("TMPDIR") || "/tmp", name);
+
+    if (isdir) await this.create(path);
+    else await this.mkdir(path);
+
+    return path;
   }
 
   override chmodSync(path: string | URL, mode: number) {
