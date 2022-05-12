@@ -10,22 +10,22 @@
     "pnp": "yarn sdks vscode vim"
   },
   "resolutions": {
-    "esbuild": "0.14.29"
+    "esbuild": "0.14.39"
   },
   "devDependencies": {
-    "@types/eslint": "8.4.1",
-    "@typescript-eslint/eslint-plugin": "5.17.0",
-    "@typescript-eslint/parser": "5.17.0",
-    "@yarnpkg/sdks": "2.6.0",
-    "eslint": "8.12.0",
+    "@types/eslint": "8.4.2",
+    "@typescript-eslint/eslint-plugin": "5.23.0",
+    "@typescript-eslint/parser": "5.23.0",
+    "@yarnpkg/sdks": "3.0.0-rc.5",
+    "eslint": "8.15.0",
     "eslint-config-prettier": "8.5.0",
     "eslint-plugin-prettier": "4.0.0",
-    "prettier": "2.6.1",
-    "typescript": "4.6.3"
+    "prettier": "2.6.2",
+    "typescript": "4.6.4"
   },
   "workspaces": [
     "./*",
     "./examples/*"
   ],
-  "packageManager": "yarn@3.2.0"
+  "packageManager": "yarn@4.0.0-rc.5"
 }
